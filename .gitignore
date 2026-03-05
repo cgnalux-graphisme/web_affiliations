@@ -1,0 +1,16 @@
+# Fichiers secrets — NE JAMAIS commiter ces fichiers
+.env
+.env.local
+.env.*.local
+
+# Dépendances installées (trop lourdes pour Git)
+node_modules/
+
+# Fichiers de build
+dist/
+build/
+.next/
+
+# Fichiers système Windows
+Thumbs.db
+desktop.ini
