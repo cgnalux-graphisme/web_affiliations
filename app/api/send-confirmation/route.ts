@@ -22,8 +22,14 @@ const TEL_LUXEMBOURG = "+32 (0) 61 53 01 60";
 const SITE_WEB      = "www.accg-nalux.be";
 const IBAN_VIREMENT = "BE94 8791 5049 0114";
 
-// ── Client Resend ──────────────────────────────────────────────────────────────
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ── Client Resend (initialisation différée) ───────────────────────────────────
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("Variable d'environnement RESEND_API_KEY manquante côté serveur");
+  }
+  return new Resend(apiKey);
+}
 
 // ── Types des données reçues ───────────────────────────────────────────────────
 interface EmailPayload {
@@ -297,6 +303,7 @@ export async function POST(request: Request) {
     }
 
     const pdfBuffer = Buffer.from(pdfBase64, "base64");
+    const resend = getResendClient();
 
     const { error } = await resend.emails.send({
       from:    process.env.RESEND_FROM_EMAIL ?? "noreply@accg.be",
