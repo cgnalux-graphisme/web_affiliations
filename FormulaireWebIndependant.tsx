@@ -39,6 +39,7 @@ import {
   StyleSheet as PDFStyleSheet,
   PDFDownloadLink,
   Image as PDFImage,
+  pdf,
 } from "@react-pdf/renderer";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -346,10 +347,21 @@ function getMontantParAnnee(categorie: string, annee: string): number | null {
 //     puis chaque trimestre complet restant dans l'année.
 // ═══════════════════════════════════════════════════════════════════════════════
 interface Echeance {
-  nom: string;     // ex: "2e Trimestre"
-  periode: string; // ex: "Mai – Juin"
-  nbMois: number;  // nombre de mois concernés
-  montant: number; // montant total à payer pour cette échéance
+  nom: string;          // ex: "2e Trimestre"
+  periode: string;      // ex: "Mai – Juin"
+  nbMois: number;       // nombre de mois concernés
+  montant: number;      // montant total à payer pour cette échéance
+  dateEcheance: string; // ex: "31 mars 2026"
+}
+
+/**
+ * Paiement immédiat pour les affiliations démarrant en 2025.
+ * Pour le mode virement, les mois 2025 ne font pas l'objet d'un échéancier :
+ * l'affilié règle la totalité en 1 seul virement immédiat.
+ */
+interface Paiement2025 {
+  moisCouverts: string[];  // ex: ["Octobre 2025", "Novembre 2025", "Décembre 2025"]
+  montant: number;         // total à payer en une seule fois
 }
 
 const NOMS_TRIMESTRES = ["1er Trimestre", "2e Trimestre", "3e Trimestre", "4e Trimestre"];
@@ -369,19 +381,23 @@ function calculerEcheancesTrimestrielles(montantMensuel: number, mois: number, a
 
   // 1er paiement : mois restants du trimestre de départ (peut être 1, 2 ou 3 mois)
   echeances.push({
-    nom:     `${NOMS_TRIMESTRES[qIdx]} ${annee}`,
-    periode: MOIS_PAR_TRIMESTRE[qIdx].slice(posInQ).join(" – "),
-    nbMois:  restant,
-    montant: montantMensuel * restant,
+    nom:          `${NOMS_TRIMESTRES[qIdx]} ${annee}`,
+    periode:      MOIS_PAR_TRIMESTRE[qIdx].slice(posInQ).join(" – "),
+    nbMois:       restant,
+    montant:      montantMensuel * restant,
+    // Date d'échéance : toujours le 15 du 1er mois de la période
+    dateEcheance: `15 ${MOIS_PAR_TRIMESTRE[qIdx][posInQ]} ${annee}`,
   });
 
   // Trimestres complets suivants dans la même année
   for (let q = qIdx + 1; q < 4; q++) {
     echeances.push({
-      nom:     `${NOMS_TRIMESTRES[q]} ${annee}`,
-      periode: `${MOIS_PAR_TRIMESTRE[q][0]} – ${MOIS_PAR_TRIMESTRE[q][2]}`,
-      nbMois:  3,
-      montant: montantMensuel * 3,
+      nom:          `${NOMS_TRIMESTRES[q]} ${annee}`,
+      periode:      `${MOIS_PAR_TRIMESTRE[q][0]} – ${MOIS_PAR_TRIMESTRE[q][2]}`,
+      nbMois:       3,
+      montant:      montantMensuel * 3,
+      // Date d'échéance : toujours le 15 du 1er mois de la période
+      dateEcheance: `15 ${MOIS_PAR_TRIMESTRE[q][0]} ${annee}`,
     });
   }
 
@@ -427,7 +443,9 @@ function calculerEcheancesDomiciliation(
     const diff     = debitAbs - curAbs; // mois d'écart entre start et date de prélèvement
 
     // Nombre de mois à prendre : jusqu'au mois du prélèvement (inclus), max 3
+    // Si diff < 0 (date de début future > premier prélèvement), on sort proprement
     const nbMois = Math.min(3, diff + 1);
+    if (nbMois <= 0) break;
 
     // Construire le groupe de mois
     const group: { y: number; m: number }[] = [];
@@ -1191,131 +1209,397 @@ function SignatureCanvas({
 // ═══════════════════════════════════════════════════════════════════════════════
 // 7. PDF — Styles et document AffiliationDocument
 //    @react-pdf/renderer génère un vrai fichier PDF côté client (navigateur).
-//    Les styles ici sont proches du CSS mais limités aux propriétés supportées
-//    par la librairie (pas de Tailwind, pas de flexbox gaps, etc.).
+//    Mise en page : 2 pages A4 maximum.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const pdfStyles = PDFStyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 10,
-    paddingTop: 30,
-    paddingBottom: 50,
-    paddingLeft: 35,
-    paddingRight: 35,
+    fontSize: 9,
+    // Marges "impression normales" pour une page A4
+    // (~1,5–2 cm tout autour)
+    paddingTop: 40,
+    paddingBottom: 40,
+    paddingLeft: 40,
+    paddingRight: 40,
     backgroundColor: "#ffffff",
     color: "#111827",
   },
 
-  // ── Bandeau rouge FGTB en haut ───────────────────────────────────────────
+  // ── Bandeau rouge FGTB ───────────────────────────────────────────────────
   header: {
     backgroundColor: "#b91c1c",
-    paddingTop: 14,
-    paddingBottom: 14,
-    paddingLeft: 18,
-    paddingRight: 18,
-    marginBottom: 20,
-    borderRadius: 4,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerBadge: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 6,
-    paddingTop: 6,
-    paddingBottom: 6,
+    paddingTop: 12,
+    paddingBottom: 12,
     paddingLeft: 10,
     paddingRight: 10,
-    marginRight: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  headerBadgeText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Helvetica-Bold",
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  // Largeur seule → ratio préservé automatiquement par react-pdf
+  logoImage: {
+    width: 96,
+    marginRight: 12,
   },
   headerTitle: {
     color: "#ffffff",
-    fontSize: 16,
+    fontSize: 13,
     fontFamily: "Helvetica-Bold",
+    textAlign: "center",
   },
   headerSubtitle: {
     color: "#fca5a5",
-    fontSize: 9,
+    fontSize: 7.5,
+    marginTop: 2,
+  },
+  headerRight: {
+    alignItems: "flex-end",
+  },
+  headerDateLabel: {
+    color: "#fecaca",
+    fontSize: 6.5,
+  },
+  headerDateValue: {
+    color: "#ffffff",
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 1,
+  },
+  headerMember: {
+    color: "#fecaca",
+    fontSize: 7,
     marginTop: 3,
+    textAlign: "right",
   },
 
-  // ── Titre de section (bandelette rouge + texte blanc) ────────────────────
+  // ── Corps de la page ─────────────────────────────────────────────────────
+  body: {
+    // Contenu principal aligné sur les marges A4
+    paddingLeft: 0,
+    paddingRight: 0,
+    paddingTop: 10,
+  },
+
+  // ── Titre de section ─────────────────────────────────────────────────────
   sectionTitle: {
     backgroundColor: "#b91c1c",
     color: "#ffffff",
     fontFamily: "Helvetica-Bold",
-    fontSize: 10,
-    paddingTop: 5,
-    paddingBottom: 5,
-    paddingLeft: 9,
-    paddingRight: 9,
-    marginBottom: 7,
-    marginTop: 4,
-    borderRadius: 3,
+    fontSize: 8,
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 7,
+    paddingRight: 7,
+    marginBottom: 5,
+    marginTop: 7,
+    borderRadius: 2,
   },
-  section: {
-    marginBottom: 12,
-  },
+  section: { marginBottom: 3 },
 
-  // ── Ligne label / valeur ────────────────────────────────────────────────
+  // ── Grille 2 colonnes ────────────────────────────────────────────────────
+  twoCol: { flexDirection: "row" },
+  colLeft:  { flex: 1, marginRight: 12 },
+  colRight: { flex: 1 },
+
+  // ── Ligne label / valeur ─────────────────────────────────────────────────
   row: {
     flexDirection: "row",
-    marginBottom: 4,
+    marginBottom: 3.5,
   },
   label: {
-    width: "38%",
+    width: "42%",
     fontFamily: "Helvetica-Bold",
-    fontSize: 9,
-    color: "#374151",
+    fontSize: 7.5,
+    color: "#6b7280",
   },
   value: {
-    width: "62%",
-    fontSize: 9,
+    width: "58%",
+    fontSize: 7.5,
     color: "#111827",
   },
 
-  // ── Zone signature ───────────────────────────────────────────────────────
-  signatureBox: {
+  // ── Section 0 — Réservé administration ───────────────────────────────────
+  adminBox: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderStyle: "solid",
-    borderRadius: 4,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+    borderRadius: 3,
     paddingTop: 6,
     paddingBottom: 6,
-    paddingLeft: 8,
-    paddingRight: 8,
-    marginTop: 6,
-    backgroundColor: "#f9fafb",
+    paddingLeft: 10,
+    paddingRight: 10,
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
   },
-  signatureImage: {
-    width: 220,
-    height: 65,
+  adminFieldWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
   },
-  signatureDate: {
-    fontSize: 8,
-    color: "#6b7280",
-    marginTop: 5,
-    fontFamily: "Helvetica-Oblique",
+  adminFieldLabel: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#374151",
+    marginRight: 6,
+    width: "52%",
+  },
+  adminFieldLine: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    borderBottomStyle: "solid",
+    height: 12,
   },
 
-  // ── Pied de page ────────────────────────────────────────────────────────
+  // ── Encadré cotisation (compact) ──────────────────────────────────────────
+  cotisationBox: {
+    backgroundColor: "#f0fdf4",
+    borderWidth: 1,
+    borderColor: "#86efac",
+    borderStyle: "solid",
+    borderRadius: 3,
+    paddingTop: 4,
+    paddingBottom: 4,
+    paddingLeft: 8,
+    paddingRight: 8,
+    marginTop: 3,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  cotisationMontant: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    color: "#15803d",
+    marginRight: 8,
+  },
+  cotisationCatLabel: {
+    fontSize: 7,
+    color: "#166534",
+    fontFamily: "Helvetica-Bold",
+  },
+  cotisationCatSub: {
+    fontSize: 6.5,
+    color: "#4ade80",
+    marginTop: 1,
+  },
+  cotisationNote: {
+    fontSize: 6.5,
+    color: "#6b7280",
+    marginTop: 4,
+    lineHeight: 1.3,
+  },
+
+  // ── Tableau écheancier ────────────────────────────────────────────────────
+  echeancierWrap: {
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  echeancierHeaderRow: {
+    flexDirection: "row",
+    backgroundColor: "#f9fafb",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    borderTopStyle: "solid",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    borderBottomStyle: "solid",
+    paddingTop: 2,
+    paddingBottom: 2,
+  },
+  echeancierRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    borderBottomStyle: "solid",
+    paddingTop: 2,
+    paddingBottom: 2,
+  },
+  echeancierCellDate: {
+    width: "30%",
+    fontSize: 7,
+    paddingLeft: 4,
+    color: "#111827",
+  },
+  echeancierCellPeriode: {
+    flex: 1,
+    fontSize: 7,
+    paddingLeft: 4,
+    color: "#374151",
+  },
+  echeancierCellMontant: {
+    width: "18%",
+    fontSize: 7,
+    fontFamily: "Helvetica-Bold",
+    color: "#111827",
+    textAlign: "right",
+    paddingRight: 4,
+  },
+  echeancierHeaderText: {
+    fontSize: 6.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#6b7280",
+    paddingLeft: 4,
+  },
+
+  // ── Encadré info paiement ─────────────────────────────────────────────────
+  infoBox: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "solid",
+    borderRadius: 3,
+    paddingTop: 5,
+    paddingBottom: 5,
+    paddingLeft: 8,
+    paddingRight: 8,
+    marginTop: 4,
+  },
+  // Encadré paiement immédiat 2025 — bandeau amber à gauche
+  paiement2025Box: {
+    backgroundColor: "#fffbeb",
+    borderTopWidth: 1,
+    borderTopColor: "#fde68a",
+    borderTopStyle: "solid",
+    borderRightWidth: 1,
+    borderRightColor: "#fde68a",
+    borderRightStyle: "solid",
+    borderBottomWidth: 1,
+    borderBottomColor: "#fde68a",
+    borderBottomStyle: "solid",
+    borderLeftWidth: 3,
+    borderLeftColor: "#f59e0b",
+    borderLeftStyle: "solid",
+    borderRadius: 3,
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingLeft: 10,
+    paddingRight: 8,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  // Encadré SEPA stylisé — bandeau rouge à gauche
+  sepaBox: {
+    backgroundColor: "#fff8f8",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    borderTopStyle: "solid",
+    borderRightWidth: 1,
+    borderRightColor: "#e5e7eb",
+    borderRightStyle: "solid",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    borderBottomStyle: "solid",
+    borderLeftWidth: 3,
+    borderLeftColor: "#b91c1c",
+    borderLeftStyle: "solid",
+    borderRadius: 3,
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingLeft: 10,
+    paddingRight: 8,
+    marginTop: 4,
+  },
+  infoBoxTitle: {
+    fontSize: 7,
+    fontFamily: "Helvetica-Bold",
+    color: "#374151",
+    marginBottom: 3,
+  },
+
+  // ── Mentions légales ──────────────────────────────────────────────────────
+  mentionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 2.5,
+  },
+  mentionBadgeOk: {
+    backgroundColor: "#dcfce7",
+    borderWidth: 1,
+    borderColor: "#86efac",
+    borderStyle: "solid",
+    borderRadius: 2,
+    paddingTop: 1,
+    paddingBottom: 1,
+    paddingLeft: 3,
+    paddingRight: 3,
+    marginRight: 5,
+    marginTop: 1,
+  },
+  mentionBadgeOkText: {
+    fontSize: 6,
+    color: "#15803d",
+    fontFamily: "Helvetica-Bold",
+  },
+  mentionContent: { flex: 1 },
+  mentionLabel: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#111827",
+  },
+  mentionDesc: {
+    fontSize: 6.5,
+    color: "#6b7280",
+    marginTop: 1,
+    lineHeight: 1.3,
+  },
+
+  // ── Zone signature ────────────────────────────────────────────────────────
+  signatureBox: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "solid",
+    borderRadius: 3,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+    paddingRight: 8,
+    marginTop: 3,
+    backgroundColor: "#f9fafb",
+    alignItems: "center",
+  },
+  signatureImage: {
+    width: 150,
+    alignSelf: "center",
+  },
+  signatureDate: {
+    fontSize: 6.5,
+    color: "#6b7280",
+    marginTop: 3,
+    fontFamily: "Helvetica-Oblique",
+  },
+  luApprouve: {
+    fontSize: 7,
+    color: "#6b7280",
+    marginTop: 6,
+    lineHeight: 1.5,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    borderTopStyle: "solid",
+    paddingTop: 5,
+    textAlign: "center",
+  },
+
+  // ── Pied de page ──────────────────────────────────────────────────────────
   footer: {
     position: "absolute",
-    bottom: 20,
-    left: 35,
-    right: 35,
+    bottom: 16,
+    left: 40,
+    right: 40,
     textAlign: "center",
-    fontSize: 7,
+    fontSize: 6,
     color: "#9ca3af",
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
     borderTopStyle: "solid",
-    paddingTop: 6,
+    paddingTop: 4,
   },
 });
 
@@ -1332,32 +1616,101 @@ function PdfRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+type PdfMentions = {
+  assistance:  boolean;
+  continuite:  boolean;
+  information: boolean;
+  accord:      boolean;
+  rgpd:        boolean;
+};
+
 /**
- * AffiliationDocument — Le document PDF complet avec 4 sections :
- *   1. Identité & adresse
- *   2. Situation professionnelle
- *   3. Mandat SEPA
- *   4. Signature
+ * Pré-calcule les échéances à passer en props à AffiliationDocument.
+ * À appeler dans le thread React principal (jamais dans le PDF worker).
  */
-function AffiliationDocument({ data }: { data: FormData }) {
-  const dateSignature = new Date().toLocaleDateString("fr-BE", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+function buildEcheanciers(data: FormData): {
+  echeancesDom:  EcheanceDom[];
+  echeancesVir:  Echeance[];
+  paiement2025:  Paiement2025 | null;
+} {
+  const moisNum    = data.affiliationMois ? parseInt(data.affiliationMois, 10) : 0;
+  const cotisation = calculerCotisation(data);
+  if (!cotisation || !moisNum)
+    return { echeancesDom: [], echeancesVir: [], paiement2025: null };
 
-  const adresseFull = [
-    `${data.rue} ${data.numero}${data.boite ? ` bte ${data.boite}` : ""}`,
-    `${data.codePostal} ${data.localite}`,
-    data.pays,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  if (data.modePaiement === "domiciliation") {
+    return {
+      echeancesDom: calculerEcheancesDomiciliation(
+        moisNum, data.affiliationAnnee, cotisation.categorie
+      ).slice(0, 6),
+      echeancesVir: [],
+      paiement2025: null,
+    };
+  }
 
-  const modePaiementLabel =
-    data.modePaiement === "domiciliation"
-      ? "Domiciliation automatique"
-      : "Virement manuel mensuel";
+  if (data.modePaiement === "virement") {
+    // Affiliation démarrant en 2025 → paiement unique immédiat pour 2025
+    //   + échéancier trimestriel complet pour 2026
+    if (data.affiliationAnnee === "2025") {
+      const tarif2025 = getMontantParAnnee(cotisation.categorie, "2025") ?? cotisation.montant;
+      const moisListe: string[] = [];
+      for (let m = moisNum; m <= 12; m++) {
+        moisListe.push(`${MONTHS_FR[m - 1]} 2025`);
+      }
+      const paiement2025: Paiement2025 = {
+        moisCouverts: moisListe,
+        montant: tarif2025 * moisListe.length,
+      };
+      const tarif2026 = getMontantParAnnee(cotisation.categorie, "2026") ?? cotisation.montant;
+      const echeancesVir = calculerEcheancesTrimestrielles(tarif2026, 1, "2026");
+      return { echeancesDom: [], echeancesVir, paiement2025 };
+    }
+
+    // Affiliation directement en 2026 → seul l'échéancier trimestriel 2026
+    return {
+      echeancesDom: [],
+      echeancesVir: calculerEcheancesTrimestrielles(
+        cotisation.montant, moisNum, data.affiliationAnnee
+      ).slice(0, 6),
+      paiement2025: null,
+    };
+  }
+
+  return { echeancesDom: [], echeancesVir: [], paiement2025: null };
+}
+
+/**
+ * AffiliationDocument — Formulaire PDF complet, 2 pages A4 maximum.
+ * Sections : 0. Admin  1. Identité  2. Adresse  3. Situation pro
+ *            4. Transfert  5. Cotisation  6. SEPA + Échéancier
+ *            7. Mentions légales  8. Signature
+ *
+ * Les échéanciers sont pré-calculés côté React (pas dans le worker PDF).
+ */
+function AffiliationDocument({
+  data,
+  mentions,
+  logoBase64,
+  echeancesDom,
+  echeancesVir,
+  paiement2025,
+  userIp,
+}: {
+  data: FormData;
+  mentions: PdfMentions;
+  logoBase64: string | null;
+  echeancesDom: EcheanceDom[];
+  echeancesVir: Echeance[];
+  paiement2025: Paiement2025 | null;
+  userIp: string;
+}) {
+  const now          = new Date();
+  const dateDoc      = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const heureDoc     = now.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
+  const dateSignLong = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "long", year: "numeric" });
+
+  const cotisation     = calculerCotisation(data);
+  const montantMensuel = cotisation ? cotisation.montant.toFixed(2) : null;
 
   const genreLabel =
     data.genre === "M" ? "Homme" : data.genre === "F" ? "Femme" : "Autre / Non-binaire";
@@ -1365,158 +1718,392 @@ function AffiliationDocument({ data }: { data: FormData }) {
   const situationProLabel = data.situationPro === "actif" ? "Actif(ve)" : "Inactif(ve)";
 
   const statutLabel: Record<string, string> = {
-    ouvrier:     "Ouvrier",
-    employe:     "Employé(e)",
-    interimaire: "Intérimaire",
-    etudiant:    "Étudiant(e)",
-    apprenti:    "Apprenti(e)",
-    cefa:        "CEFA / IFAPME",
-    pfi:         "Contrat PFI",
-    mutuelle:    "À la mutuelle",
+    ouvrier: "Ouvrier", employe: "Employé(e)", interimaire: "Intérimaire",
+    etudiant: "Étudiant(e)", apprenti: "Apprenti(e)", cefa: "CEFA / IFAPME",
+    pfi: "Contrat PFI", mutuelle: "A la mutuelle",
   };
-
   const typeInactifLabel: Record<string, string> = {
-    "pensionné":    "Pensionné(e)",
-    "prepensionné": "Prépensionné(e)",
-    "sans_emploi":  "Sans emploi",
-    "autre":        data.autreInactifPrecision || "Autre",
+    "pensionné": "Pensionné(e)", "prepensionné": "Prépensionné(e)",
+    "sans_emploi": "Sans emploi", "autre": data.autreInactifPrecision || "Autre",
   };
-
   const regimeLabel = (() => {
-    if (data.regimeTravail === "temps-plein")    return "Temps plein";
-    if (data.regimeTravail === "flexi")          return "Flexi-job";
+    if (data.regimeTravail === "temps-plein") return "Temps plein";
+    if (data.regimeTravail === "flexi")       return "Flexi-job";
     if (data.regimeTravail === "temps-partiel") {
-      const detail = data.regimeTravailDetail === "plus20h"  ? " (≥ 20h/sem.)"
-                   : data.regimeTravailDetail === "moins20h" ? " (< 20h/sem.)"
-                   : "";
-      return `Temps partiel${detail}`;
+      const d = data.regimeTravailDetail === "plus20h"  ? " (>= 20h/sem.)"
+              : data.regimeTravailDetail === "moins20h" ? " (< 20h/sem.)"
+              : "";
+      return `Temps partiel${d}`;
     }
     return "—";
   })();
 
+  const _moisNum = data.affiliationMois ? parseInt(data.affiliationMois, 10) : 0;
+  const affiliationDebut = _moisNum && data.affiliationAnnee
+    ? `${MONTHS_FR[_moisNum - 1]} ${data.affiliationAnnee}` : "—";
+  const modePaiementLabel =
+    data.modePaiement === "domiciliation" ? "Domiciliation automatique" : "Virement trimestriel";
+
+  const mentionsList: Array<{ key: keyof PdfMentions; label: string; desc: string }> = [
+    { key: "assistance",  label: "Assistance juridique",     desc: "Intervention de la CG FGTB Namur-Luxembourg uniquement pour les dossiers liés au droit du travail belge." },
+    { key: "continuite",  label: "Continuité d'affiliation", desc: "Autorisation de prélèvement des cotisations en retard sur tout avantage sectoriel confié pour paiement." },
+    { key: "information", label: "Obligation d'information", desc: "Engagement de signaler tout changement de coordonnées ou de situation professionnelle par écrit." },
+    { key: "accord",      label: "Accord général",           desc: "Prise de connaissance et accord sur les droits et obligations des membres CG FGTB Namur-Luxembourg." },
+    { key: "rgpd",        label: "RGPD",                     desc: "Accord sur le traitement des données personnelles conformément à la politique de confidentialité." },
+  ];
+
   return (
     <Document
       title={`FGTB Affiliation — ${data.nom} ${data.prenom}`}
-      author="FGTB"
-      subject="Formulaire de demande d'affiliation"
+      author="Centrale Générale FGTB Namur-Luxembourg"
+      subject="Formulaire d'affiliation"
     >
       <Page size="A4" style={pdfStyles.page}>
 
-        {/* ── Bandeau rouge FGTB ─────────────────────────────────────────── */}
+        {/* ══ BANDEAU ═══════════════════════════════════════════════════════ */}
         <View style={pdfStyles.header}>
-          <View style={pdfStyles.headerBadge}>
-            <PDFText style={pdfStyles.headerBadgeText}>FGTB</PDFText>
-          </View>
-          <View>
-            <PDFText style={pdfStyles.headerTitle}>Demande d&apos;affiliation</PDFText>
-            <PDFText style={pdfStyles.headerSubtitle}>
-              Fédération Générale du Travail de Belgique
-            </PDFText>
-          </View>
-        </View>
-
-        {/* ── Section 1 — Identité ────────────────────────────────────────── */}
-        <View style={pdfStyles.section}>
-          <PDFText style={pdfStyles.sectionTitle}>Identité</PDFText>
-          <PdfRow label="Nom et prénom :" value={`${data.nom} ${data.prenom}`} />
-          <PdfRow label="NISS :"          value={v(data.niss)} />
-          <PdfRow label="Date de naissance :" value={v(data.dateNaissance)} />
-          <PdfRow label="Lieu de naissance :" value={v(data.lieuNaissance)} />
-          <PdfRow label="Nationalité :"   value={v(data.nationalite)} />
-          <PdfRow label="Genre :"         value={genreLabel} />
-          <PdfRow label="État civil :"    value={v(data.etatCivil)} />
-          <PdfRow label="Email :"         value={v(data.email)} />
-          <PdfRow label="Téléphone :"     value={v(data.tel)} />
-          <PdfRow label="Adresse :"       value={v(adresseFull)} />
-        </View>
-
-        {/* ── Section 2 — Situation professionnelle ──────────────────────── */}
-        <View style={pdfStyles.section}>
-          <PDFText style={pdfStyles.sectionTitle}>Situation professionnelle</PDFText>
-          <PdfRow label="Situation :" value={situationProLabel} />
-
-          {data.situationPro === "actif" && (
-            <>
-              <PdfRow label="Type :"              value={statutLabel[data.statut] ?? v(data.statut)} />
-              <PdfRow label="Entreprise :"        value={v(data.entreprise)} />
-              <PdfRow
-                label="Commission paritaire :"
-                value={
-                  data.secteur === "000" && data.secteurAutre
-                    ? `Autre — ${data.secteurAutre}`
-                    : commissionsParitaires.find((c) => c.id === data.secteur)?.label ?? v(data.secteur)
-                }
-              />
-              <PdfRow label="N°ONSS / N° entreprise :" value={v(data.matriculeONSS)} />
-              <PdfRow label="Date d'entrée :"     value={v(data.dateEntree)} />
-              <PdfRow label="Régime de travail :" value={regimeLabel} />
-            </>
-          )}
-
-          {data.situationPro === "inactif" && (
-            <>
-              <PdfRow label="Type :" value={typeInactifLabel[data.typeInactif] ?? v(data.typeInactif)} />
-              {data.typeInactif === "sans_emploi" && data.allocationsChomage && (
-                <PdfRow label="Allocations de chômage :" value={data.allocationsChomage === "oui" ? "Oui" : "Non"} />
-              )}
-            </>
-          )}
-
-          {data.autresCentraleFGTB && (
-            <PdfRow label="Autre centrale FGTB :" value={data.autresCentraleFGTB === "oui" ? "Oui" : "Non"} />
-          )}
-          {data.centralesFGTBChoisie && (
-            <PdfRow label="Centrale choisie :" value={data.centralesFGTBChoisie.replace(/_/g, " ")} />
-          )}
-          {data.provinceCentraleFGTB && (
-            <PdfRow label="Province :" value={data.provinceCentraleFGTB} />
-          )}
-          {data.affilieAutreSyndicat && (
-            <PdfRow label="Affilié autre syndicat :" value={data.affilieAutreSyndicat === "oui" ? "Oui" : "Non"} />
-          )}
-          {data.autreSyndicatChoix && (
-            <PdfRow
-              label="Syndicat :"
-              value={
-                data.autreSyndicatChoix === "csc"   ? "CSC / ACV"
-                : data.autreSyndicatChoix === "cgslb" ? "CGSLB / ACLVB"
-                : data.autreSyndicatAutreDetail || "Autre"
-              }
-            />
-          )}
-          {data.dossierJuridique && (
-            <PdfRow label="Dossier juridique en cours :" value={data.dossierJuridique === "oui" ? "Oui" : "Non"} />
-          )}
-        </View>
-
-        {/* ── Section 3 — Mandat SEPA ─────────────────────────────────────── */}
-        <View style={pdfStyles.section}>
-          <PDFText style={pdfStyles.sectionTitle}>Mandat SEPA — Paiement de la cotisation</PDFText>
-          <PdfRow label="IBAN :"          value={v(data.iban)} />
-          {data.bic && <PdfRow label="BIC / SWIFT :" value={data.bic} />}
-          <PdfRow label="Mode de paiement :" value={modePaiementLabel} />
-        </View>
-
-        {/* ── Section 4 — Signature ────────────────────────────────────────── */}
-        <View style={pdfStyles.section}>
-          <PDFText style={pdfStyles.sectionTitle}>Signature du membre</PDFText>
-          <View style={pdfStyles.signatureBox}>
-            {data.signature ? (
-              <PDFImage src={data.signature} style={pdfStyles.signatureImage} />
+          <View style={pdfStyles.headerLeft}>
+            {logoBase64 ? (
+              <PDFImage src={logoBase64} style={pdfStyles.logoImage} />
             ) : (
-              <PDFText style={{ fontSize: 9, color: "#9ca3af" }}>
-                (aucune signature fournie)
-              </PDFText>
+              <View style={{ width: 96, marginRight: 12, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 4, alignItems: "center", justifyContent: "center", paddingTop: 8, paddingBottom: 8 }}>
+                <PDFText style={{ color: "#fff", fontSize: 10, fontFamily: "Helvetica-Bold" }}>CG</PDFText>
+              </View>
             )}
-            <PDFText style={pdfStyles.signatureDate}>
-              Signé électroniquement le {dateSignature}
-            </PDFText>
+            <View style={{ flex: 1, alignItems: "center" }}>
+              <PDFText style={pdfStyles.headerTitle}>Formulaire d'affiliation</PDFText>
+              <PDFText style={pdfStyles.headerSubtitle}>Centrale Générale FGTB Namur-Luxembourg</PDFText>
+            </View>
+          </View>
+          <View style={pdfStyles.headerRight}>
+            <PDFText style={pdfStyles.headerDateLabel}>Document du</PDFText>
+            <PDFText style={pdfStyles.headerDateValue}>{dateDoc}</PDFText>
+            <PDFText style={pdfStyles.headerMember}>{data.prenom} {data.nom}</PDFText>
           </View>
         </View>
 
-        {/* ── Pied de page ─────────────────────────────────────────────────── */}
+        <View style={pdfStyles.body}>
+
+          {/* ══ 0. RÉSERVÉ À L'ADMINISTRATION ════════════════════════════════ */}
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionTitle}>0. Réservé à l'administration</PDFText>
+            <View style={pdfStyles.adminBox}>
+              <View style={pdfStyles.adminFieldWrap}>
+                <PDFText style={pdfStyles.adminFieldLabel}>N° de Mandat :</PDFText>
+                <View style={pdfStyles.adminFieldLine} />
+              </View>
+              <View style={[pdfStyles.adminFieldWrap, { marginRight: 0 }]}>
+                <PDFText style={pdfStyles.adminFieldLabel}>Date d'encodage :</PDFText>
+                <View style={pdfStyles.adminFieldLine} />
+              </View>
+            </View>
+          </View>
+
+          {/* ══ 1. IDENTITÉ ═══════════════════════════════════════════════════ */}
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionTitle}>1. Identité</PDFText>
+            <View style={pdfStyles.twoCol}>
+              <View style={pdfStyles.colLeft}>
+                <PdfRow label="Nom :"               value={v(data.nom)} />
+                <PdfRow label="Prénom :"            value={v(data.prenom)} />
+                <PdfRow label="NISS :"              value={v(data.niss)} />
+                <PdfRow label="Date de naissance :" value={v(data.dateNaissance)} />
+              </View>
+              <View style={pdfStyles.colRight}>
+                <PdfRow label="Nationalité :" value={v(data.nationalite)} />
+                <PdfRow label="Genre :"       value={genreLabel} />
+                <PdfRow label="Email :"       value={v(data.email)} />
+                <PdfRow label="Téléphone :"   value={v(data.tel)} />
+              </View>
+            </View>
+          </View>
+
+          {/* ══ 2. ADRESSE ════════════════════════════════════════════════════ */}
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionTitle}>2. Adresse</PDFText>
+            <View style={pdfStyles.twoCol}>
+              <View style={pdfStyles.colLeft}>
+                <PdfRow label="Rue :"         value={v(data.rue)} />
+                <PdfRow label="Code postal :" value={v(data.codePostal)} />
+                <PdfRow label="Pays :"        value={v(data.pays)} />
+              </View>
+              <View style={pdfStyles.colRight}>
+                <PdfRow label="N° / Boite :"  value={`${v(data.numero)}${data.boite ? ` bte ${data.boite}` : ""}`} />
+                <PdfRow label="Localité :"    value={v(data.localite)} />
+              </View>
+            </View>
+          </View>
+
+          {/* ══ 3. SITUATION PROFESSIONNELLE ══════════════════════════════════ */}
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionTitle}>3. Situation professionnelle</PDFText>
+            {data.situationPro === "actif" && (
+              <View style={pdfStyles.twoCol}>
+                <View style={pdfStyles.colLeft}>
+                  {/* "Situation" aligné sur la même grille que les lignes dessous */}
+                  <PdfRow label="Situation :"   value={situationProLabel} />
+                  <PdfRow label="Statut :"      value={statutLabel[data.statut] ?? v(data.statut)} />
+                  <PdfRow label="Entreprise :"  value={v(data.entreprise)} />
+                  <PdfRow label="N° ONSS :"     value={v(data.matriculeONSS)} />
+                </View>
+                <View style={pdfStyles.colRight}>
+                  <PdfRow label="Date d'entrée :" value={v(data.dateEntree)} />
+                  <PdfRow label="Régime :"        value={regimeLabel} />
+                  <PdfRow
+                    label="Commission paritaire :"
+                    value={
+                      data.secteur === "000" && data.secteurAutre
+                        ? `Autre — ${data.secteurAutre}`
+                        : commissionsParitaires.find((c) => c.id === data.secteur)?.label ?? v(data.secteur)
+                    }
+                  />
+                </View>
+              </View>
+            )}
+            {data.situationPro === "inactif" && (
+              <View style={pdfStyles.twoCol}>
+                <View style={pdfStyles.colLeft}>
+                  <PdfRow label="Situation :" value={situationProLabel} />
+                  <PdfRow label="Type :" value={typeInactifLabel[data.typeInactif] ?? v(data.typeInactif)} />
+                  {data.typeInactif === "sans_emploi" && data.allocationsChomage && (
+                    <PdfRow label="Allocations chômage :" value={data.allocationsChomage === "oui" ? "Oui" : "Non"} />
+                  )}
+                </View>
+                <View style={pdfStyles.colRight} />
+              </View>
+            )}
+          </View>
+
+          {/* ══ 4. TRANSFERT SYNDICAL (conditionnel) ══════════════════════════ */}
+          {(data.autresCentraleFGTB || data.affilieAutreSyndicat || data.dossierJuridique) && (
+            <View style={pdfStyles.section}>
+              <PDFText style={pdfStyles.sectionTitle}>4. Transfert syndical</PDFText>
+              <View style={pdfStyles.twoCol}>
+                <View style={pdfStyles.colLeft}>
+                  {data.autresCentraleFGTB && (
+                    <PdfRow label="Autre centrale FGTB :" value={data.autresCentraleFGTB === "oui" ? "Oui" : "Non"} />
+                  )}
+                  {data.autresCentraleFGTB === "oui" && data.centralesFGTBChoisie && (
+                    <PdfRow label="Centrale :" value={data.centralesFGTBChoisie.replace(/_/g, " ")} />
+                  )}
+                  {data.autresCentraleFGTB === "oui" && data.provinceCentraleFGTB && (
+                    <PdfRow label="Province :" value={data.provinceCentraleFGTB} />
+                  )}
+                </View>
+                <View style={pdfStyles.colRight}>
+                  {data.affilieAutreSyndicat && (
+                    <PdfRow label="Autre syndicat :" value={data.affilieAutreSyndicat === "oui" ? "Oui" : "Non"} />
+                  )}
+                  {data.affilieAutreSyndicat === "oui" && data.autreSyndicatChoix && (
+                    <PdfRow
+                      label="Syndicat :"
+                      value={
+                        data.autreSyndicatChoix === "csc"    ? "CSC / ACV"
+                        : data.autreSyndicatChoix === "cgslb" ? "CGSLB / ACLVB"
+                        : data.autreSyndicatAutreDetail || "Autre"
+                      }
+                    />
+                  )}
+                  {data.dossierJuridique && (
+                    <PdfRow label="Dossier juridique :" value={data.dossierJuridique === "oui" ? "Oui" : "Non"} />
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* ══ 5. COTISATION ═════════════════════════════════════════════════ */}
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionTitle}>5. Cotisation</PDFText>
+            <View style={pdfStyles.twoCol}>
+              <View style={pdfStyles.colLeft}>
+                <PdfRow label="Début d'affiliation :" value={affiliationDebut} />
+                <PdfRow label="Mode de paiement :"    value={modePaiementLabel} />
+              </View>
+              <View style={pdfStyles.colRight}>
+                {cotisation && (
+                  <PdfRow label="Catégorie :" value={`${cotisation.categorie} — ${cotisation.label}`} />
+                )}
+              </View>
+            </View>
+            {cotisation && montantMensuel && (
+              <View>
+                <View style={pdfStyles.cotisationBox}>
+                  <PDFText style={pdfStyles.cotisationMontant}>{montantMensuel} €</PDFText>
+                  <View>
+                    <PDFText style={pdfStyles.cotisationCatLabel}>/ mois · {cotisation.categorie}</PDFText>
+                    <PDFText style={pdfStyles.cotisationCatSub}>Barème {now.getFullYear()}</PDFText>
+                  </View>
+                </View>
+                <PDFText style={pdfStyles.cotisationNote}>
+                  Le montant de cette cotisation est calculé à titre indicatif sur base de vos déclarations. La Centrale Générale FGTB Namur Luxembourg se réserve le droit de l'adapter en cas d'erreur ou de modification de votre situation professionnelle constatée par nos services.
+                </PDFText>
+              </View>
+            )}
+          </View>
+
+          {/* ══ 6. PAIEMENT DE LA COTISATION ══════════════════════════════════ */}
+          <View style={pdfStyles.section} break>
+            <PDFText style={pdfStyles.sectionTitle}>6. Paiement de la cotisation</PDFText>
+
+            {/* Coordonnées bancaires */}
+            <View style={pdfStyles.twoCol}>
+              <View style={pdfStyles.colLeft}>
+                <PdfRow label="IBAN :"          value={v(data.iban)} />
+                <PdfRow label="Mode :"          value={modePaiementLabel} />
+              </View>
+              <View style={pdfStyles.colRight}>
+                <PdfRow label="BIC / SWIFT :"   value={v(data.bic)} />
+                {data.modePaiement === "domiciliation" && (
+                  <PdfRow
+                    label="Titulaire :"
+                    value={data.titulaireDuCompte === "oui" ? "Le/la souscripteur(trice)" : "Un tiers"}
+                  />
+                )}
+              </View>
+            </View>
+            {data.modePaiement === "domiciliation" && data.titulaireDuCompte === "non" && data.titulaireNomPrenom && (
+              <PdfRow label="Identité du titulaire :" value={data.titulaireNomPrenom} />
+            )}
+
+            {/* ── Domiciliation : informations créancier + échéancier ── */}
+            {data.modePaiement === "domiciliation" && (
+              <View style={pdfStyles.sepaBox}>
+                <PDFText style={[pdfStyles.infoBoxTitle, { color: "#b91c1c", fontSize: 7.5 }]}>
+                  Informations créancier SEPA
+                </PDFText>
+                <PdfRow label="Créancier :"                   value="Centrale Générale FGTB Namur-Luxembourg" />
+                <PdfRow label="Identifiant Créancier (ICS) :" value="BE00000647821" />
+                <PdfRow label="Type de prélèvement :"         value="Paiement récurrent mensuel" />
+                <PdfRow label="Référence mandat :"            value="[à compléter par l'administration]" />
+              </View>
+            )}
+
+            {/* ── Virement : compte bénéficiaire ── */}
+            {data.modePaiement === "virement" && (
+              <View style={pdfStyles.infoBox}>
+                <PDFText style={pdfStyles.infoBoxTitle}>Modalités de virement</PDFText>
+                <PdfRow label="Bénéficiaire :" value="Centrale Générale FGTB Namur-Luxembourg" />
+                <PdfRow label="Compte :"       value="BE94 8791 5049 0114" />
+                <PdfRow label="Communication :" value={`Votre NISS : ${v(data.niss)}`} />
+              </View>
+            )}
+
+            {/* ── Tableau d'échéances domiciliation ── */}
+            {echeancesDom.length > 0 && (
+              <View style={pdfStyles.echeancierWrap}>
+                <PDFText style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#374151", marginBottom: 2 }}>
+                  Échéancier des prélèvements
+                </PDFText>
+                <View style={pdfStyles.echeancierHeaderRow}>
+                  <PDFText style={[pdfStyles.echeancierHeaderText, { width: "32%" }]}>Date prélèvement</PDFText>
+                  <PDFText style={[pdfStyles.echeancierHeaderText, { flex: 1 }]}>Mois couverts</PDFText>
+                  <PDFText style={[pdfStyles.echeancierHeaderText, { width: "18%", textAlign: "right", paddingRight: 4 }]}>Montant</PDFText>
+                </View>
+                {echeancesDom.map((e, i) => (
+                  <View key={i} style={pdfStyles.echeancierRow}>
+                    <PDFText style={pdfStyles.echeancierCellDate}>{e.datePrelevement}</PDFText>
+                    <PDFText style={pdfStyles.echeancierCellPeriode}>{e.moisCouverts.join(" · ")}</PDFText>
+                    <PDFText style={pdfStyles.echeancierCellMontant}>{e.montant.toFixed(2)} €</PDFText>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* ── Paiement immédiat 2025 (1 seul virement) ── */}
+            {paiement2025 && (
+              <View style={pdfStyles.paiement2025Box}>
+                <PDFText style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: "#92400e", marginBottom: 3 }}>
+                  ⚠  Paiement immédiat 2025 — à régler en 1 seul virement
+                </PDFText>
+                <View style={{ flexDirection: "row", marginBottom: 2 }}>
+                  <PDFText style={{ fontSize: 7, color: "#78350f", fontFamily: "Helvetica-Bold", width: "35%" }}>
+                    Mois couverts :
+                  </PDFText>
+                  <PDFText style={{ fontSize: 7, color: "#78350f", flex: 1 }}>
+                    {paiement2025.moisCouverts[0]} à {paiement2025.moisCouverts[paiement2025.moisCouverts.length - 1]}
+                  </PDFText>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <PDFText style={{ fontSize: 7, color: "#78350f", fontFamily: "Helvetica-Bold", width: "35%" }}>
+                    Total à payer :
+                  </PDFText>
+                  <PDFText style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: "#b45309" }}>
+                    {paiement2025.montant.toFixed(2)} €
+                  </PDFText>
+                  <PDFText style={{ fontSize: 6.5, color: "#92400e", marginLeft: 4, marginTop: 2 }}>
+                    (barème 2025)
+                  </PDFText>
+                </View>
+              </View>
+            )}
+
+            {/* ── Tableau d'échéances virement 2026 ── */}
+            {echeancesVir.length > 0 && (
+              <View style={pdfStyles.echeancierWrap}>
+                <PDFText style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#374151", marginBottom: 2 }}>
+                  {paiement2025 ? "Échéancier trimestriel 2026 (barème 2026)" : "Échéancier des virements"}
+                </PDFText>
+                <View style={pdfStyles.echeancierHeaderRow}>
+                  <PDFText style={[pdfStyles.echeancierHeaderText, { width: "28%" }]}>Trimestre</PDFText>
+                  <PDFText style={[pdfStyles.echeancierHeaderText, { width: "30%" }]}>Date d'échéance</PDFText>
+                  <PDFText style={[pdfStyles.echeancierHeaderText, { flex: 1 }]}>Période</PDFText>
+                  <PDFText style={[pdfStyles.echeancierHeaderText, { width: "18%", textAlign: "right", paddingRight: 4 }]}>Montant</PDFText>
+                </View>
+                {echeancesVir.map((e, i) => (
+                  <View key={i} style={pdfStyles.echeancierRow}>
+                    <PDFText style={[pdfStyles.echeancierCellDate, { width: "28%" }]}>{e.nom}</PDFText>
+                    <PDFText style={[pdfStyles.echeancierCellDate, { width: "30%" }]}>{e.dateEcheance}</PDFText>
+                    <PDFText style={pdfStyles.echeancierCellPeriode}>{e.periode}</PDFText>
+                    <PDFText style={pdfStyles.echeancierCellMontant}>{e.montant.toFixed(2)} €</PDFText>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* ══ 7. MENTIONS LÉGALES ═══════════════════════════════════════════ */}
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionTitle}>7. Mentions légales — Acceptées le {dateDoc}</PDFText>
+            {mentionsList.map(({ key, label, desc }) => (
+              <View key={key} style={pdfStyles.mentionRow}>
+                <View style={pdfStyles.mentionBadgeOk}>
+                  <PDFText style={pdfStyles.mentionBadgeOkText}>{mentions[key] ? "OUI" : "NON"}</PDFText>
+                </View>
+                <View style={pdfStyles.mentionContent}>
+                  <PDFText style={pdfStyles.mentionLabel}>{label}</PDFText>
+                  <PDFText style={pdfStyles.mentionDesc}>{desc}</PDFText>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* ══ 8. SIGNATURE ═════════════════════════════════════════════════ */}
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionTitle}>8. Signature du membre</PDFText>
+            <View style={pdfStyles.signatureBox}>
+              {data.signature ? (
+                <PDFImage src={data.signature} style={pdfStyles.signatureImage} />
+              ) : (
+                <PDFText style={{ fontSize: 8, color: "#9ca3af", alignSelf: "center" }}>
+                  (aucune signature fournie)
+                </PDFText>
+              )}
+              <PDFText style={[pdfStyles.signatureDate, { textAlign: "center" }]}>
+                Signé électroniquement le {dateSignLong}
+              </PDFText>
+              <PDFText style={pdfStyles.luApprouve}>
+                Lu et approuvé. Formulaire complété en ligne le {dateDoc} à {heureDoc} via accg-nalux.be.{"\n"}
+                Certifié conforme par signature électronique.
+              </PDFText>
+            </View>
+          </View>
+
+        </View>
+
+        {/* ══ PIED DE PAGE ════════════════════════════════════════════════════ */}
         <PDFText style={pdfStyles.footer}>
-          FGTB — Fédération Générale du Travail de Belgique · Données traitées conformément au RGPD
+          Centrale Générale FGTB Namur-Luxembourg · admin.nalux@accg.be · Données traitées conformément au RGPD
         </PDFText>
 
       </Page>
@@ -1544,6 +2131,25 @@ export default function FormulaireWebIndependant() {
   const [serverError, setServerError] = useState("");
   const [nissInconnu, setNissInconnu] = useState(false);
   const [mentions,    setMentions]    = useState(MENTIONS_INIT);
+  const [logoBase64,  setLogoBase64]  = useState<string | null>(null);
+  const [userIp,      setUserIp]      = useState<string>("N/A");
+
+  // Précharge le logo en base64 dès le montage du composant,
+  // pour qu'il soit disponible lors de la génération du PDF.
+  useEffect(() => {
+    fetch("/Logo%20CG%20Blanc.png")
+      .then((r) => r.blob())
+      .then(
+        (blob) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          })
+      )
+      .then(setLogoBase64)
+      .catch(() => {});
+  }, []);
 
   const allMentionsChecked = Object.values(mentions).every(Boolean);
 
@@ -1647,12 +2253,13 @@ export default function FormulaireWebIndependant() {
   const next = () => { if (validate()) setStep((s) => Math.min(s + 1, 5)); };
   const prev = () => { setErrors({}); setStep((s) => Math.max(s - 1, 0)); };
 
-  // ── Soumission vers Supabase ───────────────────────────────────────────────
+  // ── Soumission vers Supabase + envoi email avec PDF ───────────────────────
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
     setServerError("");
 
+    // 1. Enregistrement dans Supabase
     const { error } = await supabase.from("web_affiliations").insert([{
       nom:                          data.nom,
       prenom:                       data.prenom,
@@ -1707,12 +2314,97 @@ export default function FormulaireWebIndependant() {
       created_at:                   new Date().toISOString(),
     }]);
 
-    setLoading(false);
     if (error) {
+      setLoading(false);
       setServerError("Une erreur s'est produite lors de l'envoi. Veuillez réessayer.");
-    } else {
-      setSubmitted(true);
+      return;
     }
+
+    // 2. Génération du PDF côté navigateur → conversion en base64
+    // Les échéanciers sont calculés ici (thread React) avant d'entrer dans le worker PDF.
+    try {
+      const pdfFileName = `FGTB_Affiliation_${data.nom}_${data.prenom}.pdf`;
+
+      // Récupération de l'IP publique de l'utilisateur (fail-safe : "N/A" si indisponible)
+      let resolvedIp = "N/A";
+      try {
+        const ipRes  = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipRes.json() as { ip: string };
+        resolvedIp = ipData.ip ?? "N/A";
+      } catch { /* fail silently */ }
+      setUserIp(resolvedIp);
+
+      const { echeancesDom, echeancesVir, paiement2025 } = buildEcheanciers(data);
+      const pdfBlob = await pdf(
+        <AffiliationDocument
+          data={data}
+          mentions={mentions}
+          logoBase64={logoBase64}
+          echeancesDom={echeancesDom}
+          echeancesVir={echeancesVir}
+          paiement2025={paiement2025}
+          userIp={resolvedIp}
+        />
+      ).toBlob();
+
+      // FileReader convertit le Blob en chaîne base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          // Le résultat est de la forme "data:application/pdf;base64,XXXXXX"
+          // On ne garde que la partie après la virgule
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(pdfBlob);
+      });
+
+      // 3. Calcul du premier montant à payer (virement)
+      //    → Si 2025 : paiement unique 2025 (prioritaire sur le trimestriel)
+      //    → Si 2026 : premier trimestre 2026
+      const cotisationEmail = calculerCotisation(data);
+      const moisNumEmail = parseInt(data.affiliationMois, 10);
+      let premiereEcheanceMontant: string | null = null;
+      if (data.modePaiement === "virement" && cotisationEmail && moisNumEmail) {
+        if (paiement2025) {
+          premiereEcheanceMontant = paiement2025.montant.toFixed(2);
+        } else {
+          const echeances = calculerEcheancesTrimestrielles(
+            cotisationEmail.montant, moisNumEmail, data.affiliationAnnee
+          );
+          if (echeances.length > 0) premiereEcheanceMontant = echeances[0].montant.toFixed(2);
+        }
+      }
+
+      // 4. Appel de la route API pour envoyer l'email via Resend
+      await fetch("/api/send-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email:                   data.email,
+          nom:                     data.nom,
+          prenom:                  data.prenom,
+          pdfBase64:               base64,
+          fileName:                pdfFileName,
+          affiliationDebut:
+            data.affiliationMois && data.affiliationAnnee
+              ? `${MONTHS_FR[parseInt(data.affiliationMois, 10) - 1]} ${data.affiliationAnnee}`
+              : "—",
+          cotisationMensuelle:     cotisationEmail?.montant?.toFixed(2) ?? null,
+          modePaiement:            data.modePaiement,
+          niss:                    data.niss || null,
+          premiereEcheanceMontant,
+        }),
+      });
+    } catch (emailErr) {
+      // L'inscription Supabase a réussi, on affiche la confirmation même si
+      // l'envoi de l'email échoue (l'utilisateur peut télécharger le PDF manuellement)
+      console.error("Erreur envoi email :", emailErr);
+    }
+
+    setLoading(false);
+    setSubmitted(true);
   };
 
   // ── Barre de progression (Stepper) ────────────────────────────────────────
@@ -1765,6 +2457,12 @@ export default function FormulaireWebIndependant() {
   // ── Page de confirmation ───────────────────────────────────────────────────
   if (submitted) {
     const pdfFileName = `FGTB_Affiliation_${data.nom}_${data.prenom}.pdf`;
+    // Échéanciers calculés dans le thread React, pas dans le worker PDF
+    const {
+      echeancesDom: confEcheancesDom,
+      echeancesVir: confEcheancesVir,
+      paiement2025: confPaiement2025,
+    } = buildEcheanciers(data);
 
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -1785,7 +2483,17 @@ export default function FormulaireWebIndependant() {
           {/* ── Bouton téléchargement PDF ─────────────────────────────────── */}
           <div className="mt-6 flex flex-col gap-3">
             <PDFDownloadLink
-              document={<AffiliationDocument data={data} />}
+              document={
+                <AffiliationDocument
+                  data={data}
+                  mentions={mentions}
+                  logoBase64={logoBase64}
+                  echeancesDom={confEcheancesDom}
+                  echeancesVir={confEcheancesVir}
+                  paiement2025={confPaiement2025}
+                  userIp={userIp}
+                />
+              }
               fileName={pdfFileName}
               className="flex items-center justify-center gap-2 px-6 py-2.5
                 bg-red-700 text-white rounded-xl font-medium
@@ -2532,20 +3240,23 @@ export default function FormulaireWebIndependant() {
             const annee   = data.affiliationAnnee; // "2025" ou "2026"
 
             // Calcul des échéances selon l'année d'affiliation
-            let echeances2025: Echeance[] | null = null;
+            // Pour 2025 : paiement unique immédiat (pas d'échéancier trimestriel)
+            let paiement2025Vir: Paiement2025 | null = null;
             let echeances2026: Echeance[] | null = null;
 
             if (cotisation2026 && data.affiliationMois && annee && !isNaN(moisNum)) {
               const cat = cotisation2026.categorie;
 
               if (annee === "2025") {
-                // Solde 2025 : mois restants dans l'année, par trimestre, aux tarifs 2025
+                // Solde 2025 : total des mois restants, barème 2025, en 1 seul virement
                 const tarif2025 = getMontantParAnnee(cat, "2025") ?? cotisation2026.montant;
-                echeances2025 = calculerEcheancesTrimestrielles(tarif2025, moisNum, "2025");
+                const moisListe: string[] = [];
+                for (let m = moisNum; m <= 12; m++) moisListe.push(`${MONTHS_FR[m - 1]} 2025`);
+                paiement2025Vir = { moisCouverts: moisListe, montant: tarif2025 * moisListe.length };
                 // Année 2026 complète (4 trimestres) aux tarifs 2026
                 echeances2026 = calculerEcheancesTrimestrielles(cotisation2026.montant, 1, "2026");
               } else {
-                // Affiliation directement en 2026 : seulement 2026
+                // Affiliation directement en 2026 : seulement l'échéancier 2026
                 echeances2026 = calculerEcheancesTrimestrielles(cotisation2026.montant, moisNum, "2026");
               }
             }
@@ -2666,87 +3377,86 @@ export default function FormulaireWebIndependant() {
                     <p className="font-semibold text-blue-800">Informations de paiement par virement</p>
 
                     {/* Aucun mois/année sélectionné */}
-                    {!echeances2026 && !echeances2025 && (
+                    {!echeances2026 && !paiement2025Vir && (
                       <div className="bg-white rounded-lg border border-blue-200 px-4 py-3 text-xs text-gray-500">
                         Sélectionnez un mois et une année pour afficher l&apos;échéancier.
                       </div>
                     )}
 
-                    {/* ── Tableau helper inline ── */}
-                    {([
-                      echeances2025
-                        ? { rows: echeances2025, label: "Solde 2025 — Barème 2025", totalLabel: "Total 2025", color: "amber" }
-                        : null,
-                      echeances2026
-                        ? { rows: echeances2026, label: "Échéancier 2026 — Barème 2026", totalLabel: "Total 2026", color: "blue" }
-                        : null,
-                    ] as Array<{ rows: Echeance[]; label: string; totalLabel: string; color: "amber" | "blue" } | null>)
-                      .filter(Boolean)
-                      .map((bloc, bi) => {
-                        const b = bloc!;
-                        const isAmber = b.color === "amber";
-                        const headerCls = isAmber
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-blue-100 text-blue-800";
-                        const footerCls = isAmber
-                          ? "bg-amber-100 border-amber-200 text-amber-900"
-                          : "bg-blue-100 border-blue-200 text-blue-900";
-                        const labelCls = isAmber
-                          ? "text-amber-700"
-                          : "text-blue-700";
-                        const borderCls = isAmber
-                          ? "border-amber-200"
-                          : "border-blue-200";
-                        return (
-                          <div key={bi} className="flex flex-col gap-1.5">
-                            <p className={`text-xs font-semibold uppercase tracking-wide ${labelCls}`}>
-                              {b.label}
+                    {/* ── Paiement immédiat 2025 (1 seul virement, pas d'échéancier) ── */}
+                    {paiement2025Vir && (
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                          ⚠ Paiement immédiat — Solde 2025 (Barème 2025)
+                        </p>
+                        <div className="rounded-lg border-l-4 border-amber-500 border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col gap-2">
+                          <p className="text-xs text-amber-800 font-semibold">
+                            Ce montant est à régler en <span className="underline">1 seul virement immédiat</span>, sans délai — pas d&apos;échéancier pour 2025.
+                          </p>
+                          <div className="flex items-center justify-between gap-4 flex-wrap">
+                            <p className="text-xs text-amber-700">
+                              <span className="font-bold">Mois couverts :</span>{" "}
+                              {paiement2025Vir.moisCouverts.join(" · ")}
                             </p>
-                            <div className={`overflow-hidden rounded-lg border ${borderCls} bg-white`}>
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className={headerCls}>
-                                    <th className="px-3 py-2 text-left font-semibold">Période</th>
-                                    <th className="px-3 py-2 text-left font-semibold">Mois</th>
-                                    <th className="px-3 py-2 text-right font-semibold">Montant</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {b.rows.map((e, i) => (
-                                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
-                                      <td className="px-3 py-2 font-medium text-gray-800">{e.nom}</td>
-                                      <td className="px-3 py-2 text-gray-600">
-                                        {e.periode}
-                                        {e.nbMois < 3 && (
-                                          <span className="ml-1 text-amber-600">({e.nbMois} mois)</span>
-                                        )}
-                                      </td>
-                                      <td className="px-3 py-2 text-right font-bold text-gray-900 font-mono">
-                                        {e.montant.toFixed(2).replace(".", ",")} €
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                                <tfoot>
-                                  <tr className={`border-t ${footerCls}`}>
-                                    <td colSpan={2} className="px-3 py-2 font-semibold text-xs">
-                                      {b.totalLabel}
-                                    </td>
-                                    <td className="px-3 py-2 text-right font-bold font-mono">
-                                      {b.rows.reduce((s, e) => s + e.montant, 0).toFixed(2).replace(".", ",")} €
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
+                            <p className="text-base font-bold text-amber-900 font-mono whitespace-nowrap">
+                              {paiement2025Vir.montant.toFixed(2).replace(".", ",")} €
+                            </p>
                           </div>
-                        );
-                      })
-                    }
+                        </div>
+                      </div>
+                    )}
 
-                    {(echeances2025 || echeances2026) && (
+                    {/* ── Échéancier trimestriel 2026 ── */}
+                    {echeances2026 && (
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                          {paiement2025Vir
+                            ? "Échéancier trimestriel 2026 (Barème 2026)"
+                            : "Échéancier 2026 — Barème 2026"}
+                        </p>
+                        <div className="overflow-hidden rounded-lg border border-blue-200 bg-white">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-blue-100 text-blue-800">
+                                <th className="px-3 py-2 text-left font-semibold">Période</th>
+                                <th className="px-3 py-2 text-left font-semibold">Mois</th>
+                                <th className="px-3 py-2 text-right font-semibold">Montant</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {echeances2026.map((e, i) => (
+                                <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/60"}>
+                                  <td className="px-3 py-2 font-medium text-gray-800">{e.nom}</td>
+                                  <td className="px-3 py-2 text-gray-600">
+                                    {e.periode}
+                                    {e.nbMois < 3 && (
+                                      <span className="ml-1 text-amber-600">({e.nbMois} mois)</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-bold text-gray-900 font-mono">
+                                    {e.montant.toFixed(2).replace(".", ",")} €
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="border-t bg-blue-100 border-blue-200 text-blue-900">
+                                <td colSpan={2} className="px-3 py-2 font-semibold text-xs">Total 2026</td>
+                                <td className="px-3 py-2 text-right font-bold font-mono">
+                                  {echeances2026.reduce((s, e) => s + e.montant, 0).toFixed(2).replace(".", ",")} €
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {(paiement2025Vir || echeances2026) && (
                       <p className="text-xs text-blue-600 italic">
-                        Chaque virement est dû pour le 15 du premier mois du trimestre concerné.
+                        {paiement2025Vir
+                          ? "Le solde 2025 est dû immédiatement. Les virements 2026 sont dus pour le 15 du premier mois de chaque trimestre."
+                          : "Chaque virement est dû pour le 15 du premier mois du trimestre concerné."}
                       </p>
                     )}
 
