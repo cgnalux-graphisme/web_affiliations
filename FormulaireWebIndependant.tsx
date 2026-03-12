@@ -557,6 +557,7 @@ function CommissionSelect({
   const selectedItem = commissionsParitaires.find((c) => c.id === value) ?? null;
   const [query,    setQuery]    = useState("");
   const [open,     setOpen]     = useState(false);
+  const [showAutreModal, setShowAutreModal] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef     = useRef<HTMLInputElement>(null);
 
@@ -580,6 +581,10 @@ function CommissionSelect({
     onChange(c.id);
     setQuery("");
     setOpen(false);
+
+    if (c.id === "000") {
+      setShowAutreModal(true);
+    }
   }
 
   function handleClear() {
@@ -672,6 +677,34 @@ function CommissionSelect({
         <div className="absolute z-50 mt-1 w-full rounded-xl border border-gray-200
           bg-white shadow-lg px-3 py-3 text-sm text-gray-500 text-center">
           Aucune commission trouvée
+        </div>
+      )}
+
+      {/* ── Pop-up d'avertissement pour "000 - Autre" ── */}
+      {showAutreModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-amber-600 mt-0.5 shrink-0" aria-hidden />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-gray-900">
+                  Attention : secteur d&apos;activité « 000 - Autre »
+                </p>
+                <p className="text-sm text-gray-700">
+                  Il est fort probable que nous ne soyons pas responsables pour votre secteur d&apos;activité.
+                  Nous vous invitons à vous rendre sur le site de la FGTB pour vérifier quelle centrale couvre
+                  votre secteur avant de poursuivre votre demande d&apos;affiliation.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAutreModal(false)}
+              className="mt-6 w-full inline-flex justify-center items-center rounded-xl bg-red-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              J&apos;ai compris
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -2133,6 +2166,7 @@ export default function FormulaireWebIndependant() {
   const [mentions,    setMentions]    = useState(MENTIONS_INIT);
   const [logoBase64,  setLogoBase64]  = useState<string | null>(null);
   const [userIp,      setUserIp]      = useState<string>("N/A");
+  const [showDossierJuridiqueModal, setShowDossierJuridiqueModal] = useState(false);
 
   // Précharge le logo en base64 dès le montage du composant,
   // pour qu'il soit disponible lors de la génération du PDF.
@@ -2844,6 +2878,17 @@ export default function FormulaireWebIndependant() {
                             onChange={set("secteurAutre")}
                             placeholder="Précisez votre secteur d'activité…"
                           />
+                          <p
+                            className="text-xs text-amber-900 bg-amber-50 border border-amber-300 rounded-md px-2 py-1.5 flex gap-2 items-start"
+                            role="alert"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
+                            <span>
+                              Si vous choisissez &laquo;&nbsp;000 - Autre&nbsp;&raquo;, il est fort probable que nous ne soyons
+                              pas responsables pour votre secteur d&apos;activité. Nous vous invitons à vous rendre sur le site
+                              de la FGTB pour plus d&apos;informations.
+                            </span>
+                          </p>
                           {errors.secteurAutre && (
                             <p role="alert" className="flex items-center gap-1 text-xs text-red-600">
                               <AlertCircle className="w-3 h-3 shrink-0" aria-hidden /> {errors.secteurAutre}
@@ -3213,7 +3258,12 @@ export default function FormulaireWebIndependant() {
                           name="dossierJuridique"
                           value={opt.value}
                           checked={data.dossierJuridique === opt.value}
-                          onChange={() => set("dossierJuridique")(opt.value)}
+                        onChange={() => {
+                          set("dossierJuridique")(opt.value);
+                          if (opt.value === "oui") {
+                            setShowDossierJuridiqueModal(true);
+                          }
+                        }}
                           className="accent-red-600 w-4 h-4 shrink-0"
                         />
                         {opt.label}
@@ -3223,6 +3273,32 @@ export default function FormulaireWebIndependant() {
                 </Field>
               )}
 
+            </div>
+          )}
+
+          {showDossierJuridiqueModal && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-6 h-6 text-amber-600 mt-0.5 shrink-0" aria-hidden />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Attention : dossier juridique en cours
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      Tant que vous n&apos;avez pas clôturé votre dossier auprès de l&apos;autre centrale FGTB ou de l&apos;autre syndicat,
+                      nous ne pouvons pas prendre en compte votre demande d&apos;affiliation.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDossierJuridiqueModal(false)}
+                  className="mt-6 w-full inline-flex justify-center items-center rounded-xl bg-red-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                >
+                  J&apos;ai compris
+                </button>
+              </div>
             </div>
           )}
 
