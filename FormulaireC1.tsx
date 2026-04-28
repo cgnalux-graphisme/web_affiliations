@@ -60,13 +60,84 @@ const EMPTY_COHABITANT: CohabitantRow = {
   typeRevenu: "", montantRevenu: "",
 };
 
+// ── Textes officiels — Feuille info ONEM (verbatim) ──────────────────────────
+const TIPS: Record<string, string> = {
+  "1":  "Vous trouverez votre numéro NISS, votre numéro d'identification de la sécurité sociale, au verso de votre carte d'identité. Les six premiers chiffres sont en principe ceux de votre date de naissance (année, mois et jour).",
+  "2":  "Attention ! Mentionnez l'adresse où vous habitez effectivement. Cette adresse doit correspondre à l'adresse où vous êtes domicilié. Si vous changez d'adresse, vous mentionnez votre nouvelle adresse ici.\n\nSituation particulière : si vous êtes inscrit à une adresse de référence CPAS, vous mentionnez cette adresse et vous ajoutez 'adresse de référence CPAS'.",
+  "3":  "Mentionnez votre nationalité. Le cas échéant, indiquez 'apatride reconnu' (voir aussi (31)).",
+  "4":  "Si vous demandez des allocations pour la première fois ou si vous changez d'organisme de paiement.\n\nVous devez compléter toutes les rubriques sauf les rubriques 'MA COTISATION SYNDICALE', et 'TRAVAILLEUR AYANT UNE NATIONALITE AUTRE QUE CELLE D'UN PAYS DE L'EEE OU DE LA SUISSE'. Vous ne complétez la rubrique 'MA COTISATION SYNDICALE' que si vous êtes syndiqué et que vous autorisez la retenue de la cotisation syndicale sur vos allocations.",
+  "5":  "Si vous demandez à nouveau des allocations après une interruption de plus d'un an.\n\nVous devez compléter toutes les rubriques sauf les 'MA COTISATION SYNDICALE' et 'TRAVAILLEUR AYANT UNE NATIONALITE AUTRE QUE CELLE D'UN PAYS DE L'EEE OU DE LA SUISSE'. Vous ne complétez ces rubriques que si ces données ont changé depuis votre précédente déclaration.",
+  "6":  "Si votre adresse change et que vous l'avez mentionnée à la rubrique 'MON IDENTITE'.\n\nComplétez les rubriques 'MA SITUATION FAMILIALE' et 'MA DECLARATION'. Vous ne complétez les autres rubriques que si ces données ont changé depuis votre précédente déclaration.\n\nSi vous êtes inscrit comme demandeur d'emploi, communiquez aussi votre changement d'adresse au service de placement (FOREM, ACTIRIS, Arbeitsamt der DG, VDAB ou MAISON DE L'EMPLOI) auprès duquel vous êtes inscrit.",
+  "7":  "Si des modifications interviennent dans votre situation personnelle ou dans celle des personnes avec lesquelles vous cohabitez.\n\nVous devez déclarer toute modification relative aux données mentionnées dans ce formulaire, qui interviendrait dans votre situation personnelle ou dans celle des personnes avec lesquelles vous cohabitez.\n\nPar exemple : votre partenaire ou un autre membre du ménage débute une activité professionnelle, vos parents cohabitants deviennent pensionnés, votre enfant cohabitant devient chômeur, vous commencez à aider un indépendant, …",
+  "8":  "Si en tant que membre d'un syndicat, vous autorisez la retenue de votre cotisation syndicale sur vos allocations ou si vous retirez votre précédente autorisation.\n\nComplétez les rubriques 'MA COTISATION SYNDICALE' et 'MA DECLARATION'. Vous ne complétez les autres rubriques que si ces données ont changé depuis votre précédente déclaration.",
+  "9":  "Si le mode de paiement de vos allocations ou votre numéro de compte change.\n\nComplétez les rubriques 'MODE DE PAIEMENT DE MES ALLOCATIONS' et 'MA DECLARATION'. Vous ne complétez les autres rubriques que si ces données ont changé depuis votre précédente déclaration.",
+  "10": "Si vous introduisez une prolongation de votre permis de séjour et/ou permis de travail. (voir également (31)).\n\nComplétez les rubriques 'TRAVAILLEUR AYANT UNE NATIONALITE AUTRE QUE CELLE D'UN PAYS DE L'EEE OU DE LA SUISSE' et 'MA DECLARATION'. Vous ne complétez les autres rubriques que si ces données ont changé depuis votre précédente déclaration.",
+  "11": "Attention ! Déclarez votre situation familiale réelle. S'il est constaté que votre situation familiale ne correspond pas à vos déclarations, vous pouvez être sanctionné.",
+  "12": "Vous habitez seul lorsqu'il n'y a pas d'autres personnes qui font partie de votre ménage.\n\nSituation particulière : Vous êtes censé continuer à cohabiter avec quelqu'un lorsqu'il (elle) travaille temporairement à l'étranger, est emprisonné(e) ou séjourne en institution pour malades mentaux. Mentionnez 'emprisonnement' ou 'internement' et la date de début de celui-ci après « Remarques ». Si vous n'êtes pas sûr d'être considéré comme habitant seul, décrivez votre situation après « Remarques ».",
+  "13": "Vous pouvez obtenir des allocations comme travailleur ayant charge de famille lorsque vous habitez seul et que :\n- vous payez effectivement une pension alimentaire en exécution d'une décision judiciaire ;\n- vous payez effectivement une pension alimentaire suite à un acte notarié dans le cadre d'une procédure de divorce ;\n- vous êtes séparé de fait et un jugement autorise votre conjoint à percevoir une partie de vos revenus en vertu d'une délégation de sommes (art. 221 du Code civil) ;\n- vous payez effectivement une pension alimentaire en faveur de votre enfant sur la base d'un acte notarié.",
+  "14": "Vous cohabitez avec quelqu'un lorsque cette personne fait partie de votre ménage, même si cette personne est domiciliée à une autre adresse.",
+  "15": "Selon la relation que vous avez avec la personne avec laquelle vous cohabitez, vous mentionnez :\n- 'conjoint' ;\n- 'partenaire' (peu importe le sexe). Si votre partenaire n'a pas de revenus (ou a de faibles revenus) et est financièrement à votre charge, vous ajoutez 'financièrement à charge' ;\n- 'enfant' ;\n- le lien de parenté p.ex. père, neveu, oncle, … ;\n- 'aucun' s'il n'y a pas de lien de parenté.",
+  "15bis": "Si vous avez mentionné dans la grille que votre partenaire ou une autre personne (pas votre enfant) est financièrement à votre charge, vous répondez aux questions en dessous de la grille. Votre partenaire ou la personne à charge signe vos déclarations. Les déclarations concernant le partenaire ou la personne à charge peuvent également être mentionnées sur un FORMULAIRE C1-PARTENAIRE séparé. Demandez des explications à votre organisme de paiement.",
+  "16": "Vous indiquez une croix dans cette colonne si vous percevez les allocations familiales (c'est-à-dire si vous êtes 'l'allocataire'). Le fait que vous soyez également 'l'attributaire', à savoir que le droit aux allocations familiales découle de votre statut, n'a pas d'importance.",
+  "17": "Mentionnez l'activité professionnelle des personnes avec lesquelles vous cohabitez :\n- 'salarié' et la nature de l'activité ;\n- 'indépendant' : déclarez chaque activité indépendante des membres de votre famille ;\n- 'aucune' lorsque la personne n'a aucune activité professionnelle ni comme salarié ni comme indépendant ou lorsqu'elle reçoit des allocations de chômage complet.",
+  "18": "Vous ne devez mentionner le montant des revenus professionnels que dans les situations suivantes :\n- si votre conjoint ou partenaire est travailleur salarié dans un emploi à temps partiel ;\n- si vous ne cohabitez pas avec un conjoint ou partenaire mais avec d'autres personnes parmi lesquelles des enfants.",
+  "19": "Vous devez déclarer tous les revenus de remplacement (montant brut) des personnes avec lesquelles vous cohabitez. Les principaux revenus de remplacement sont : les allocations de chômage (également les allocations d'insertion), les indemnités de maladie-invalidité, les allocations de maternité, les allocations d'interruption de carrière, les allocations de crédit-temps, les indemnités pour accident de travail ou maladie professionnelle et les pensions de retraite ou de survie.",
+  "20": "Si vous entamez des prestations de travail en activité principale, comme salarié ou indépendant, vous le mentionnez sur votre carte de contrôle.\n\nSi vous exercez une activité comme indépendant à titre principal, vous n'avez pas droit aux allocations de chômage.\n\nSous certaines conditions, vous pouvez cumuler vos allocations avec des revenus provenant d'une activité accessoire.",
+  "21": "Vous devez déclarer votre activité artistique sauf si vous l'exercez comme hobby ou exclusivement dans le cadre du régime des « petites indemnités ». Une activité artistique est considérée comme un hobby aussi longtemps que vous la pratiquez sans aucune commercialisation.\n\nAttention : Si vous exercez exclusivement des activités techniques dans le secteur artistique, cochez 'non'.",
+  "22": "Par ailleurs, le suivi d'études de plein exercice en cours du jour, d'un apprentissage, d'une formation avec une convention de stage organisée par SYNTRA, l'IFAPME, l'EFEPME, l'IAWM, d'une formation en alternance doit être déclaré préalablement et entraîne la perte du droit aux allocations de chômage sauf si vous obtenez une dispense de la part de l'instance régionale.",
+  "24": "Les travailleurs de certaines catégories professionnelles particulières (p.ex. mineur, pilote d'avion, marin,…) ont droit à une pension complète avant l'âge normal de la pension.\n\nSi vous remplissez les conditions d'âge et d'ancienneté pour percevoir cette pension spécifique, vous n'avez pas droit aux allocations. Demandez des explications à votre organisme de paiement.",
+  "25": "Les revenus (autres que salariés ou statutaires) que vous procure une activité artistique peuvent avoir une incidence sur le montant de votre allocation de chômage, même si vous avez mis fin à cette activité.\n\nPar ailleurs, vous devez déclarer les avantages financiers que vous percevez dans le cadre d'une formation (vous joignez un FORMULAIRE C1F). Ces avantages entraînent la perte du droit aux allocations de chômage sauf si vous obtenez une dispense ou une autorisation de la part de l'instance régionale.",
+  "26": "Vous déclarez votre pension de survie sur le FORMULAIRE C1B. Si vous ne recevez pas une pension de survie mais une allocation de transition limitée dans le temps, vous répondez 'non' et vous ne joignez pas de FORMULAIRE C1B. Cette allocation de transition est cumulable sans limitation avec les allocations de chômage.",
+  "29": "Veuillez communiquer sous cette rubrique de quelle manière vous désirez recevoir vos allocations et communiquez également chaque modification.",
+  "30": "Si vous êtes syndiqué, vous pouvez autoriser la retenue de la cotisation syndicale sur vos allocations de chômage.\n\nMentionnez sous cette rubrique si vous autorisez cette retenue ou si vous retirez votre autorisation précédente.",
+  "31": "Indiquez 'réfugié' ou 'apatride reconnu', si vous possédez un de ces statuts. Joignez une preuve de votre reconnaissance en tant que réfugié ou apatride.\n\nVous ne devez pas présenter un document de séjour ou un permis de travail dans les cas suivants :\n- vous possédez le statut de réfugié ou d'apatride reconnu ;\n- vous êtes ressortissant d'un des pays suivants : Allemagne, Autriche, Bulgarie, République de Chypre, Croatie, Danemark, Espagne, Estonie, Finlande, France, Grande-Bretagne, Grèce, Hongrie, Irlande, Islande, Italie, Lettonie, Liechtenstein, Lituanie, Luxembourg, Malte, Norvège, Pays-Bas, Pologne, Portugal, Roumanie, Slovaquie, Slovénie, Suède, République tchèque ou la Suisse.",
+  "32": "Le fait d'avoir une incapacité permanente au travail d'au moins 33 % peut avoir une incidence sur le montant de vos allocations. En effet, la reconnaissance d'une inaptitude permanente d'au moins 33% permet de « fixer » le montant de votre allocation. Cela signifie que, soit vous ne serez pas concerné par la dégressivité du montant des allocations de chômage, soit la dégressivité s'arrêtera.\n\nVous pouvez demander cet avantage via le FORMULAIRE C47-DEMANDE, disponible auprès de votre organisme de paiement.",
+  "33": "Lisez attentivement la déclaration, indiquez les annexes que vous joignez, datez et signez. Votre organisme de paiement vous remettra un double de votre FORMULAIRE C1 et un exemplaire de la feuille d'information.",
+};
+
 // ── Composants UI ────────────────────────────────────────────────────────────
-function Field({ label, hint, error, children }: {
-  label: string; hint?: string; error?: string; children: React.ReactNode;
+function InfoTooltip({ n }: { n: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [open]);
+
+  const text = TIPS[n] ?? "";
+
+  return (
+    <div ref={ref} className="relative inline-flex items-center shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center justify-center px-1 min-w-[22px] h-4 rounded bg-blue-50 text-blue-600 text-[9px] font-bold hover:bg-blue-200 border border-blue-200 leading-none"
+      >
+        ({n})
+      </button>
+      {open && (
+        <div className="absolute z-50 top-5 left-0 w-72 bg-white border border-blue-200 rounded-lg shadow-xl p-3 text-xs text-gray-700 leading-relaxed whitespace-pre-line">
+          <p className="font-bold text-blue-700 mb-1.5">({n})</p>
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, hint, error, tip, children }: {
+  label: string; hint?: string; error?: string; tip?: string; children: React.ReactNode;
 }) {
   return (
     <div className="mb-3">
-      <label className="block text-xs font-semibold text-gray-700 mb-1">{label}</label>
+      <div className="flex items-center gap-1.5 mb-1">
+        <label className="text-xs font-semibold text-gray-700">{label}</label>
+        {tip && <InfoTooltip n={tip} />}
+      </div>
       {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
       {children}
       {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
@@ -205,16 +276,22 @@ function AddressAutocomplete({
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-sm font-bold text-gray-800 bg-gray-100 rounded-lg px-3 py-2 mb-3 mt-4">{children}</h3>;
+function SectionTitle({ children, tip }: { children: React.ReactNode; tip?: string }) {
+  return (
+    <h3 className="text-sm font-bold text-gray-800 bg-gray-100 rounded-lg px-3 py-2 mb-3 mt-4 flex items-center gap-2">
+      <span className="flex-1">{children}</span>
+      {tip && <InfoTooltip n={tip} />}
+    </h3>
+  );
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ label, checked, onChange, tip }: { label: string; checked: boolean; onChange: (v: boolean) => void; tip?: string }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer py-1.5">
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
         className="mt-0.5 w-4 h-4 accent-blue-600 shrink-0" />
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-gray-700 flex-1">{label}</span>
+      {tip && <InfoTooltip n={tip} />}
     </label>
   );
 }
@@ -496,14 +573,14 @@ export default function FormulaireC1() {
                 <input className={inp(errors.prenom)} value={form.prenom} onChange={e => set("prenom", e.target.value)} />
               </Field>
             </div>
-            <Field label="NISS (numéro de registre national)" hint="Format : 85.04.12-123.45">
+            <Field label="NISS (numéro de registre national)" hint="Format : 85.04.12-123.45" tip="1">
               <input className={inp()} value={form.niss} onChange={e => set("niss", formatNiss(e.target.value))} placeholder="85.04.12-123.45" maxLength={15} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Date de naissance">
                 <DateInput className={inp()} value={form.dateNaissance} onChange={v => set("dateNaissance", v)} />
               </Field>
-              <Field label="Nationalité">
+              <Field label="Nationalité" tip="3">
                 <input className={inp()} value={form.nationalite} onChange={e => set("nationalite", e.target.value)} />
               </Field>
             </div>
@@ -511,7 +588,7 @@ export default function FormulaireC1() {
             <SectionTitle>Mon adresse effective</SectionTitle>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
-                <Field label="Rue *" error={errors.rue}>
+                <Field label="Rue *" error={errors.rue} tip="2">
                   <AddressAutocomplete
                     className={inp(errors.rue)}
                     value={form.rue}
@@ -565,7 +642,7 @@ export default function FormulaireC1() {
           <>
             {errors.motif && <p className="text-red-600 text-sm mb-3 bg-red-50 rounded-lg p-2">{errors.motif}</p>}
 
-            <Toggle label="Je demande des allocations de chômage" checked={form.motifDemandeAlloc} onChange={v => set("motifDemandeAlloc", v)} />
+            <Toggle label="Je demande des allocations de chômage" checked={form.motifDemandeAlloc} onChange={v => set("motifDemandeAlloc", v)} tip="4" />
             {form.motifDemandeAlloc && (
               <div className="ml-7 space-y-3 mt-2">
                 <Field label="à partir du">
@@ -583,6 +660,7 @@ export default function FormulaireC1() {
                       onChange={() => { set("motifPremiereFois", false); set("motifApresInterruption", true); }}
                       className="accent-blue-600" />
                     après une interruption de mes allocations
+                    <InfoTooltip n="5" />
                   </label>
                 </div>
                 <Field label="comme chômeur temporaire suivant une formation en alternance">
@@ -599,7 +677,7 @@ export default function FormulaireC1() {
               </div>
             )}
 
-            <Toggle label="Je change d&apos;organisme de paiement" checked={form.motifChangementOrganisme} onChange={v => set("motifChangementOrganisme", v)} />
+            <Toggle label="Je change d&apos;organisme de paiement" checked={form.motifChangementOrganisme} onChange={v => set("motifChangementOrganisme", v)} tip="4" />
             {form.motifChangementOrganisme && (
               <div className="ml-7 mt-2">
                 <Field label="à partir du">
@@ -609,7 +687,7 @@ export default function FormulaireC1() {
             )}
 
             <SectionTitle>Je déclare une modification relative à :</SectionTitle>
-            <Toggle label="mon adresse" checked={form.motifModifAdresse} onChange={v => set("motifModifAdresse", v)} />
+            <Toggle label="mon adresse" checked={form.motifModifAdresse} onChange={v => set("motifModifAdresse", v)} tip="6" />
             {form.motifModifAdresse && (
               <div className="ml-7">
                 <Field label="à partir du">
@@ -617,9 +695,9 @@ export default function FormulaireC1() {
                 </Field>
               </div>
             )}
-            <Toggle label="l&apos;autorisation de retenue de ma cotisation syndicale" checked={form.motifModifCotisationSyndicale} onChange={v => set("motifModifCotisationSyndicale", v)} />
-            <Toggle label="mon permis de séjour et/ou de travail" checked={form.motifModifPermis} onChange={v => set("motifModifPermis", v)} />
-            <Toggle label="ma situation personnelle ou familiale" checked={form.motifModifSituationPersonnelle} onChange={v => set("motifModifSituationPersonnelle", v)} />
+            <Toggle label="l&apos;autorisation de retenue de ma cotisation syndicale" checked={form.motifModifCotisationSyndicale} onChange={v => set("motifModifCotisationSyndicale", v)} tip="8" />
+            <Toggle label="mon permis de séjour et/ou de travail" checked={form.motifModifPermis} onChange={v => set("motifModifPermis", v)} tip="10" />
+            <Toggle label="ma situation personnelle ou familiale" checked={form.motifModifSituationPersonnelle} onChange={v => set("motifModifSituationPersonnelle", v)} tip="7" />
             {form.motifModifSituationPersonnelle && (
               <div className="ml-7">
                 <Field label="à partir du">
@@ -627,7 +705,7 @@ export default function FormulaireC1() {
                 </Field>
               </div>
             )}
-            <Toggle label="mon mode de paiement et/ou mon numéro de compte" checked={form.motifModifModePaiement} onChange={v => set("motifModifModePaiement", v)} />
+            <Toggle label="mon mode de paiement et/ou mon numéro de compte" checked={form.motifModifModePaiement} onChange={v => set("motifModifModePaiement", v)} tip="9" />
             {form.motifModifModePaiement && (
               <div className="ml-7">
                 <Field label="à partir du">
@@ -648,12 +726,12 @@ export default function FormulaireC1() {
             ) : (
               <>
                 <p className="text-sm text-gray-600 mb-4">Décrivez votre situation de logement actuelle.</p>
-                <SectionTitle>Ma situation de logement</SectionTitle>
-                <Toggle label="J&apos;habite seul(e)" checked={form.sitFamHabiteSeul} onChange={v => { set("sitFamHabiteSeul", v); if (v) { set("sitFamCohabite", false); set("cohabitants", []); } }} />
-                <Toggle label="Je cohabite avec d&apos;autres personnes" checked={form.sitFamCohabite} onChange={v => { set("sitFamCohabite", v); if (v) set("sitFamHabiteSeul", false); }} />
+                <SectionTitle tip="11">Ma situation de logement</SectionTitle>
+                <Toggle label="J&apos;habite seul(e)" checked={form.sitFamHabiteSeul} tip="12" onChange={v => { set("sitFamHabiteSeul", v); if (v) { set("sitFamCohabite", false); set("cohabitants", []); } }} />
+                <Toggle label="Je cohabite avec d&apos;autres personnes" checked={form.sitFamCohabite} tip="14" onChange={v => { set("sitFamCohabite", v); if (v) set("sitFamHabiteSeul", false); }} />
 
                 <SectionTitle>Situations particulières</SectionTitle>
-                <Toggle label="Je paie une pension alimentaire (décision judiciaire ou acte notarié)" checked={form.sitFamPensionAlimentaire} onChange={v => set("sitFamPensionAlimentaire", v)} />
+                <Toggle label="Je paie une pension alimentaire (décision judiciaire ou acte notarié)" checked={form.sitFamPensionAlimentaire} onChange={v => set("sitFamPensionAlimentaire", v)} tip="13" />
                 {form.sitFamPensionAlimentaire && (
                   <div className="ml-7">
                     <Field label="Copie">
@@ -684,25 +762,25 @@ export default function FormulaireC1() {
                           <Field label="Nom et prénom">
                             <input className={inp()} value={c.nomPrenom} onChange={e => setCohabitant(i, "nomPrenom", e.target.value)} />
                           </Field>
-                          <Field label="Lien de parenté">
+                          <Field label="Lien de parenté" tip="15">
                             <input className={inp()} value={c.lienParente} onChange={e => setCohabitant(i, "lienParente", e.target.value)} placeholder="conjoint, enfant..." />
                           </Field>
                           <Field label="Date de naissance">
                             <DateInput className={inp()} value={c.dateNaissance} onChange={v => setCohabitant(i, "dateNaissance", v)} />
                           </Field>
-                          <Field label="Allocations familiales">
+                          <Field label="Allocations familiales" tip="16">
                             <label className="flex items-center gap-2 cursor-pointer mt-1">
                               <input type="checkbox" checked={c.allocFamiliales} onChange={e => setCohabitant(i, "allocFamiliales", e.target.checked)} className="accent-blue-600 w-4 h-4" />
                               <span className="text-sm text-gray-700">Oui</span>
                             </label>
                           </Field>
-                          <Field label="Type d&apos;activité professionnelle">
+                          <Field label="Type d&apos;activité professionnelle" tip="17">
                             <input className={inp()} value={c.typeActivite} onChange={e => setCohabitant(i, "typeActivite", e.target.value)} placeholder="salarié, indépendant..." />
                           </Field>
-                          <Field label="Montant mensuel brut (€)">
+                          <Field label="Montant mensuel brut (€)" tip="18">
                             <input className={inp()} value={c.montantActivite} onChange={e => setCohabitant(i, "montantActivite", e.target.value)} />
                           </Field>
-                          <Field label="Type de revenu de remplacement">
+                          <Field label="Type de revenu de remplacement" tip="19">
                             <input className={inp()} value={c.typeRevenu} onChange={e => setCohabitant(i, "typeRevenu", e.target.value)} placeholder="chômage, pension..." />
                           </Field>
                           <Field label="Montant mensuel brut (€)">
@@ -716,7 +794,7 @@ export default function FormulaireC1() {
                         className="text-sm text-blue-600 hover:underline mb-3">+ Ajouter une personne</button>
                     )}
 
-                    <SectionTitle>Partenaire ou personne à charge</SectionTitle>
+                    <SectionTitle tip="15bis">Partenaire ou personne à charge</SectionTitle>
                     <p className="text-xs text-gray-500 mb-2">À compléter uniquement si votre partenaire ou une autre personne (pas votre enfant) est financièrement à votre charge.</p>
                     <Field label="Nom et prénom du partenaire / de la personne à charge">
                       <input className={inp()} value={form.partenaireNom} onChange={e => set("partenaireNom", e.target.value)} />
@@ -741,7 +819,7 @@ export default function FormulaireC1() {
           <>
             <p className="text-sm text-gray-600 mb-4">Répondez à chaque question. Par défaut : <strong>Non</strong>.</p>
 
-            <SectionTitle>Mes activités</SectionTitle>
+            <SectionTitle tip="20">Mes activités</SectionTitle>
             {[
               { field: "actEtudesPleinExercice" as const, label: "Je suis des études de plein exercice", dateField: "actEtudesDate" as const },
               { field: "actApprentissage" as const, label: "Je suis un apprentissage ou une formation en alternance", dateField: "actApprentissageDate" as const },
@@ -749,7 +827,7 @@ export default function FormulaireC1() {
             ].map(({ field, label, dateField }) => (
               <div key={field} className="mb-3">
                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-700 flex-1 pr-4">{label}</span>
+                  <span className="text-sm text-gray-700 flex-1 pr-4 flex items-center gap-1">{label} <InfoTooltip n="22" /></span>
                   <YesNo value={form[field]} onChange={v => set(field, v)} />
                 </div>
                 {form[field] === "oui" && (
@@ -787,7 +865,7 @@ export default function FormulaireC1() {
               )}
             </div>
             <div className="flex items-center justify-between py-2 border-b border-gray-100 mb-1">
-              <span className="text-sm text-gray-700 flex-1 pr-4">Bénéficiaire du Chapitre XII (attestation travail des arts)</span>
+              <span className="text-sm text-gray-700 flex-1 pr-4 flex items-center gap-1">Bénéficiaire du Chapitre XII (attestation travail des arts) <InfoTooltip n="21" /></span>
               <YesNo value={form.actChapitreXII} onChange={v => set("actChapitreXII", v)} />
             </div>
             <div className="mb-1">
@@ -821,14 +899,14 @@ export default function FormulaireC1() {
 
             <SectionTitle>Mes revenus</SectionTitle>
             {[
-              { field: "revPensionComplete" as const, label: "J&apos;appartiens à une catégorie pro. particulière et j&apos;ai droit à une pension complète" },
-              { field: "revPensionRetraite" as const, label: "Je perçois une pension de retraite ou de survie" },
-              { field: "revIndemnitesMaladie" as const, label: "Je perçois une indemnité de maladie ou d&apos;invalidité" },
-              { field: "revIndemnitesAccident" as const, label: "Je perçois une indemnité pour accident du travail ou maladie professionnelle" },
-              { field: "revAvantageFinancier" as const, label: "Je perçois un avantage financier lié à une formation ou un apprentissage" },
-            ].map(({ field, label }) => (
+              { field: "revPensionComplete" as const, label: "J'appartiens à une catégorie pro. particulière et j'ai droit à une pension complète", tip: "24" },
+              { field: "revPensionRetraite" as const, label: "Je perçois une pension de retraite ou de survie", tip: "26" },
+              { field: "revIndemnitesMaladie" as const, label: "Je perçois une indemnité de maladie ou d'invalidité", tip: "" },
+              { field: "revIndemnitesAccident" as const, label: "Je perçois une indemnité pour accident du travail ou maladie professionnelle", tip: "" },
+              { field: "revAvantageFinancier" as const, label: "Je perçois un avantage financier lié à une formation ou un apprentissage", tip: "25" },
+            ].map(({ field, label, tip }) => (
               <div key={field} className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-sm text-gray-700 flex-1 pr-4" dangerouslySetInnerHTML={{ __html: label }} />
+                <span className="text-sm text-gray-700 flex-1 pr-4 flex items-center gap-1">{label} {tip && <InfoTooltip n={tip} />}</span>
                 <YesNo value={form[field]} onChange={v => set(field, v)} />
               </div>
             ))}
@@ -838,7 +916,7 @@ export default function FormulaireC1() {
         {/* ══ ÉTAPE 5 — Paiement & Cotisation ══ */}
         {step === 5 && (
           <>
-            <SectionTitle>Mode de paiement de mes allocations</SectionTitle>
+            <SectionTitle tip="29">Mode de paiement de mes allocations</SectionTitle>
             <div className="space-y-2 mb-4">
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input type="radio" checked={form.paiementVirement} onChange={() => { set("paiementVirement", true); set("paiementCheque", false); }} className="accent-blue-600" />
@@ -874,7 +952,7 @@ export default function FormulaireC1() {
               </>
             )}
 
-            <SectionTitle>Cotisation syndicale (si modification)</SectionTitle>
+            <SectionTitle tip="30">Cotisation syndicale (si modification)</SectionTitle>
             <p className="text-xs text-gray-500 mb-3">À compléter uniquement si vous souhaitez modifier votre autorisation de retenue.</p>
             <div className="space-y-2 mb-3">
               <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="radio" checked={form.cotisationAction === "none"} onChange={() => set("cotisationAction", "none")} className="accent-blue-600" />Aucune modification</label>
@@ -887,7 +965,7 @@ export default function FormulaireC1() {
               </Field>
             )}
 
-            <SectionTitle>Ma nationalité</SectionTitle>
+            <SectionTitle tip="31">Ma nationalité</SectionTitle>
             <p className="text-xs text-gray-500 mb-3">À compléter uniquement si vous n&apos;êtes pas ressortissant(e) de l&apos;Espace Économique Européen.</p>
             <Toggle label="Cette section me concerne" checked={form.natApplicable} onChange={v => set("natApplicable", v)} />
             {form.natApplicable && (
@@ -942,7 +1020,7 @@ export default function FormulaireC1() {
               )}
             </div>
             <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-700 flex-1 pr-4">Incapacité de travail permanente d&apos;au moins 33 %</span>
+              <span className="text-sm text-gray-700 flex-1 pr-4 flex items-center gap-1">Incapacité de travail permanente d&apos;au moins 33 % <InfoTooltip n="32" /></span>
               <YesNo value={form.divIncapacite33} onChange={v => set("divIncapacite33", v)} />
             </div>
           </>
@@ -951,7 +1029,7 @@ export default function FormulaireC1() {
         {/* ══ ÉTAPE 6 — Déclaration ══ */}
         {step === 6 && (
           <>
-            <SectionTitle>Ma déclaration</SectionTitle>
+            <SectionTitle tip="33">Ma déclaration</SectionTitle>
             <p className="text-sm text-gray-600 mb-4">Vous devez cocher les trois cases ci-dessous pour valider votre demande.</p>
             <div className="space-y-3 mb-5">
               {[
