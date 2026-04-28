@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+import { forms } from "./forms";
 
 export const metadata: Metadata = {
   title: "FGTB — Formulaires en ligne",
@@ -13,22 +14,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <nav className="bg-red-700 shadow-md">
           <div className="flex items-center gap-0 px-6 min-h-[52px]">
-            <span className="text-white font-bold text-[15px] mr-8 whitespace-nowrap tracking-tight">
-              CG FGTB Namur–Luxembourg
-            </span>
+            <img
+              src="/Logo CG Blanc.png"
+              alt="FGTB"
+              className="h-[18px] w-auto object-contain shrink-0 mr-8"
+            />
             <div className="flex gap-1">
               <Link
-                href="/affiliation"
+                href="/"
                 className="text-red-200 hover:text-white hover:bg-white/20 text-[13px] font-medium px-4 py-2 rounded-md transition-colors"
               >
-                Affiliation
+                Accueil
               </Link>
-              <Link
-                href="/mandat-sepa"
-                className="text-red-200 hover:text-white hover:bg-white/20 text-[13px] font-medium px-4 py-2 rounded-md transition-colors"
-              >
-                Changement de compte
-              </Link>
+              {forms.map((form) => (
+                <Link
+                  key={form.href}
+                  href={form.href}
+                  className="text-red-200 hover:text-white hover:bg-white/20 text-[13px] font-medium px-4 py-2 rounded-md transition-colors"
+                >
+                  {form.shortTitle}
+                </Link>
+              ))}
             </div>
           </div>
         </nav>

@@ -19,13 +19,18 @@ interface Payload {
   pdfBase64:   string;
   fileName:    string;
   nouveauIban: string;
+  typeDemande?: "nouveau_mandat" | "changement_compte";
 }
 
 function buildHtml(p: Payload): string {
+  const libelleDemande =
+    p.typeDemande === "nouveau_mandat"
+      ? "nouveau mandat SEPA"
+      : "changement de numéro de compte / mandat SEPA";
   return `
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="UTF-8" /><title>Changement de compte — FGTB</title></head>
+<head><meta charset="UTF-8" /><title>Mandat SEPA — FGTB</title></head>
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
   <tr><td align="center">
@@ -43,7 +48,7 @@ function buildHtml(p: Payload): string {
         <td style="padding:28px 32px 0;">
           <p style="margin:0 0 18px;font-size:15px;color:#111;">Bonjour <strong>${p.prenom} ${p.nom}</strong>,</p>
           <p style="margin:0 0 14px;font-size:13px;color:#374151;line-height:1.65;">
-            Nous avons bien reçu votre demande de <strong>changement de numéro de compte / mandat SEPA</strong>
+            Nous avons bien reçu votre demande de <strong>${libelleDemande}</strong>
             auprès de la Centrale Générale FGTB Namur Luxembourg.
           </p>
           <p style="margin:0 0 20px;font-size:13px;color:#374151;line-height:1.65;">
@@ -110,7 +115,7 @@ function buildHtml(p: Payload): string {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Payload;
-    const { email, nom, prenom, pdfBase64, fileName, nouveauIban } = body;
+    const { email, nom, prenom, pdfBase64, fileName, nouveauIban, typeDemande } = body;
 
     if (!email || !nom || !prenom || !pdfBase64 || !fileName) {
       return NextResponse.json({ error: "Données manquantes." }, { status: 400 });
@@ -123,8 +128,8 @@ export async function POST(request: Request) {
       from:        process.env.RESEND_FROM_EMAIL ?? "noreply@accg.be",
       to:          [email],
       cc:          [ADMIN_EMAIL],
-      subject:     `Changement de compte / Mandat SEPA — Centrale Générale FGTB Namur Luxembourg`,
-      html:        buildHtml({ email, nom, prenom, pdfBase64, fileName, nouveauIban }),
+      subject:     `${typeDemande === "nouveau_mandat" ? "Nouveau mandat SEPA" : "Changement de compte / Mandat SEPA"} — Centrale Générale FGTB Namur Luxembourg`,
+      html:        buildHtml({ email, nom, prenom, pdfBase64, fileName, nouveauIban, typeDemande }),
       attachments: [{ filename: fileName, content: pdfBuffer }],
     });
 

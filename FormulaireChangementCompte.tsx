@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
   pdf,
@@ -11,7 +11,7 @@ import {
   StyleSheet,
   Image as PDFImage,
 } from "@react-pdf/renderer";
-import { FileDown, CheckCircle } from "lucide-react";
+import { FileDown, CheckCircle, Loader2, MapPin } from "lucide-react";
 
 // ── Supabase ────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -21,8 +21,10 @@ const supabase = createClient(
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type AccordCloture = "avec_cloture" | "sans_cloture" | "";
+type TypeDemande = "nouveau_mandat" | "changement_compte" | "";
 
 interface FormData {
+  typeDemande: TypeDemande;
   nom: string;
   prenom: string;
   niss: string;
@@ -44,6 +46,7 @@ interface FormData {
 }
 
 const EMPTY: FormData = {
+  typeDemande: "",
   nom: "", prenom: "", niss: "", email: "",
   adresseRue: "", adresseNumero: "", codePostal: "", localite: "", pays: "Belgique",
   nouveauIban: "", nouveauBic: "", ancienIban: "",
@@ -94,6 +97,158 @@ function formatIBAN(value: string): string {
   return value.replace(/\s/g, "").toUpperCase().replace(/(.{4})/g, "$1 ").trim();
 }
 
+function isBelgianIban(value: string): boolean {
+  return value.replace(/\s/g, "").toUpperCase().startsWith("BE");
+}
+
+function formatDateFr(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+interface PhotonSuggestion {
+  street: string;
+  housenumber: string;
+  postcode: string;
+  city: string;
+  display: string;
+}
+
+function AddressAutocomplete({
+  value,
+  onChange,
+  onSelect,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (s: PhotonSuggestion) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<PhotonSuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  function handleChange(v: string) {
+    onChange(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (v.trim().length < 3) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const url =
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(v)}` +
+          `&lang=fr&limit=10&bbox=2.376,49.496,6.628,51.547`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const features: unknown[] = json.features ?? [];
+
+        const raw: PhotonSuggestion[] = (features as Array<{
+          properties: {
+            countrycode?: string;
+            street?: string;
+            housenumber?: string;
+            postcode?: string;
+            city?: string;
+            locality?: string;
+            district?: string;
+          };
+        }>)
+          .filter((f) => f.properties?.countrycode === "BE" && f.properties?.street)
+          .map((f) => {
+            const p = f.properties;
+            const street = p.street ?? "";
+            const housenumber = p.housenumber ?? "";
+            const postcode = p.postcode ?? "";
+            const city = p.city ?? p.locality ?? p.district ?? "";
+            const display = [
+              street + (housenumber ? ` ${housenumber}` : ""),
+              [postcode, city].filter(Boolean).join(" "),
+            ]
+              .filter(Boolean)
+              .join(", ");
+            return { street, housenumber, postcode, city, display };
+          });
+
+        const seen = new Set<string>();
+        const unique = raw.filter((r) => {
+          const key = `${r.street}|${r.postcode}|${r.city}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        setSuggestions(unique.slice(0, 6));
+        setOpen(unique.length > 0);
+      } catch {
+        setSuggestions([]);
+        setOpen(false);
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+  }
+
+  function handleSelect(s: PhotonSuggestion) {
+    onChange(s.street);
+    onSelect(s);
+    setSuggestions([]);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="Rue de la Loi"
+          autoComplete="off"
+          className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors border-gray-300 focus:ring-red-200"
+        />
+        {loading && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin pointer-events-none" />
+        )}
+      </div>
+
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden text-sm">
+          {suggestions.map((s, i) => (
+            <li
+              key={i}
+              onMouseDown={() => handleSelect(s)}
+              className="px-3 py-2.5 cursor-pointer hover:bg-red-50 hover:text-red-700 border-b border-gray-100 last:border-0 flex items-center gap-2"
+            >
+              <MapPin className="w-3.5 h-3.5 shrink-0 text-red-400" />
+              {s.display}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ── Logo (chargé une fois) ───────────────────────────────────────────────────
 async function fetchLogoBase64(): Promise<string> {
   const res = await fetch("/Logo CG Blanc.png");
@@ -125,6 +280,7 @@ const pdfStyles = StyleSheet.create({
   metaText: { fontSize: 7, color: "#888" },
   footer: { position: "absolute", bottom: 20, left: 36, right: 36, borderTopWidth: 0.5, borderTopColor: "#e5e7eb", paddingTop: 6, flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 7, color: "#9ca3af" },
+  creditorBox: { backgroundColor: "#f9fafb", borderWidth: 0.5, borderColor: "#e5e7eb", borderRadius: 4, padding: "6 8", marginBottom: 6 },
 });
 
 function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
@@ -133,18 +289,22 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
   ipAddress: string;
   dateHeure: string;
 }) {
+  const titreDemande =
+    data.typeDemande === "nouveau_mandat"
+      ? "Nouveau mandat SEPA"
+      : "Changement de numéro de compte — Mandat";
   const ibanAffiche = data.nouveauIban
     ? formatIBAN(data.nouveauIban)
     : "—";
 
   return (
-    <Document title="Changement de compte - Mandat SEPA">
+    <Document title={`${titreDemande} - Mandat SEPA`}>
       <Page size="A4" style={pdfStyles.page}>
 
         {/* En-tête */}
         <View style={pdfStyles.header}>
           <View>
-            <Text style={pdfStyles.headerTitle}>Changement de numéro de compte — Mandat</Text>
+            <Text style={pdfStyles.headerTitle}>{titreDemande}</Text>
             <Text style={pdfStyles.headerSub}>Centrale Générale FGTB Namur – Luxembourg</Text>
             <Text style={pdfStyles.headerSub}>Rue Fonteny Maroy, 13 · 6800 Libramont-Chevigny · N° BE00000647821</Text>
           </View>
@@ -162,6 +322,19 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
 
         {/* Section A */}
         <Text style={pdfStyles.sectionTitle}>A. IDENTIFICATION DU MANDAT (Réservé au service)</Text>
+        <View style={pdfStyles.creditorBox}>
+          <View style={pdfStyles.row}><Text style={pdfStyles.label}>Créancier :</Text><Text style={pdfStyles.value}>Centrale Générale FGTB Namur – Luxembourg</Text></View>
+          <View style={pdfStyles.row}><Text style={pdfStyles.label}>Adresse créancier :</Text><Text style={pdfStyles.value}>Rue Fonteny Maroy, 13</Text></View>
+          <View style={pdfStyles.row}><Text style={pdfStyles.label}>Code postal / Ville :</Text><Text style={pdfStyles.value}>6800 Libramont-Chevigny</Text></View>
+          <View style={pdfStyles.row}><Text style={pdfStyles.label}>N° créancier :</Text><Text style={pdfStyles.value}>BE00000647821</Text></View>
+        </View>
+        <View style={pdfStyles.row}>
+          <Text style={pdfStyles.label}>Type de demande :</Text>
+          <Text style={pdfStyles.value}>
+            {data.typeDemande === "nouveau_mandat" ? "Nouveau mandat" :
+             data.typeDemande === "changement_compte" ? "Changement de compte" : "—"}
+          </Text>
+        </View>
         <View style={pdfStyles.row}><Text style={pdfStyles.label}>Type d&apos;encaissement :</Text><Text style={pdfStyles.value}>Récurrent</Text></View>
         <View style={pdfStyles.row}><Text style={pdfStyles.label}>Périodicité :</Text><Text style={pdfStyles.value}>Mensuel</Text></View>
         <View style={pdfStyles.row}><Text style={pdfStyles.label}>Description :</Text><Text style={pdfStyles.value}>Convention pour la perception syndicale</Text></View>
@@ -186,13 +359,15 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
         {!data.estTitulaire && (
           <View style={pdfStyles.row}><Text style={pdfStyles.label}>Nom du titulaire :</Text><Text style={pdfStyles.value}>{data.nomTitulaire || "—"}</Text></View>
         )}
-        <View style={pdfStyles.row}>
-          <Text style={pdfStyles.label}>Accord transfert :</Text>
-          <Text style={pdfStyles.value}>
-            {data.accordCloture === "avec_cloture" ? "Oui, avec clôture du compte précédent" :
-             data.accordCloture === "sans_cloture" ? "Oui, sans clôture du compte précédent" : "—"}
-          </Text>
-        </View>
+        {data.typeDemande === "changement_compte" && (
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Accord transfert :</Text>
+            <Text style={pdfStyles.value}>
+              {data.accordCloture === "avec_cloture" ? "Oui, avec clôture du compte précédent" :
+               data.accordCloture === "sans_cloture" ? "Oui, sans clôture du compte précédent" : "—"}
+            </Text>
+          </View>
+        )}
         <View style={pdfStyles.row}><Text style={pdfStyles.label}>Date :</Text><Text style={pdfStyles.value}>{data.dateSig || "—"}</Text></View>
         <View style={pdfStyles.row}><Text style={pdfStyles.label}>Lieu :</Text><Text style={pdfStyles.value}>{data.lieu || "—"}</Text></View>
 
@@ -308,10 +483,15 @@ export default function FormulaireChangementCompte() {
 
   function validate(): boolean {
     const e: Partial<Record<keyof FormData, string>> = {};
+    if (!form.typeDemande) e.typeDemande = "Requis";
     if (!form.nom.trim()) e.nom = "Requis";
     if (!form.prenom.trim()) e.prenom = "Requis";
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Email invalide";
-    if (form.niss && !isValidNISS(form.niss)) e.niss = "NISS invalide";
+    if (!form.niss.trim()) {
+      e.niss = "Requis";
+    } else if (!isValidNISS(form.niss)) {
+      e.niss = "NISS invalide";
+    }
     if (!form.adresseRue.trim()) e.adresseRue = "Requis";
     if (!form.adresseNumero.trim()) e.adresseNumero = "Requis";
     if (!form.codePostal.trim()) e.codePostal = "Requis";
@@ -321,13 +501,17 @@ export default function FormulaireChangementCompte() {
     } else if (!isValidIBAN(form.nouveauIban)) {
       e.nouveauIban = "IBAN invalide";
     }
-    if (!form.nouveauBic.trim()) {
-      e.nouveauBic = "Requis";
-    } else if (!isValidBIC(form.nouveauBic)) {
+    const bicRequired = !isBelgianIban(form.nouveauIban);
+    if (bicRequired && !form.nouveauBic.trim()) {
+      e.nouveauBic = "Requis pour un IBAN non belge";
+    } else if (form.nouveauBic.trim() && !isValidBIC(form.nouveauBic)) {
       e.nouveauBic = "BIC invalide";
     }
+    if (!form.pays.trim()) e.pays = "Requis";
     if (!form.estTitulaire && !form.nomTitulaire.trim()) e.nomTitulaire = "Requis si vous n'êtes pas titulaire";
-    if (!form.accordCloture) e.accordCloture = "Requis";
+    if (form.typeDemande === "changement_compte" && !form.accordCloture) {
+      e.accordCloture = "Requis";
+    }
     if (!form.dateSig) e.dateSig = "Requis";
     if (!form.lieu.trim()) e.lieu = "Requis";
     if (!form.signature) e.signature = "La signature est requise";
@@ -366,7 +550,7 @@ export default function FormulaireChangementCompte() {
       const { error: dbError } = await supabase.from("web_mandats_sepa").insert({
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
-        niss: form.niss.replace(/\D/g, "") || null,
+        niss: form.niss.replace(/\D/g, ""),
         email: form.email.trim().toLowerCase(),
         adresse_rue: form.adresseRue.trim(),
         adresse_numero: form.adresseNumero.trim(),
@@ -374,7 +558,7 @@ export default function FormulaireChangementCompte() {
         localite: form.localite.trim(),
         pays: form.pays.trim(),
         nouveau_iban: form.nouveauIban.replace(/\s/g, "").toUpperCase(),
-        nouveau_bic: form.nouveauBic.trim().toUpperCase(),
+        nouveau_bic: form.nouveauBic.trim() ? form.nouveauBic.trim().toUpperCase() : null,
         ancien_iban: form.ancienIban ? form.ancienIban.replace(/\s/g, "").toUpperCase() : null,
         est_titulaire: form.estTitulaire,
         nom_titulaire: form.estTitulaire ? null : form.nomTitulaire.trim(),
@@ -398,7 +582,8 @@ export default function FormulaireChangementCompte() {
         reader.readAsDataURL(blob);
       });
 
-      const fileName = `changement-compte-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
+      const prefix = form.typeDemande === "nouveau_mandat" ? "nouveau-mandat" : "changement-compte";
+      const fileName = `${prefix}-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
 
       const emailRes = await fetch("/api/send-mandat-sepa", {
         method: "POST",
@@ -410,6 +595,7 @@ export default function FormulaireChangementCompte() {
           pdfBase64,
           fileName,
           nouveauIban: formatIBAN(form.nouveauIban),
+          typeDemande: form.typeDemande,
         }),
       });
 
@@ -432,7 +618,8 @@ export default function FormulaireChangementCompte() {
     const url = URL.createObjectURL(pdfBlob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `changement-compte-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
+    const prefix = form.typeDemande === "nouveau_mandat" ? "nouveau-mandat" : "changement-compte";
+    a.download = `${prefix}-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -440,25 +627,43 @@ export default function FormulaireChangementCompte() {
   // ── Écran succès ─────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="max-w-lg mx-auto mt-12 bg-white rounded-xl shadow p-8 text-center">
-        <CheckCircle className="mx-auto text-green-500 mb-4" size={48} />
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Demande enregistrée</h2>
-        <p className="text-gray-600 text-sm mb-6">
-          Votre demande de changement de compte a bien été transmise. Un email de confirmation vous a été envoyé à <strong>{form.email}</strong>.
-        </p>
-        {pdfError && (
-          <p className="text-amber-700 bg-amber-50 rounded p-3 text-xs mb-4">
-            L&apos;email n&apos;a pas pu être envoyé, mais vos données sont bien enregistrées. Vous pouvez télécharger le PDF ci-dessous.
-          </p>
-        )}
-        {pdfBlob && (
-          <button
-            onClick={downloadPdf}
-            className="inline-flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-5 rounded-lg text-sm"
-          >
-            <FileDown size={16} /> Télécharger le PDF
-          </button>
-        )}
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-2xl mx-auto space-y-5">
+          <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/10 rounded-xl p-2.5 shrink-0">
+                <CheckCircle className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-white text-lg font-semibold leading-snug">
+                  Demande enregistrée
+                </p>
+                <p className="text-red-100 text-sm mt-1">
+                  Votre demande a bien été transmise.
+                </p>
+              </div>
+            </div>
+          </header>
+
+          <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
+            <p className="text-gray-600 text-sm mb-6">
+              Un email de confirmation a été envoyé à <strong>{form.email}</strong>.
+            </p>
+            {pdfError && (
+              <p className="text-amber-700 bg-amber-50 rounded-xl p-3 text-xs mb-4">
+                L&apos;email n&apos;a pas pu être envoyé, mais vos données sont bien enregistrées. Vous pouvez télécharger le PDF ci-dessous.
+              </p>
+            )}
+            {pdfBlob && (
+              <button
+                onClick={downloadPdf}
+                className="inline-flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors"
+              >
+                <FileDown size={16} /> Télécharger le PDF
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -467,23 +672,71 @@ export default function FormulaireChangementCompte() {
   const err = errors;
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      {/* Titre */}
-      <div className="bg-red-700 text-white rounded-t-xl px-6 py-4 mb-0">
-        <h1 className="text-lg font-bold uppercase tracking-wide">Changement de numéro de compte — Mandat</h1>
-        <p className="text-red-200 text-xs mt-1">Centrale Générale FGTB Namur – Luxembourg</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto space-y-5">
+        {/* Titre */}
+        <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
+          <h1 className="text-xl font-semibold leading-snug">Mandat SEPA — Nouveau mandat ou changement de compte</h1>
+          <p className="text-red-100 text-sm mt-1.5">Centrale Générale FGTB Namur – Luxembourg</p>
+        </header>
 
-      {/* Note légale */}
-      <div className="bg-red-50 border-l-4 border-red-700 px-5 py-3 text-xs text-red-800 leading-relaxed mb-6">
-        En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur - Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
-      </div>
+        {/* Note légale */}
+        <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 text-sm text-red-800 leading-relaxed">
+          En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur - Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
+        </div>
 
-      <form onSubmit={handleSubmit} noValidate className="bg-white rounded-b-xl shadow space-y-0">
+        <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm space-y-0">
+
+        {/* ── CHOIX TYPE DE DEMANDE ── */}
+        <div className="px-6 py-6 border-b border-gray-100">
+          <Field
+            label="Que souhaitez-vous faire ? *"
+            error={err.typeDemande}
+            hint="Choisissez le type de demande avant de continuer."
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+              {([
+                [
+                  "nouveau_mandat",
+                  "Créer un nouveau mandat",
+                  "Je mets en place un mandat SEPA pour la première fois.",
+                ],
+                [
+                  "changement_compte",
+                  "Changer de compte bancaire",
+                  "J'ai déjà un mandat et je souhaite modifier le compte.",
+                ],
+              ] as [TypeDemande, string, string][]).map(([val, title, description]) => (
+                <label
+                  key={val}
+                  className={`rounded-xl border p-4 cursor-pointer transition-colors ${
+                    form.typeDemande === val
+                      ? "border-red-400 bg-red-50"
+                      : "border-gray-200 hover:border-red-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="radio"
+                      name="typeDemande"
+                      checked={form.typeDemande === val}
+                      onChange={() => set("typeDemande", val)}
+                      className="mt-1 accent-red-700"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">{title}</p>
+                      <p className="text-xs text-gray-500 mt-1">{description}</p>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </Field>
+        </div>
 
         {/* ── SECTION A ── */}
-        <SectionTitle>A. Identification du mandat (réservé au service)</SectionTitle>
-        <div className="px-6 py-3 bg-gray-50 text-xs text-gray-500 space-y-1">
+        <SectionTitle>A. Identification du mandat</SectionTitle>
+        <div className="px-6 py-3 bg-gray-50 text-xs text-gray-500 space-y-1 border-b border-gray-100">
           <p><span className="font-semibold text-gray-700">Type d&apos;encaissement :</span> Récurrent</p>
           <p><span className="font-semibold text-gray-700">Périodicité :</span> Mensuel</p>
           <p><span className="font-semibold text-gray-700">Description :</span> Convention pour la perception syndicale</p>
@@ -492,9 +745,9 @@ export default function FormulaireChangementCompte() {
 
         {/* ── SECTION B ── */}
         <SectionTitle>B. Coordonnées & Identification bancaire</SectionTitle>
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-6 py-6 space-y-5">
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Nom *" error={err.nom}>
               <input className={input(err.nom)} value={form.nom} onChange={e => set("nom", e.target.value)} />
             </Field>
@@ -507,7 +760,7 @@ export default function FormulaireChangementCompte() {
             <input type="email" className={input(err.email)} value={form.email} onChange={e => set("email", e.target.value)} />
           </Field>
 
-          <Field label="N° registre national (NISS)" error={err.niss} hint="Format : AA.MM.JJ-XXX.CC">
+          <Field label="N° registre national (NISS) *" error={err.niss}>
             <input
               className={input(err.niss)}
               value={form.niss}
@@ -517,10 +770,33 @@ export default function FormulaireChangementCompte() {
             />
           </Field>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
               <Field label="Rue *" error={err.adresseRue}>
-                <input className={input(err.adresseRue)} value={form.adresseRue} onChange={e => set("adresseRue", e.target.value)} />
+                {form.pays.trim().toLowerCase() === "belgique" ? (
+                  <AddressAutocomplete
+                    value={form.adresseRue}
+                    onChange={(v) => set("adresseRue", v)}
+                    onSelect={(s) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        adresseRue: s.street,
+                        adresseNumero: s.housenumber || prev.adresseNumero,
+                        codePostal: s.postcode || prev.codePostal,
+                        localite: s.city || prev.localite,
+                      }));
+                      setErrors((prev) => ({
+                        ...prev,
+                        adresseRue: undefined,
+                        adresseNumero: undefined,
+                        codePostal: undefined,
+                        localite: undefined,
+                      }));
+                    }}
+                  />
+                ) : (
+                  <input className={input(err.adresseRue)} value={form.adresseRue} onChange={e => set("adresseRue", e.target.value)} />
+                )}
               </Field>
             </div>
             <Field label="N° *" error={err.adresseNumero}>
@@ -528,22 +804,22 @@ export default function FormulaireChangementCompte() {
             </Field>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Code postal *" error={err.codePostal}>
               <input className={input(err.codePostal)} value={form.codePostal} onChange={e => set("codePostal", e.target.value)} maxLength={6} />
             </Field>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Field label="Localité *" error={err.localite}>
                 <input className={input(err.localite)} value={form.localite} onChange={e => set("localite", e.target.value)} />
               </Field>
             </div>
           </div>
 
-          <Field label="Pays">
-            <input className={input()} value={form.pays} onChange={e => set("pays", e.target.value)} />
+          <Field label="Pays *" error={err.pays}>
+            <input className={input(err.pays)} value={form.pays} onChange={e => set("pays", e.target.value)} />
           </Field>
 
-          <div className="border-t pt-4 space-y-4">
+          <div className="border-t border-gray-100 pt-4 space-y-4">
             <Field label="Nouveau IBAN * (belge ou européen)" error={err.nouveauIban} hint="Commencez par BE pour un IBAN belge">
               <input
                 className={input(err.nouveauIban)}
@@ -554,7 +830,10 @@ export default function FormulaireChangementCompte() {
               />
             </Field>
 
-            <Field label="Nouveau BIC *" error={err.nouveauBic}>
+            <Field
+              label="Nouveau BIC (obligatoire si IBAN non belge)"
+              error={err.nouveauBic}
+            >
               <input
                 className={`${input(err.nouveauBic)} uppercase`}
                 value={form.nouveauBic}
@@ -564,21 +843,12 @@ export default function FormulaireChangementCompte() {
               />
             </Field>
 
-            <Field label="Ancien IBAN" error={err.ancienIban}>
-              <input
-                className={input(err.ancienIban)}
-                value={form.ancienIban}
-                onChange={e => set("ancienIban", formatIBAN(e.target.value))}
-                placeholder="BE…"
-                maxLength={42}
-              />
-            </Field>
           </div>
         </div>
 
         {/* ── SECTION C ── */}
         <SectionTitle>C. Autorisation & Signature</SectionTitle>
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-6 py-6 space-y-5">
 
           <Field label="Êtes-vous le titulaire du compte ? *">
             <div className="flex gap-6 mt-1">
@@ -603,30 +873,40 @@ export default function FormulaireChangementCompte() {
             </Field>
           )}
 
-          <Field label="Accord transfert de l'ordre de paiement *" error={err.accordCloture}>
-            <div className="space-y-2 mt-1">
-              {([
-                ["avec_cloture", "Oui, avec clôture du compte précédent"],
-                ["sans_cloture", "Oui, sans clôture du compte précédent"],
-              ] as [AccordCloture, string][]).map(([val, label]) => (
-                <label key={val} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="accordCloture"
-                    checked={form.accordCloture === val}
-                    onChange={() => set("accordCloture", val)}
-                    className="accent-red-700"
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-            {err.accordCloture && <p className="text-red-600 text-xs mt-1">{err.accordCloture}</p>}
-          </Field>
+          {form.typeDemande === "changement_compte" && (
+            <Field label="Accord transfert de l'ordre de paiement *" error={err.accordCloture}>
+              <div className="space-y-2 mt-1">
+                {([
+                  ["avec_cloture", "Oui, avec clôture du compte précédent"],
+                  ["sans_cloture", "Oui, sans clôture du compte précédent"],
+                ] as [AccordCloture, string][]).map(([val, label]) => (
+                  <label key={val} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="accordCloture"
+                      checked={form.accordCloture === val}
+                      onChange={() => set("accordCloture", val)}
+                      className="accent-red-700"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {err.accordCloture && <p className="text-red-600 text-xs mt-1">{err.accordCloture}</p>}
+            </Field>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Date *" error={err.dateSig}>
-              <input type="date" className={input(err.dateSig)} value={form.dateSig} onChange={e => set("dateSig", e.target.value)} />
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="jj/mm/aaaa"
+                className={input(err.dateSig)}
+                value={form.dateSig}
+                onChange={e => set("dateSig", formatDateFr(e.target.value))}
+                maxLength={10}
+              />
             </Field>
             <Field label="Lieu *" error={err.lieu}>
               <input className={input(err.lieu)} value={form.lieu} onChange={e => set("lieu", e.target.value)} placeholder="Namur" />
@@ -640,7 +920,7 @@ export default function FormulaireChangementCompte() {
           </Field>
 
           {/* RGPD */}
-          <p className="text-xs text-gray-500 leading-relaxed border-t pt-4">
+          <p className="text-sm text-gray-500 leading-relaxed border-t border-gray-100 pt-5">
             Vos données personnelles sont traitées conformément au règlement européen RGPD.{" "}
             <a href="https://www.accg.be/fr/protection-de-la-vie-privee" target="_blank" rel="noopener noreferrer" className="text-red-700 underline">
               Politique de confidentialité
@@ -651,12 +931,13 @@ export default function FormulaireChangementCompte() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold py-3 rounded-lg text-sm transition-colors"
+            className="w-full bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
           >
             {loading ? "Envoi en cours…" : "Envoyer ma demande"}
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
@@ -664,7 +945,7 @@ export default function FormulaireChangementCompte() {
 // ── Composants UI ────────────────────────────────────────────────────────────
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-red-700 text-white px-6 py-2 text-xs font-bold uppercase tracking-wider">
+    <div className="bg-red-700 text-white px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em]">
       {children}
     </div>
   );
@@ -678,8 +959,8 @@ function Field({ label, error, hint, children }: {
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1">{label}</label>
-      {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
+      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
+      {hint && <p className="text-xs text-gray-400 mb-1.5">{hint}</p>}
       {children}
       {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
     </div>
@@ -687,7 +968,7 @@ function Field({ label, error, hint, children }: {
 }
 
 function input(error?: string) {
-  return `w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+  return `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
     error
       ? "border-red-400 focus:ring-red-300 bg-red-50"
       : "border-gray-300 focus:ring-red-200"
