@@ -371,6 +371,8 @@ export default function FormulaireC1() {
       if (!form.rue.trim()) e.rue = "Requis";
       if (!form.codePostal.trim()) e.codePostal = "Requis";
       if (!form.commune.trim()) e.commune = "Requis";
+      if (!form.email.trim()) e.email = "Requis";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Adresse e-mail invalide";
     }
     if (s === 2) {
       const hasMotif = form.motifDemandeAlloc || form.motifChangementOrganisme ||
@@ -548,8 +550,8 @@ export default function FormulaireC1() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Email (facultatif)">
-                <input type="email" className={inp()} value={form.email} onChange={e => set("email", e.target.value)} />
+              <Field label="Email *" error={errors.email}>
+                <input type="email" className={inp(errors.email)} value={form.email} onChange={e => set("email", e.target.value)} />
               </Field>
               <Field label="Téléphone (facultatif)">
                 <input type="tel" className={inp()} value={form.telephone} onChange={e => set("telephone", e.target.value)} />
