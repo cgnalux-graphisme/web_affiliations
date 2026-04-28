@@ -1,9 +1,5 @@
-import FormulaireWebIndependant from "../FormulaireWebIndependant";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <main className="p-4 bg-gray-50 min-h-screen">
-      <FormulaireWebIndependant />
-    </main>
-  );
+  redirect("/affiliation");
 }
