@@ -325,11 +325,11 @@ function formatIBAN(v: string) {
 // ── Formulaire principal ─────────────────────────────────────────────────────
 const STEP_LABELS = [
   "Mon identité",
-  "Motif(s)",
-  "Situation familiale",
-  "Activités & Revenus",
-  "Paiement & Cotisation",
-  "Déclaration",
+  "Motif(s) de la déclaration",
+  "Ma situation familiale",
+  "Mes activités & mes revenus",
+  "Mode de paiement, cotisation & divers",
+  "Ma déclaration",
 ];
 const TOTAL_STEPS = STEP_LABELS.length;
 
@@ -548,31 +548,28 @@ export default function FormulaireC1() {
         {/* ══ ÉTAPE 2 — Motifs ══ */}
         {step === 2 && (
           <>
-            <p className="text-sm text-gray-600 mb-4">Cochez toutes les situations qui vous sont applicables.</p>
             {errors.motif && <p className="text-red-600 text-sm mb-3 bg-red-50 rounded-lg p-2">{errors.motif}</p>}
 
-            <SectionTitle>Je fais une demande d&apos;allocations</SectionTitle>
             <Toggle label="Je demande des allocations de chômage" checked={form.motifDemandeAlloc} onChange={v => set("motifDemandeAlloc", v)} />
             {form.motifDemandeAlloc && (
-              <div className="ml-7 space-y-2 mt-2">
-                <Field label="À partir du">
+              <div className="ml-7 space-y-3 mt-2">
+                <Field label="à partir du">
                   <DateInput className={inp()} value={form.motifDemandeAllocDate} onChange={v => set("motifDemandeAllocDate", v)} />
                 </Field>
-                <Field label="Il s&apos;agit de">
-                  <div className="space-y-1">
-                    {[
-                      ["premiere_fois", "Ma première demande"],
-                      ["apres_interruption", "Une demande après interruption de mes allocations"],
-                    ].map(([v, l]) => (
-                      <label key={v} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="radio" name="motifType" checked={v === "premiere_fois" ? form.motifPremiereFois : form.motifApresInterruption}
-                          onChange={() => { set("motifPremiereFois", v === "premiere_fois"); set("motifApresInterruption", v === "apres_interruption"); }}
-                          className="accent-blue-600" />
-                        {l}
-                      </label>
-                    ))}
-                  </div>
-                </Field>
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="motifType" checked={form.motifPremiereFois && !form.motifApresInterruption}
+                      onChange={() => { set("motifPremiereFois", true); set("motifApresInterruption", false); }}
+                      className="accent-blue-600" />
+                    pour la 1ère fois
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="motifType" checked={form.motifApresInterruption}
+                      onChange={() => { set("motifPremiereFois", false); set("motifApresInterruption", true); }}
+                      className="accent-blue-600" />
+                    après une interruption de mes allocations
+                  </label>
+                </div>
                 <Field label="comme chômeur temporaire suivant une formation en alternance">
                   <div className="flex gap-4">
                     {(["oui", "non"] as const).map(v => (
@@ -587,40 +584,39 @@ export default function FormulaireC1() {
               </div>
             )}
 
-            <SectionTitle>Je déclare une modification</SectionTitle>
-            <Toggle label="Changement d&apos;adresse" checked={form.motifModifAdresse} onChange={v => set("motifModifAdresse", v)} />
+            <Toggle label="Je change d&apos;organisme de paiement" checked={form.motifChangementOrganisme} onChange={v => set("motifChangementOrganisme", v)} />
+            {form.motifChangementOrganisme && (
+              <div className="ml-7 mt-2">
+                <Field label="à partir du">
+                  <DateInput className={inp()} value={form.motifChangementOrganismeDate} onChange={v => set("motifChangementOrganismeDate", v)} />
+                </Field>
+              </div>
+            )}
+
+            <SectionTitle>Je déclare une modification relative à :</SectionTitle>
+            <Toggle label="mon adresse" checked={form.motifModifAdresse} onChange={v => set("motifModifAdresse", v)} />
             {form.motifModifAdresse && (
               <div className="ml-7">
-                <Field label="À partir du">
+                <Field label="à partir du">
                   <DateInput className={inp()} value={form.motifModifAdresseDate} onChange={v => set("motifModifAdresseDate", v)} />
                 </Field>
               </div>
             )}
-            <Toggle label="Changement de mode de paiement / numéro de compte" checked={form.motifModifModePaiement} onChange={v => set("motifModifModePaiement", v)} />
-            {form.motifModifModePaiement && (
-              <div className="ml-7">
-                <Field label="À partir du">
-                  <DateInput className={inp()} value={form.motifModifModePaiementDate} onChange={v => set("motifModifModePaiementDate", v)} />
-                </Field>
-              </div>
-            )}
-            <Toggle label="Changement de situation personnelle ou familiale" checked={form.motifModifSituationPersonnelle} onChange={v => set("motifModifSituationPersonnelle", v)} />
+            <Toggle label="l&apos;autorisation de retenue de ma cotisation syndicale" checked={form.motifModifCotisationSyndicale} onChange={v => set("motifModifCotisationSyndicale", v)} />
+            <Toggle label="mon permis de séjour et/ou de travail" checked={form.motifModifPermis} onChange={v => set("motifModifPermis", v)} />
+            <Toggle label="ma situation personnelle ou familiale" checked={form.motifModifSituationPersonnelle} onChange={v => set("motifModifSituationPersonnelle", v)} />
             {form.motifModifSituationPersonnelle && (
               <div className="ml-7">
-                <Field label="À partir du">
+                <Field label="à partir du">
                   <DateInput className={inp()} value={form.motifModifSituationPersonnelleDate} onChange={v => set("motifModifSituationPersonnelleDate", v)} />
                 </Field>
               </div>
             )}
-            <Toggle label="Modification de la retenue des cotisations syndicales" checked={form.motifModifCotisationSyndicale} onChange={v => set("motifModifCotisationSyndicale", v)} />
-            <Toggle label="Modification du permis de séjour ou de travail" checked={form.motifModifPermis} onChange={v => set("motifModifPermis", v)} />
-
-            <SectionTitle>Autre motif</SectionTitle>
-            <Toggle label="Je change d&apos;organisme de paiement" checked={form.motifChangementOrganisme} onChange={v => set("motifChangementOrganisme", v)} />
-            {form.motifChangementOrganisme && (
+            <Toggle label="mon mode de paiement et/ou mon numéro de compte" checked={form.motifModifModePaiement} onChange={v => set("motifModifModePaiement", v)} />
+            {form.motifModifModePaiement && (
               <div className="ml-7">
-                <Field label="À partir du">
-                  <DateInput className={inp()} value={form.motifChangementOrganismeDate} onChange={v => set("motifChangementOrganismeDate", v)} />
+                <Field label="à partir du">
+                  <DateInput className={inp()} value={form.motifModifModePaiementDate} onChange={v => set("motifModifModePaiementDate", v)} />
                 </Field>
               </div>
             )}
@@ -751,17 +747,62 @@ export default function FormulaireC1() {
               </div>
             ))}
 
+            <div className="mb-1">
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-700 flex-1 pr-4">Titulaire d&apos;un mandat culturel</span>
+                <YesNo value={form.actMandatCulturel} onChange={v => set("actMandatCulturel", v)} />
+              </div>
+              {form.actMandatCulturel === "oui" && (
+                <div className="ml-4 mt-1 space-y-1 text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.actMandatCulturelDecl === "premiere_fois"} onChange={() => set("actMandatCulturelDecl", "premiere_fois")} className="accent-blue-600" />Je déclare cela pour la 1ère fois</label>
+                  <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.actMandatCulturelDecl === "inchangee"} onChange={() => set("actMandatCulturelDecl", "inchangee")} className="accent-blue-600" />Ma déclaration précédente reste inchangée</label>
+                </div>
+              )}
+            </div>
+            <div className="mb-1">
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-700 flex-1 pr-4">Titulaire d&apos;un mandat politique</span>
+                <YesNo value={form.actMandatPolitique} onChange={v => set("actMandatPolitique", v)} />
+              </div>
+              {form.actMandatPolitique === "oui" && (
+                <div className="ml-4 mt-1 space-y-1 text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.actMandatPolitiqueDecl === "premiere_fois"} onChange={() => set("actMandatPolitiqueDecl", "premiere_fois")} className="accent-blue-600" />Je déclare cela pour la 1ère fois</label>
+                  <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.actMandatPolitiqueDecl === "inchangee"} onChange={() => set("actMandatPolitiqueDecl", "inchangee")} className="accent-blue-600" />Ma déclaration précédente reste inchangée</label>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-gray-100 mb-1">
+              <span className="text-sm text-gray-700 flex-1 pr-4">Bénéficiaire du Chapitre XII (attestation travail des arts)</span>
+              <YesNo value={form.actChapitreXII} onChange={v => set("actChapitreXII", v)} />
+            </div>
+            <div className="mb-1">
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-700 flex-1 pr-4">Bénéficiaire Tremplin</span>
+                <YesNo value={form.actTremplin} onChange={v => set("actTremplin", v)} />
+              </div>
+              {form.actTremplin === "oui" && (
+                <div className="ml-4 mt-1 space-y-1 text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.actTremplinDecl === "premiere_fois"} onChange={() => set("actTremplinDecl", "premiere_fois")} className="accent-blue-600" />Je déclare cela pour la 1ère fois</label>
+                  <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.actTremplinDecl === "inchangee"} onChange={() => set("actTremplinDecl", "inchangee")} className="accent-blue-600" />Ma déclaration précédente reste inchangée</label>
+                </div>
+              )}
+            </div>
             {[
-              { field: "actActiviteAccessoire" as const, label: "J&apos;exerce une activité accessoire ou j&apos;aide un indépendant" },
-              { field: "actAdminSociete" as const, label: "Je suis administrateur de société" },
-              { field: "actInscritIndependant" as const, label: "Je suis inscrit comme indépendant (à titre accessoire ou principal)" },
-              { field: "actChapitreXII" as const, label: "Je bénéficie du Chapitre XII (attestation travail des arts)" },
+              { field: "actActiviteAccessoire" as const, label: "Activité accessoire ou aide à un indépendant" },
+              { field: "actAdminSociete" as const, label: "Administrateur de société" },
+              { field: "actInscritIndependant" as const, label: "Inscrit comme indépendant (à titre accessoire ou principal)" },
             ].map(({ field, label }) => (
               <div key={field} className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-sm text-gray-700 flex-1 pr-4" dangerouslySetInnerHTML={{ __html: label }} />
+                <span className="text-sm text-gray-700 flex-1 pr-4">{label}</span>
                 <YesNo value={form[field]} onChange={v => set(field, v)} />
               </div>
             ))}
+            {(form.actActiviteAccessoire === "oui" || form.actAdminSociete === "oui" || form.actInscritIndependant === "oui") && (
+              <div className="ml-4 mt-1 space-y-1 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.actIndependantDecl === "premiere_fois"} onChange={() => set("actIndependantDecl", "premiere_fois")} className="accent-blue-600" />Je déclare cela pour la 1ère fois</label>
+                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.actIndependantDecl === "inchangee"} onChange={() => set("actIndependantDecl", "inchangee")} className="accent-blue-600" />Ma déclaration précédente reste inchangée</label>
+              </div>
+            )}
 
             <SectionTitle>Mes revenus</SectionTitle>
             {[
@@ -830,6 +871,65 @@ export default function FormulaireC1() {
                 <input className={inp()} value={form.cotisationMoisAnnee} onChange={e => set("cotisationMoisAnnee", e.target.value)} placeholder="01/2025" maxLength={7} />
               </Field>
             )}
+
+            <SectionTitle>Ma nationalité</SectionTitle>
+            <p className="text-xs text-gray-500 mb-3">À compléter uniquement si vous n&apos;êtes pas ressortissant(e) de l&apos;Espace Économique Européen.</p>
+            <Toggle label="Cette section me concerne" checked={form.natApplicable} onChange={v => set("natApplicable", v)} />
+            {form.natApplicable && (
+              <>
+                <Field label="Réfugié(e) reconnu(e)">
+                  <YesNo value={form.natRefugie as "oui" | "non"} onChange={v => set("natRefugie", v)} />
+                </Field>
+                <Field label="Apatride">
+                  <YesNo value={form.natApatride as "oui" | "non"} onChange={v => set("natApatride", v)} />
+                </Field>
+                {form.natRefugie !== "oui" && form.natApatride !== "oui" && (
+                  <>
+                    <Field label="Titulaire d&apos;un document de séjour">
+                      <YesNo value={form.natDocumentSejour as "oui" | "non"} onChange={v => set("natDocumentSejour", v)} />
+                    </Field>
+                    {form.natDocumentSejour === "oui" && (
+                      <Field label="Accès au marché professionnel">
+                        <div className="space-y-1 text-sm">
+                          <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.natAccesMarchePro === "illimite"} onChange={() => set("natAccesMarchePro", "illimite")} className="accent-blue-600" />Illimité</label>
+                          <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.natAccesMarchePro === "limite"} onChange={() => set("natAccesMarchePro", "limite")} className="accent-blue-600" />Limité</label>
+                          {form.natAccesMarchePro === "limite" && (
+                            <div className="ml-6">
+                              <Field label="Description de la limitation">
+                                <input className={inp()} value={form.natDescriptionLimitation} onChange={e => set("natDescriptionLimitation", e.target.value)} />
+                              </Field>
+                            </div>
+                          )}
+                          <label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={form.natAccesMarchePro === "aucun"} onChange={() => set("natAccesMarchePro", "aucun")} className="accent-blue-600" />Aucun</label>
+                        </div>
+                      </Field>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            <SectionTitle>Divers</SectionTitle>
+            <div className="mb-3">
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-700 flex-1 pr-4">Congés sans solde</span>
+                <YesNo value={form.divCongesSansSolde} onChange={v => set("divCongesSansSolde", v)} />
+              </div>
+              {form.divCongesSansSolde === "oui" && (
+                <div className="grid grid-cols-2 gap-3 mt-2 ml-4">
+                  <Field label="Du">
+                    <DateInput className={inp()} value={form.divCongesDu} onChange={v => set("divCongesDu", v)} />
+                  </Field>
+                  <Field label="Au">
+                    <DateInput className={inp()} value={form.divCongesAu} onChange={v => set("divCongesAu", v)} />
+                  </Field>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <span className="text-sm text-gray-700 flex-1 pr-4">Incapacité de travail permanente d&apos;au moins 33 %</span>
+              <YesNo value={form.divIncapacite33} onChange={v => set("divIncapacite33", v)} />
+            </div>
           </>
         )}
 
