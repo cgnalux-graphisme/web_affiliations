@@ -1,0 +1,910 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { CheckCircle, FileDown, ChevronRight, ChevronLeft } from "lucide-react";
+import type { C1Data, CohabitantRow } from "./app/api/fill-c1/route";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// ── Valeurs initiales ────────────────────────────────────────────────────────
+const EMPTY: C1Data = {
+  niss: "", nom: "", prenom: "", dateNaissance: "", nationalite: "Belge",
+  rue: "", numero: "", boite: "", codePostal: "", commune: "", pays: "Belgique",
+  email: "", telephone: "",
+  motifDemandeAlloc: false, motifDemandeAllocDate: "",
+  motifFormationAlternance: "", motifPremiereFois: false, motifApresInterruption: false,
+  motifChangementOrganisme: false, motifChangementOrganismeDate: "",
+  motifModification: false,
+  motifModifAdresse: false, motifModifAdresseDate: "",
+  motifModifCotisationSyndicale: false, motifModifPermis: false,
+  motifModifSituationPersonnelle: false, motifModifSituationPersonnelleDate: "",
+  motifModifModePaiement: false, motifModifModePaiementDate: "",
+  sitFamHabiteSeul: false,
+  sitFamPensionAlimentaire: false, sitFamPensionCopie: "",
+  sitFamSepareDesFait: false, sitFamSepareCopie: "",
+  sitFamRemarques: "", sitFamCohabite: false, cohabitants: [],
+  sitFamRemarquesCohabitants: "",
+  partenaireNom: "", partenaireDeclaration: "",
+  actEtudesPleinExercice: "non", actEtudesDate: "",
+  actApprentissage: "non", actApprentissageDate: "",
+  actFormationSyntra: "non", actFormationSyntraDate: "",
+  actMandatCulturel: "non", actMandatCulturelDecl: "",
+  actMandatPolitique: "non", actMandatPolitiqueDecl: "",
+  actChapitreXII: "non",
+  actTremplin: "non", actTremplinDecl: "",
+  actActiviteAccessoire: "non", actAdminSociete: "non",
+  actInscritIndependant: "non", actIndependantDecl: "",
+  revPensionComplete: "non", revPensionCompleteDecl: "",
+  revPensionRetraite: "non", revIndemnitesMaladie: "non",
+  revIndemnitesAccident: "non", revAvantageFinancier: "non",
+  paiementVirement: true, paiementCompteAMonNom: "oui", paiementNomTitulaire: "",
+  paiementIban: "", paiementBic: "", paiementCheque: false,
+  cotisationAction: "none", cotisationMoisAnnee: "",
+  natApplicable: false, natRefugie: "", natApatride: "", natDocumentSejour: "",
+  natAccesMarchePro: "", natDescriptionLimitation: "",
+  divCongesSansSolde: "non", divCongesDu: "", divCongesAu: "", divIncapacite33: "non",
+  declAffirme: false, declLuFeuille: false, declSaitCommuniquer: false,
+  declDocsAttestation: false, declDocsExtrait: false,
+  declDocsAnnexeRegis: false, declDocsPermis: false, declDocsAutre: "",
+  dateSig: "",
+  signature: "",
+};
+
+const EMPTY_COHABITANT: CohabitantRow = {
+  nomPrenom: "", lienParente: "", dateNaissance: "",
+  allocFamiliales: false, typeActivite: "", montantActivite: "",
+  typeRevenu: "", montantRevenu: "",
+};
+
+// ── Composants UI ────────────────────────────────────────────────────────────
+function Field({ label, hint, error, children }: {
+  label: string; hint?: string; error?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="mb-3">
+      <label className="block text-xs font-semibold text-gray-700 mb-1">{label}</label>
+      {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
+      {children}
+      {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+    </div>
+  );
+}
+
+const inp = (err?: string) =>
+  `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${err ? "border-red-400 focus:ring-red-200 bg-red-50" : "border-gray-300 focus:ring-blue-200"}`;
+
+function formatDateFrInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function DateInput({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  className: string;
+}) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      placeholder="jj/mm/aaaa"
+      maxLength={10}
+      className={className}
+      value={value}
+      onChange={e => onChange(formatDateFrInput(e.target.value))}
+    />
+  );
+}
+
+interface AddressSuggestion {
+  street: string;
+  housenumber: string;
+  postcode: string;
+  city: string;
+  display: string;
+}
+
+function AddressAutocomplete({
+  value,
+  onChange,
+  onSelect,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (s: AddressSuggestion) => void;
+  className: string;
+}) {
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  function handleChange(v: string) {
+    onChange(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (v.trim().length < 3) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/address-autocomplete?q=${encodeURIComponent(v)}`);
+        const json = await res.json();
+        const list = (json.suggestions ?? []) as AddressSuggestion[];
+        setSuggestions(list.slice(0, 6));
+        setOpen(list.length > 0);
+      } catch {
+        setSuggestions([]);
+        setOpen(false);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+  }
+
+  function handleSelect(s: AddressSuggestion) {
+    onChange(s.street);
+    onSelect(s);
+    setSuggestions([]);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        className={className}
+        value={value}
+        onChange={e => handleChange(e.target.value)}
+        placeholder="Rue de la Loi"
+        autoComplete="off"
+      />
+      {loading && (
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">...</span>
+      )}
+
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden text-sm">
+          {suggestions.map((s, i) => (
+            <li
+              key={`${s.display}-${i}`}
+              onMouseDown={() => handleSelect(s)}
+              className="px-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-0"
+            >
+              {s.display}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-sm font-bold text-gray-800 bg-gray-100 rounded-lg px-3 py-2 mb-3 mt-4">{children}</h3>;
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer py-1.5">
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
+        className="mt-0.5 w-4 h-4 accent-blue-600 shrink-0" />
+      <span className="text-sm text-gray-700">{label}</span>
+    </label>
+  );
+}
+
+function YesNo({ value, onChange }: { value: "oui" | "non"; onChange: (v: "oui" | "non") => void }) {
+  return (
+    <div className="flex gap-4">
+      {(["non", "oui"] as const).map(v => (
+        <label key={v} className="flex items-center gap-1.5 cursor-pointer">
+          <input type="radio" checked={value === v} onChange={() => onChange(v)} className="accent-blue-600" />
+          <span className="text-sm capitalize">{v}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function SignaturePad({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+
+  function getPos(e: React.MouseEvent | React.TouchEvent) {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const src = "touches" in e ? e.touches[0] : e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+  }
+
+  function startDraw(e: React.MouseEvent | React.TouchEvent) {
+    e.preventDefault();
+    drawing.current = true;
+    const ctx = canvasRef.current!.getContext("2d")!;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+
+  function draw(e: React.MouseEvent | React.TouchEvent) {
+    if (!drawing.current) return;
+    e.preventDefault();
+    const ctx = canvasRef.current!.getContext("2d")!;
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = "round";
+    ctx.stroke();
+  }
+
+  function stopDraw() {
+    if (!drawing.current) return;
+    drawing.current = false;
+    onChange(canvasRef.current!.toDataURL("image/png"));
+  }
+
+  function clear() {
+    const canvas = canvasRef.current!;
+    canvas.getContext("2d")!.clearRect(0, 0, canvas.width, canvas.height);
+    onChange("");
+  }
+
+  return (
+    <div>
+      <canvas
+        ref={canvasRef}
+        width={400} height={80}
+        className={`border rounded-lg w-full touch-none bg-white cursor-crosshair ${error ? "border-red-400" : "border-gray-300"}`}
+        onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+        onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
+      />
+      <div className="flex justify-between items-center mt-1">
+        {error && <p className="text-red-600 text-xs">{error}</p>}
+        <button type="button" onClick={clear} className="text-xs text-gray-400 hover:text-gray-600 ml-auto">Effacer</button>
+      </div>
+      {value && <p className="text-xs text-green-600 mt-1">Signature enregistrée ✓</p>}
+    </div>
+  );
+}
+
+function StepIndicator({ step, total }: { step: number; total: number }) {
+  return (
+    <div className="flex items-center gap-1 mb-6">
+      {Array.from({ length: total }, (_, i) => (
+        <React.Fragment key={i}>
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${i + 1 === step ? "bg-blue-600 text-white" : i + 1 < step ? "bg-blue-200 text-blue-700" : "bg-gray-200 text-gray-500"}`}>
+            {i + 1}
+          </div>
+          {i < total - 1 && <div className={`flex-1 h-0.5 ${i + 1 < step ? "bg-blue-300" : "bg-gray-200"}`} />}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function formatNiss(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 6) return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
+  if (d.length <= 9) return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4, 6)}-${d.slice(6)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4, 6)}-${d.slice(6, 9)}.${d.slice(9)}`;
+}
+
+function formatIBAN(v: string) {
+  return v.replace(/\s/g, "").toUpperCase().replace(/(.{4})/g, "$1 ").trim();
+}
+
+// ── Formulaire principal ─────────────────────────────────────────────────────
+const STEP_LABELS = [
+  "Mon identité",
+  "Motif(s)",
+  "Situation familiale",
+  "Activités & Revenus",
+  "Paiement & Cotisation",
+  "Déclaration",
+];
+const TOTAL_STEPS = STEP_LABELS.length;
+
+export default function FormulaireC1() {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState<C1Data>(EMPTY);
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+  const [loading, setLoading] = useState(false);
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  function set<K extends keyof C1Data>(field: K, value: C1Data[K]) {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  }
+
+  function setCohabitant(i: number, field: keyof CohabitantRow, value: string | boolean) {
+    setForm(prev => {
+      const list = [...prev.cohabitants];
+      list[i] = { ...list[i], [field]: value };
+      return { ...prev, cohabitants: list };
+    });
+  }
+
+  function addCohabitant() {
+    if (form.cohabitants.length >= 5) return;
+    setForm(prev => ({ ...prev, cohabitants: [...prev.cohabitants, { ...EMPTY_COHABITANT }] }));
+  }
+
+  function removeCohabitant(i: number) {
+    setForm(prev => ({ ...prev, cohabitants: prev.cohabitants.filter((_, idx) => idx !== i) }));
+  }
+
+  function validateStep(s: number): boolean {
+    const e: Record<string, string> = {};
+    if (s === 1) {
+      if (!form.nom.trim()) e.nom = "Requis";
+      if (!form.prenom.trim()) e.prenom = "Requis";
+      if (!form.rue.trim()) e.rue = "Requis";
+      if (!form.codePostal.trim()) e.codePostal = "Requis";
+      if (!form.commune.trim()) e.commune = "Requis";
+    }
+    if (s === 2) {
+      const hasMotif = form.motifDemandeAlloc || form.motifChangementOrganisme ||
+        form.motifModifAdresse || form.motifModifCotisationSyndicale ||
+        form.motifModifPermis || form.motifModifSituationPersonnelle ||
+        form.motifModifModePaiement;
+      if (!hasMotif) e.motif = "Veuillez sélectionner au moins un motif";
+    }
+    if (s === 6) {
+      if (!form.declAffirme) e.declAffirme = "Requis";
+      if (!form.declLuFeuille) e.declLuFeuille = "Requis";
+      if (!form.declSaitCommuniquer) e.declSaitCommuniquer = "Requis";
+      if (!form.dateSig) e.dateSig = "Requis";
+      if (!form.signature) e.signature = "La signature est obligatoire";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  function next() {
+    if (validateStep(step)) setStep(s => Math.min(s + 1, TOTAL_STEPS));
+  }
+
+  function prev() { setStep(s => Math.max(s - 1, 1)); }
+
+  async function handleSubmit() {
+    if (!validateStep(step)) return;
+    setLoading(true);
+    try {
+      // Fill PDF
+      const fillRes = await fetch("/api/fill-c1", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!fillRes.ok) throw new Error("Erreur remplissage PDF");
+      const { pdfBase64: b64 } = await fillRes.json();
+      setPdfBase64(b64);
+
+      // Save to Supabase
+      await supabase.from("web_c1").insert({
+        nom: form.nom.trim(),
+        prenom: form.prenom.trim(),
+        niss: form.niss.replace(/\D/g, "") || null,
+        email: form.email.trim().toLowerCase() || null,
+        data: form,
+      });
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      alert("Une erreur est survenue. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function downloadPdf() {
+    if (!pdfBase64) return;
+    const bytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Succès ────────────────────────────────────────────────────────────────
+  if (submitted) {
+    return (
+      <div className="max-w-lg mx-auto mt-12 bg-white rounded-2xl shadow-lg p-8 text-center">
+        <CheckCircle className="mx-auto text-green-500 mb-4" size={52} />
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Formulaire prêt</h2>
+        <p className="text-gray-600 text-sm mb-6">
+          Votre formulaire C1 a été complété. Téléchargez-le, imprimez-le, signez-le et remettez-le à votre organisme de paiement.
+        </p>
+        <button onClick={downloadPdf}
+          className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-xl text-sm">
+          <FileDown size={18} /> Télécharger le formulaire C1 (PDF)
+        </button>
+      </div>
+    );
+  }
+
+  // ── Wizard ────────────────────────────────────────────────────────────────
+  return (
+    <div className="max-w-2xl mx-auto py-8 px-4">
+      <div className="bg-gray-800 text-white rounded-t-2xl px-6 py-4">
+        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Office National de l&apos;Emploi</p>
+        <h1 className="text-base font-bold">Formulaire C1 — Déclaration de situation personnelle et familiale</h1>
+        <p className="text-xs text-gray-400 mt-1">Étape {step}/{TOTAL_STEPS} : {STEP_LABELS[step - 1]}</p>
+      </div>
+
+      <div className="bg-white shadow rounded-b-2xl px-6 py-6">
+        <StepIndicator step={step} total={TOTAL_STEPS} />
+
+        {/* ══ ÉTAPE 1 — Identité & Adresse ══ */}
+        {step === 1 && (
+          <>
+            <SectionTitle>Mon identité</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Nom *" error={errors.nom}>
+                <input className={inp(errors.nom)} value={form.nom} onChange={e => set("nom", e.target.value)} />
+              </Field>
+              <Field label="Prénom *" error={errors.prenom}>
+                <input className={inp(errors.prenom)} value={form.prenom} onChange={e => set("prenom", e.target.value)} />
+              </Field>
+            </div>
+            <Field label="NISS (numéro de registre national)" hint="Format : 85.04.12-123.45">
+              <input className={inp()} value={form.niss} onChange={e => set("niss", formatNiss(e.target.value))} placeholder="85.04.12-123.45" maxLength={15} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Date de naissance">
+                <DateInput className={inp()} value={form.dateNaissance} onChange={v => set("dateNaissance", v)} />
+              </Field>
+              <Field label="Nationalité">
+                <input className={inp()} value={form.nationalite} onChange={e => set("nationalite", e.target.value)} />
+              </Field>
+            </div>
+
+            <SectionTitle>Mon adresse effective</SectionTitle>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <Field label="Rue *" error={errors.rue}>
+                  <AddressAutocomplete
+                    className={inp(errors.rue)}
+                    value={form.rue}
+                    onChange={v => set("rue", v)}
+                    onSelect={s => {
+                      setForm(prev => ({
+                        ...prev,
+                        rue: s.street || prev.rue,
+                        numero: s.housenumber || prev.numero,
+                        codePostal: s.postcode || prev.codePostal,
+                        commune: s.city || prev.commune,
+                      }));
+                      setErrors(prev => ({
+                        ...prev,
+                        rue: undefined,
+                        numero: undefined,
+                        codePostal: undefined,
+                        commune: undefined,
+                      }));
+                    }}
+                  />
+                </Field>
+              </div>
+              <Field label="Numéro">
+                <input className={inp()} value={form.numero} onChange={e => set("numero", e.target.value)} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Code postal *" error={errors.codePostal}>
+                <input className={inp(errors.codePostal)} value={form.codePostal} onChange={e => set("codePostal", e.target.value)} maxLength={6} />
+              </Field>
+              <div className="col-span-2">
+                <Field label="Commune *" error={errors.commune}>
+                  <input className={inp(errors.commune)} value={form.commune} onChange={e => set("commune", e.target.value)} />
+                </Field>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Email (facultatif)">
+                <input type="email" className={inp()} value={form.email} onChange={e => set("email", e.target.value)} />
+              </Field>
+              <Field label="Téléphone (facultatif)">
+                <input type="tel" className={inp()} value={form.telephone} onChange={e => set("telephone", e.target.value)} />
+              </Field>
+            </div>
+          </>
+        )}
+
+        {/* ══ ÉTAPE 2 — Motifs ══ */}
+        {step === 2 && (
+          <>
+            <p className="text-sm text-gray-600 mb-4">Cochez toutes les situations qui vous sont applicables.</p>
+            {errors.motif && <p className="text-red-600 text-sm mb-3 bg-red-50 rounded-lg p-2">{errors.motif}</p>}
+
+            <SectionTitle>Je fais une demande d&apos;allocations</SectionTitle>
+            <Toggle label="Je demande des allocations de chômage" checked={form.motifDemandeAlloc} onChange={v => set("motifDemandeAlloc", v)} />
+            {form.motifDemandeAlloc && (
+              <div className="ml-7 space-y-2 mt-2">
+                <Field label="À partir du">
+                  <DateInput className={inp()} value={form.motifDemandeAllocDate} onChange={v => set("motifDemandeAllocDate", v)} />
+                </Field>
+                <Field label="Il s&apos;agit de">
+                  <div className="space-y-1">
+                    {[
+                      ["premiere_fois", "Ma première demande"],
+                      ["apres_interruption", "Une demande après interruption de mes allocations"],
+                    ].map(([v, l]) => (
+                      <label key={v} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="radio" name="motifType" checked={v === "premiere_fois" ? form.motifPremiereFois : form.motifApresInterruption}
+                          onChange={() => { set("motifPremiereFois", v === "premiere_fois"); set("motifApresInterruption", v === "apres_interruption"); }}
+                          className="accent-blue-600" />
+                        {l}
+                      </label>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="comme chômeur temporaire suivant une formation en alternance">
+                  <div className="flex gap-4">
+                    {(["oui", "non"] as const).map(v => (
+                      <label key={v} className="flex items-center gap-1.5 cursor-pointer text-sm">
+                        <input type="radio" checked={form.motifFormationAlternance === v}
+                          onChange={() => set("motifFormationAlternance", v)} className="accent-blue-600" />
+                        {v.charAt(0).toUpperCase() + v.slice(1)}
+                      </label>
+                    ))}
+                  </div>
+                </Field>
+              </div>
+            )}
+
+            <SectionTitle>Je déclare une modification</SectionTitle>
+            <Toggle label="Changement d&apos;adresse" checked={form.motifModifAdresse} onChange={v => set("motifModifAdresse", v)} />
+            {form.motifModifAdresse && (
+              <div className="ml-7">
+                <Field label="À partir du">
+                  <DateInput className={inp()} value={form.motifModifAdresseDate} onChange={v => set("motifModifAdresseDate", v)} />
+                </Field>
+              </div>
+            )}
+            <Toggle label="Changement de mode de paiement / numéro de compte" checked={form.motifModifModePaiement} onChange={v => set("motifModifModePaiement", v)} />
+            {form.motifModifModePaiement && (
+              <div className="ml-7">
+                <Field label="À partir du">
+                  <DateInput className={inp()} value={form.motifModifModePaiementDate} onChange={v => set("motifModifModePaiementDate", v)} />
+                </Field>
+              </div>
+            )}
+            <Toggle label="Changement de situation personnelle ou familiale" checked={form.motifModifSituationPersonnelle} onChange={v => set("motifModifSituationPersonnelle", v)} />
+            {form.motifModifSituationPersonnelle && (
+              <div className="ml-7">
+                <Field label="À partir du">
+                  <DateInput className={inp()} value={form.motifModifSituationPersonnelleDate} onChange={v => set("motifModifSituationPersonnelleDate", v)} />
+                </Field>
+              </div>
+            )}
+            <Toggle label="Modification de la retenue des cotisations syndicales" checked={form.motifModifCotisationSyndicale} onChange={v => set("motifModifCotisationSyndicale", v)} />
+            <Toggle label="Modification du permis de séjour ou de travail" checked={form.motifModifPermis} onChange={v => set("motifModifPermis", v)} />
+
+            <SectionTitle>Autre motif</SectionTitle>
+            <Toggle label="Je change d&apos;organisme de paiement" checked={form.motifChangementOrganisme} onChange={v => set("motifChangementOrganisme", v)} />
+            {form.motifChangementOrganisme && (
+              <div className="ml-7">
+                <Field label="À partir du">
+                  <DateInput className={inp()} value={form.motifChangementOrganismeDate} onChange={v => set("motifChangementOrganismeDate", v)} />
+                </Field>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ══ ÉTAPE 3 — Situation familiale ══ */}
+        {step === 3 && (
+          <>
+            {form.motifDemandeAlloc && form.motifFormationAlternance !== "oui" ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                Cette section ne doit pas être complétée pour une demande d&apos;allocations de chômage temporaire (sauf formation en alternance). Passez à l&apos;étape suivante.
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 mb-4">Décrivez votre situation de logement actuelle.</p>
+                <SectionTitle>Ma situation de logement</SectionTitle>
+                <Toggle label="J&apos;habite seul(e)" checked={form.sitFamHabiteSeul} onChange={v => { set("sitFamHabiteSeul", v); if (v) { set("sitFamCohabite", false); set("cohabitants", []); } }} />
+                <Toggle label="Je cohabite avec d&apos;autres personnes" checked={form.sitFamCohabite} onChange={v => { set("sitFamCohabite", v); if (v) set("sitFamHabiteSeul", false); }} />
+
+                <SectionTitle>Situations particulières</SectionTitle>
+                <Toggle label="Je paie une pension alimentaire (décision judiciaire ou acte notarié)" checked={form.sitFamPensionAlimentaire} onChange={v => set("sitFamPensionAlimentaire", v)} />
+                {form.sitFamPensionAlimentaire && (
+                  <div className="ml-7">
+                    <Field label="Copie">
+                      <div className="space-y-1">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" checked={form.sitFamPensionCopie === "joins"} onChange={() => set("sitFamPensionCopie", "joins")} className="accent-blue-600" />Je joins une copie</label>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" checked={form.sitFamPensionCopie === "deja"} onChange={() => set("sitFamPensionCopie", "deja")} className="accent-blue-600" />J&apos;ai déjà introduit une copie</label>
+                      </div>
+                    </Field>
+                  </div>
+                )}
+                <Toggle label="Je suis séparé(e) de fait et mon conjoint perçoit une partie de mes revenus" checked={form.sitFamSepareDesFait} onChange={v => set("sitFamSepareDesFait", v)} />
+
+                <Field label="Remarques (facultatif)">
+                  <textarea className={`${inp()} h-16 resize-none`} value={form.sitFamRemarques} onChange={e => set("sitFamRemarques", e.target.value)} />
+                </Field>
+
+                {form.sitFamCohabite && (
+                  <>
+                    <SectionTitle>Personnes avec qui je cohabite</SectionTitle>
+                    <p className="text-xs text-gray-500 mb-3">Indiquez jusqu&apos;à 5 personnes.</p>
+                    {form.cohabitants.map((c, i) => (
+                      <div key={i} className="border border-gray-200 rounded-xl p-4 mb-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-semibold text-gray-700">Personne {i + 1}</span>
+                          <button type="button" onClick={() => removeCohabitant(i)} className="text-xs text-red-600 hover:underline">Supprimer</button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Field label="Nom et prénom">
+                            <input className={inp()} value={c.nomPrenom} onChange={e => setCohabitant(i, "nomPrenom", e.target.value)} />
+                          </Field>
+                          <Field label="Lien de parenté">
+                            <input className={inp()} value={c.lienParente} onChange={e => setCohabitant(i, "lienParente", e.target.value)} placeholder="conjoint, enfant..." />
+                          </Field>
+                          <Field label="Date de naissance">
+                            <DateInput className={inp()} value={c.dateNaissance} onChange={v => setCohabitant(i, "dateNaissance", v)} />
+                          </Field>
+                          <Field label="Allocations familiales">
+                            <label className="flex items-center gap-2 cursor-pointer mt-1">
+                              <input type="checkbox" checked={c.allocFamiliales} onChange={e => setCohabitant(i, "allocFamiliales", e.target.checked)} className="accent-blue-600 w-4 h-4" />
+                              <span className="text-sm text-gray-700">Oui</span>
+                            </label>
+                          </Field>
+                          <Field label="Type d&apos;activité professionnelle">
+                            <input className={inp()} value={c.typeActivite} onChange={e => setCohabitant(i, "typeActivite", e.target.value)} placeholder="salarié, indépendant..." />
+                          </Field>
+                          <Field label="Montant mensuel brut (€)">
+                            <input className={inp()} value={c.montantActivite} onChange={e => setCohabitant(i, "montantActivite", e.target.value)} />
+                          </Field>
+                          <Field label="Type de revenu de remplacement">
+                            <input className={inp()} value={c.typeRevenu} onChange={e => setCohabitant(i, "typeRevenu", e.target.value)} placeholder="chômage, pension..." />
+                          </Field>
+                          <Field label="Montant mensuel brut (€)">
+                            <input className={inp()} value={c.montantRevenu} onChange={e => setCohabitant(i, "montantRevenu", e.target.value)} />
+                          </Field>
+                        </div>
+                      </div>
+                    ))}
+                    {form.cohabitants.length < 5 && (
+                      <button type="button" onClick={addCohabitant}
+                        className="text-sm text-blue-600 hover:underline mb-3">+ Ajouter une personne</button>
+                    )}
+
+                    <SectionTitle>Partenaire ou personne à charge</SectionTitle>
+                    <p className="text-xs text-gray-500 mb-2">À compléter uniquement si votre partenaire ou une autre personne (pas votre enfant) est financièrement à votre charge.</p>
+                    <Field label="Nom et prénom du partenaire / de la personne à charge">
+                      <input className={inp()} value={form.partenaireNom} onChange={e => set("partenaireNom", e.target.value)} />
+                    </Field>
+                    {form.partenaireNom && (
+                      <Field label="Déclaration">
+                        <div className="space-y-1">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" checked={form.partenaireDeclaration === "premiere_fois"} onChange={() => set("partenaireDeclaration", "premiere_fois")} className="accent-blue-600" />Je le déclare pour la première fois (je joins le formulaire C1-PARTENAIRE)</label>
+                          <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" checked={form.partenaireDeclaration === "inchangee"} onChange={() => set("partenaireDeclaration", "inchangee")} className="accent-blue-600" />Ma déclaration précédente reste inchangée</label>
+                        </div>
+                      </Field>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* ══ ÉTAPE 4 — Activités & Revenus ══ */}
+        {step === 4 && (
+          <>
+            <p className="text-sm text-gray-600 mb-4">Répondez à chaque question. Par défaut : <strong>Non</strong>.</p>
+
+            <SectionTitle>Mes activités</SectionTitle>
+            {[
+              { field: "actEtudesPleinExercice" as const, label: "Je suis des études de plein exercice", dateField: "actEtudesDate" as const },
+              { field: "actApprentissage" as const, label: "Je suis un apprentissage ou une formation en alternance", dateField: "actApprentissageDate" as const },
+              { field: "actFormationSyntra" as const, label: "Je suis une formation SYNTRA / IFAPME / EFEPME / IAWM", dateField: "actFormationSyntraDate" as const },
+            ].map(({ field, label, dateField }) => (
+              <div key={field} className="mb-3">
+                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-700 flex-1 pr-4">{label}</span>
+                  <YesNo value={form[field]} onChange={v => set(field, v)} />
+                </div>
+                {form[field] === "oui" && (
+                  <div className="ml-4 mt-2">
+                    <Field label="À partir du">
+                      <DateInput className={inp()} value={form[dateField]} onChange={v => set(dateField, v)} />
+                    </Field>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {[
+              { field: "actActiviteAccessoire" as const, label: "J&apos;exerce une activité accessoire ou j&apos;aide un indépendant" },
+              { field: "actAdminSociete" as const, label: "Je suis administrateur de société" },
+              { field: "actInscritIndependant" as const, label: "Je suis inscrit comme indépendant (à titre accessoire ou principal)" },
+              { field: "actChapitreXII" as const, label: "Je bénéficie du Chapitre XII (attestation travail des arts)" },
+            ].map(({ field, label }) => (
+              <div key={field} className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-700 flex-1 pr-4" dangerouslySetInnerHTML={{ __html: label }} />
+                <YesNo value={form[field]} onChange={v => set(field, v)} />
+              </div>
+            ))}
+
+            <SectionTitle>Mes revenus</SectionTitle>
+            {[
+              { field: "revPensionComplete" as const, label: "J&apos;appartiens à une catégorie pro. particulière et j&apos;ai droit à une pension complète" },
+              { field: "revPensionRetraite" as const, label: "Je perçois une pension de retraite ou de survie" },
+              { field: "revIndemnitesMaladie" as const, label: "Je perçois une indemnité de maladie ou d&apos;invalidité" },
+              { field: "revIndemnitesAccident" as const, label: "Je perçois une indemnité pour accident du travail ou maladie professionnelle" },
+              { field: "revAvantageFinancier" as const, label: "Je perçois un avantage financier lié à une formation ou un apprentissage" },
+            ].map(({ field, label }) => (
+              <div key={field} className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-700 flex-1 pr-4" dangerouslySetInnerHTML={{ __html: label }} />
+                <YesNo value={form[field]} onChange={v => set(field, v)} />
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* ══ ÉTAPE 5 — Paiement & Cotisation ══ */}
+        {step === 5 && (
+          <>
+            <SectionTitle>Mode de paiement de mes allocations</SectionTitle>
+            <div className="space-y-2 mb-4">
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" checked={form.paiementVirement} onChange={() => { set("paiementVirement", true); set("paiementCheque", false); }} className="accent-blue-600" />
+                Virement bancaire
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" checked={form.paiementCheque} onChange={() => { set("paiementCheque", true); set("paiementVirement", false); }} className="accent-blue-600" />
+                Chèque circulaire (envoyé à mon adresse)
+              </label>
+            </div>
+
+            {form.paiementVirement && (
+              <>
+                <Field label="Le compte est à mon nom ?">
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-sm"><input type="radio" checked={form.paiementCompteAMonNom === "oui"} onChange={() => set("paiementCompteAMonNom", "oui")} className="accent-blue-600" />Oui</label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-sm"><input type="radio" checked={form.paiementCompteAMonNom === "non"} onChange={() => set("paiementCompteAMonNom", "non")} className="accent-blue-600" />Non</label>
+                  </div>
+                </Field>
+                {form.paiementCompteAMonNom === "non" && (
+                  <Field label="Nom du titulaire du compte">
+                    <input className={inp()} value={form.paiementNomTitulaire} onChange={e => set("paiementNomTitulaire", e.target.value)} />
+                  </Field>
+                )}
+                <Field label="IBAN (belge ou étranger)" hint="Le BIC est requis uniquement pour un IBAN étranger">
+                  <input className={inp()} value={form.paiementIban} onChange={e => set("paiementIban", formatIBAN(e.target.value))} placeholder="BE68 5390 0754 7034" maxLength={42} />
+                </Field>
+                {form.paiementIban && !form.paiementIban.replace(/\s/g, "").toUpperCase().startsWith("BE") && (
+                  <Field label="BIC">
+                    <input className={`${inp()} uppercase`} value={form.paiementBic} onChange={e => set("paiementBic", e.target.value.toUpperCase())} placeholder="GEBABEBB" maxLength={11} />
+                  </Field>
+                )}
+              </>
+            )}
+
+            <SectionTitle>Cotisation syndicale (si modification)</SectionTitle>
+            <p className="text-xs text-gray-500 mb-3">À compléter uniquement si vous souhaitez modifier votre autorisation de retenue.</p>
+            <div className="space-y-2 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="radio" checked={form.cotisationAction === "none"} onChange={() => set("cotisationAction", "none")} className="accent-blue-600" />Aucune modification</label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="radio" checked={form.cotisationAction === "autorise"} onChange={() => set("cotisationAction", "autorise")} className="accent-blue-600" />J&apos;autorise la retenue de la cotisation syndicale</label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm"><input type="radio" checked={form.cotisationAction === "nAutorise"} onChange={() => set("cotisationAction", "nAutorise")} className="accent-blue-600" />Je n&apos;autorise plus la retenue de la cotisation syndicale</label>
+            </div>
+            {form.cotisationAction !== "none" && (
+              <Field label="À partir du mois de chômage de (MM/AAAA)">
+                <input className={inp()} value={form.cotisationMoisAnnee} onChange={e => set("cotisationMoisAnnee", e.target.value)} placeholder="01/2025" maxLength={7} />
+              </Field>
+            )}
+          </>
+        )}
+
+        {/* ══ ÉTAPE 6 — Déclaration ══ */}
+        {step === 6 && (
+          <>
+            <SectionTitle>Ma déclaration</SectionTitle>
+            <p className="text-sm text-gray-600 mb-4">Vous devez cocher les trois cases ci-dessous pour valider votre demande.</p>
+            <div className="space-y-3 mb-5">
+              {[
+                { field: "declAffirme" as const, label: "J&apos;affirme sur l&apos;honneur que la présente déclaration est sincère et complète." },
+                { field: "declLuFeuille" as const, label: "J&apos;ai lu la feuille d&apos;informations." },
+                { field: "declSaitCommuniquer" as const, label: "Je sais que je dois communiquer toute modification à mon organisme de paiement et que je peux être sanctionné(e) si je ne le fais pas." },
+              ].map(({ field, label }) => (
+                <div key={field}>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" checked={form[field]} onChange={e => set(field, e.target.checked)} className="mt-0.5 w-4 h-4 accent-blue-600 shrink-0" />
+                    <span className="text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: label }} />
+                  </label>
+                  {errors[field] && <p className="text-red-600 text-xs ml-7">{errors[field]}</p>}
+                </div>
+              ))}
+            </div>
+
+            <SectionTitle>Documents joints (si applicable)</SectionTitle>
+            <div className="space-y-2 mb-5">
+              {[
+                { field: "declDocsAttestation" as const, label: "Attestation de la DG Personnes handicapées du SPF Sécurité sociale" },
+                { field: "declDocsExtrait" as const, label: "Copie de l&apos;extrait de la pension" },
+                { field: "declDocsAnnexeRegis" as const, label: "Formulaire C1 ANNEXE REGIS" },
+                { field: "declDocsPermis" as const, label: "Copie du permis de séjour et/ou du permis de travail" },
+              ].map(({ field, label }) => (
+                <label key={field} className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={form[field]} onChange={e => set(field, e.target.checked)} className="w-4 h-4 accent-blue-600" />
+                  <span className="text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: label }} />
+                </label>
+              ))}
+              <Field label="Autre document">
+                <input className={inp()} value={form.declDocsAutre} onChange={e => set("declDocsAutre", e.target.value)} />
+              </Field>
+            </div>
+
+            <Field label="Date de signature *" error={errors.dateSig}>
+              <DateInput className={inp(errors.dateSig)} value={form.dateSig} onChange={v => set("dateSig", v)} />
+            </Field>
+
+            <Field label="Signature * (signez dans le cadre ci-dessous)" error={errors.signature}>
+              <SignaturePad value={form.signature} onChange={v => { set("signature", v); setErrors(prev => ({ ...prev, signature: undefined })); }} error={errors.signature} />
+            </Field>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mt-4">
+              <strong>Important :</strong> Après avoir téléchargé le PDF, imprimez-le et remettez-le à votre organisme de paiement (Centrale Générale FGTB).
+            </div>
+          </>
+        )}
+
+        {/* ── Navigation ── */}
+        <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+          <button type="button" onClick={prev} disabled={step === 1}
+            className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed">
+            <ChevronLeft size={16} /> Précédent
+          </button>
+          {step < TOTAL_STEPS ? (
+            <button type="button" onClick={next}
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-xl text-sm">
+              Suivant <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button type="button" onClick={handleSubmit} disabled={loading}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2 px-5 rounded-xl text-sm">
+              {loading ? "Génération…" : <><FileDown size={15} /> Générer le PDF</>}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
