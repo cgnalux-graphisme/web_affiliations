@@ -419,6 +419,19 @@ export default function FormulaireC1() {
         data: form,
       });
 
+      // Send email
+      await fetch("/api/send-c1", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nom: form.nom.trim(),
+          prenom: form.prenom.trim(),
+          email: form.email.trim().toLowerCase(),
+          pdfBase64: b64,
+          fileName: `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`,
+        }),
+      });
+
       setSubmitted(true);
     } catch (err) {
       console.error(err);
