@@ -300,7 +300,7 @@ function fillPage2(ctx: DrawCtx, d: C1Data) {
         // On dessine chaque chiffre après "BE" centré dans sa case
         const digits = iban.slice(2); // 14 caractères
         for (let i = 0; i < digits.length; i++) {
-          txt(ctx, digits[i], 154 + i * 15, 398, 10);
+          txt(ctx, digits[i], 155 + i * 15, 398, 12);
         }
       } else {
         // IBAN étranger : ligne pointillée (y=414)
