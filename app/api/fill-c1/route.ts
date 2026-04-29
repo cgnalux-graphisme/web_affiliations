@@ -363,8 +363,17 @@ function fillPage2(ctx: DrawCtx, d: C1Data) {
   chk(ctx, d.declDocsPermis, 309, 741);
   if (d.declDocsAutre) txt(ctx, d.declDocsAutre, 365, 749);
 
-  // Date signature
-  txt(ctx, fmtDate(d.dateSig), 101, 802);
+  // Date signature — cases séparées : jj / mm / aaaa
+  if (d.dateSig) {
+    const parts = fmtDate(d.dateSig).split("/");
+    if (parts.length === 3) {
+      txt(ctx, parts[0], 103, 802, 9); // jj
+      txt(ctx, parts[1], 135, 802, 9); // mm
+      txt(ctx, parts[2], 167, 802, 9); // aaaa
+    } else {
+      txt(ctx, fmtDate(d.dateSig), 103, 802, 9);
+    }
+  }
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -389,7 +398,7 @@ export async function POST(request: Request) {
     if (data.signature && data.signature.startsWith("data:image/png")) {
       const sigBytes = Buffer.from(data.signature.split(",")[1], "base64");
       const sigImage = await pdfDoc.embedPng(sigBytes);
-      ctx2.page.drawImage(sigImage, { x: 251, y: py(816), width: 150, height: 30 });
+      ctx2.page.drawImage(sigImage, { x: 255, y: py(797), width: 200, height: 40 });
     }
 
     // Output only the first 2 pages (pages 0 and 1 of the original 6-page PDF)
