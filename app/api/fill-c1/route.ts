@@ -296,12 +296,16 @@ function fillPage2(ctx: DrawCtx, d: C1Data) {
     if (d.paiementIban) {
       const iban = d.paiementIban.replace(/\s/g, "").toUpperCase();
       if (iban.startsWith("BE")) {
-        // Draw digits after BE in the boxes row (y=398 display)
-        txt(ctx, iban.slice(2), 152, 398, 7);
+        // Cases individuelles : B=x122, E=x137, espacement=15pt par case
+        // On dessine chaque chiffre après "BE" centré dans sa case
+        const digits = iban.slice(2); // 14 caractères
+        for (let i = 0; i < digits.length; i++) {
+          txt(ctx, digits[i], 154 + i * 15, 398, 10);
+        }
       } else {
-        // Foreign IBAN line (y=414)
-        txt(ctx, iban, 138, 414, 7);
-        if (d.paiementBic) txt(ctx, d.paiementBic.toUpperCase(), 398, 427, 7);
+        // IBAN étranger : ligne pointillée (y=414)
+        txt(ctx, iban, 138, 414, 9);
+        if (d.paiementBic) txt(ctx, d.paiementBic.toUpperCase(), 398, 427, 9);
       }
     }
   }
