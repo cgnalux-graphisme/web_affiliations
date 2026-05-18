@@ -546,7 +546,10 @@ export default function FormulaireChangementCompte() {
       ).toBlob();
       setPdfBlob(blob);
 
-      // Supabase
+      // Supabase — colonnes alignées sur web_mandats_sepa (IBAN BE/EU séparés)
+      const ibanNorm = form.nouveauIban.replace(/\s/g, "").toUpperCase();
+      const ibanBelge = isBelgianIban(ibanNorm);
+
       const { error: dbError } = await supabase.from("web_mandats_sepa").insert({
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
@@ -557,12 +560,14 @@ export default function FormulaireChangementCompte() {
         code_postal: form.codePostal.trim(),
         localite: form.localite.trim(),
         pays: form.pays.trim(),
-        nouveau_iban: form.nouveauIban.replace(/\s/g, "").toUpperCase(),
-        nouveau_bic: form.nouveauBic.trim() ? form.nouveauBic.trim().toUpperCase() : null,
+        nouveau_iban_be: ibanBelge ? ibanNorm : null,
+        nouveau_iban_eu: ibanBelge ? null : ibanNorm,
+        nouveau_bic: form.nouveauBic.trim().toUpperCase(),
         ancien_iban: form.ancienIban ? form.ancienIban.replace(/\s/g, "").toUpperCase() : null,
+        categorie_cotisation: "À compléter",
         est_titulaire: form.estTitulaire,
         nom_titulaire: form.estTitulaire ? null : form.nomTitulaire.trim(),
-        accord_cloture: form.accordCloture,
+        accord_cloture: form.accordCloture || "non_applicable",
         date_signature: form.dateSig,
         lieu_signature: form.lieu.trim(),
         signature: form.signature,
