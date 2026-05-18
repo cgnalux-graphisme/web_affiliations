@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabase } from "./lib/supabase";
 import {
   User,
   MapPin,
@@ -43,17 +43,7 @@ import {
 } from "@react-pdf/renderer";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 1. CLIENT SUPABASE
-//    Les identifiants sont lus depuis les variables d'environnement.
-//    Ne mettez JAMAIS vos clés directement dans le code.
-// ═══════════════════════════════════════════════════════════════════════════════
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
-);
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 2. VALIDATION IBAN INTERNATIONALE (algorithme officiel MOD-97)
+// 1. VALIDATION IBAN INTERNATIONALE (algorithme officiel MOD-97)
 //    L'IBAN commence par 2 lettres (code pays ISO) + 2 chiffres de contrôle
 //    + jusqu'à 30 caractères alphanumériques (le BBAN, numéro de compte local).
 //    Longueur max : 34 caractères.
@@ -2294,7 +2284,7 @@ export default function FormulaireWebIndependant() {
     setServerError("");
 
     // 1. Enregistrement dans Supabase
-    const { error } = await supabase.from("web_affiliations").insert([{
+    const { error } = await getSupabase().from("web_affiliations").insert([{
       nom:                          data.nom,
       prenom:                       data.prenom,
       niss:                         nissInconnu ? null : data.niss,

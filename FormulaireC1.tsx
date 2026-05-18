@@ -1,14 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { CheckCircle, FileDown, ChevronRight, ChevronLeft } from "lucide-react";
 import type { C1Data, CohabitantRow } from "./app/api/fill-c1/route";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getSupabase } from "./lib/supabase";
 
 // ── Valeurs initiales ────────────────────────────────────────────────────────
 const EMPTY: C1Data = {
@@ -492,7 +487,7 @@ export default function FormulaireC1() {
       setPdfBase64(b64);
 
       // Save to Supabase
-      await supabase.from("web_c1").insert({
+      await getSupabase().from("web_c1").insert({
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
         niss: form.niss.replace(/\D/g, "") || null,

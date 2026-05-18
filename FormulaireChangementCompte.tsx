@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { dateFrToIso, formatDateFr, isValidDateFr } from "./lib/dates";
+import { getSupabase } from "./lib/supabase";
 import {
   pdf,
   Document,
@@ -12,12 +13,6 @@ import {
   Image as PDFImage,
 } from "@react-pdf/renderer";
 import { FileDown, CheckCircle, Loader2, MapPin } from "lucide-react";
-
-// ── Supabase ────────────────────────────────────────────────────────────────
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type AccordCloture = "avec_cloture" | "sans_cloture" | "";
@@ -99,13 +94,6 @@ function formatIBAN(value: string): string {
 
 function isBelgianIban(value: string): boolean {
   return value.replace(/\s/g, "").toUpperCase().startsWith("BE");
-}
-
-function formatDateFr(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
 interface PhotonSuggestion {
@@ -252,6 +240,7 @@ function AddressAutocomplete({
 // ── Logo (chargé une fois) ───────────────────────────────────────────────────
 async function fetchLogoBase64(): Promise<string> {
   const res = await fetch("/Logo CG Blanc.png");
+  if (!res.ok) return "";
   const blob = await res.blob();
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -509,10 +498,24 @@ export default function FormulaireChangementCompte() {
     }
     if (!form.pays.trim()) e.pays = "Requis";
     if (!form.estTitulaire && !form.nomTitulaire.trim()) e.nomTitulaire = "Requis si vous n'êtes pas titulaire";
-    if (form.typeDemande === "changement_compte" && !form.accordCloture) {
-      e.accordCloture = "Requis";
+    if (form.typeDemande === "changement_compte") {
+      if (!form.accordCloture) e.accordCloture = "Requis";
+      if (!form.ancienIban.trim()) {
+        e.ancienIban = "Requis pour un changement de compte";
+      } else if (!isValidIBAN(form.ancienIban)) {
+        e.ancienIban = "IBAN invalide";
+      } else if (
+        form.ancienIban.replace(/\s/g, "").toUpperCase() ===
+        form.nouveauIban.replace(/\s/g, "").toUpperCase()
+      ) {
+        e.ancienIban = "L'ancien et le nouveau IBAN doivent être différents";
+      }
     }
-    if (!form.dateSig) e.dateSig = "Requis";
+    if (!form.dateSig) {
+      e.dateSig = "Requis";
+    } else if (!isValidDateFr(form.dateSig)) {
+      e.dateSig = "Date invalide (format jj/mm/aaaa)";
+    }
     if (!form.lieu.trim()) e.lieu = "Requis";
     if (!form.signature) e.signature = "La signature est requise";
     setErrors(e);
@@ -549,8 +552,12 @@ export default function FormulaireChangementCompte() {
       // Supabase — colonnes alignées sur web_mandats_sepa (IBAN BE/EU séparés)
       const ibanNorm = form.nouveauIban.replace(/\s/g, "").toUpperCase();
       const ibanBelge = isBelgianIban(ibanNorm);
+      const dateIso = dateFrToIso(form.dateSig);
+      if (!dateIso) throw new Error("Date de signature invalide.");
 
+      const supabase = getSupabase();
       const { error: dbError } = await supabase.from("web_mandats_sepa").insert({
+        type_demande: form.typeDemande,
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
         niss: form.niss.replace(/\D/g, ""),
@@ -563,15 +570,17 @@ export default function FormulaireChangementCompte() {
         nouveau_iban_be: ibanBelge ? ibanNorm : null,
         nouveau_iban_eu: ibanBelge ? null : ibanNorm,
         nouveau_bic: form.nouveauBic.trim().toUpperCase(),
-        ancien_iban: form.ancienIban ? form.ancienIban.replace(/\s/g, "").toUpperCase() : null,
+        ancien_iban: form.ancienIban.trim()
+          ? form.ancienIban.replace(/\s/g, "").toUpperCase()
+          : null,
         categorie_cotisation: "À compléter",
         est_titulaire: form.estTitulaire,
         nom_titulaire: form.estTitulaire ? null : form.nomTitulaire.trim(),
         accord_cloture: form.accordCloture || "non_applicable",
-        date_signature: form.dateSig,
+        date_signature: dateIso,
         lieu_signature: form.lieu.trim(),
         signature: form.signature,
-        ip_address: ipAddress,
+        ip_address: ipAddress || null,
       });
 
       if (dbError) throw new Error(`Supabase: ${dbError.message}`);
@@ -612,7 +621,8 @@ export default function FormulaireChangementCompte() {
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      alert("Une erreur est survenue. Veuillez réessayer ou nous contacter.");
+      const msg = err instanceof Error ? err.message : "Une erreur est survenue.";
+      alert(`${msg}\n\nSi le problème persiste, contactez-nous.`);
     } finally {
       setLoading(false);
     }
@@ -847,6 +857,18 @@ export default function FormulaireChangementCompte() {
                 maxLength={11}
               />
             </Field>
+
+            {form.typeDemande === "changement_compte" && (
+              <Field label="Ancien IBAN *" error={err.ancienIban}>
+                <input
+                  className={input(err.ancienIban)}
+                  value={form.ancienIban}
+                  onChange={e => set("ancienIban", formatIBAN(e.target.value))}
+                  placeholder="BE68 5390 0754 7034"
+                  maxLength={42}
+                />
+              </Field>
+            )}
 
           </div>
         </div>
