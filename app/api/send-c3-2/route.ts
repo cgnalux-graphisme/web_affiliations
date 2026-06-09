@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
 const ADMIN_EMAIL    = "jonathan.hubert@accg.be";
+const OP_EMAIL       = "op.namlux@fgtb.be";
 const TEL_NAMUR      = "+32 (0) 81 64 99 61";
 const TEL_LUXEMBOURG = "+32 (0) 61 53 01 60";
 const SITE_WEB       = "www.accg-nalux.be";
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
     const pdfBuffer = Buffer.from(pdfBase64, "base64");
     const resend = getResendClient();
 
-    const to: string[] = [ADMIN_EMAIL];
+    const to: string[] = [ADMIN_EMAIL, OP_EMAIL];
     if (email) to.push(email);
 
     const { error } = await resend.emails.send({
