@@ -1,4 +1,15 @@
-import { CreditCard, FileSignature, ClipboardList } from "lucide-react";
+import { ArrowLeftRight, CreditCard, FileSignature, ClipboardList, FileText } from "lucide-react";
+
+export const transferJourney = {
+  title: "Parcours de transfert syndical",
+  shortTitle: "Transfert",
+  category: "Parcours guidé",
+  description:
+    "Rejoignez la FGTB en complétant les 3 formulaires dans l'ordre : affiliation, C1 et C3.2.",
+  href: "/parcours-transfert",
+  cta: "Démarrer le parcours",
+  Icon: ArrowLeftRight,
+} as const;
 
 export const forms = [
   {
@@ -7,7 +18,7 @@ export const forms = [
     category: "Adhesion",
     description: "Nouvelle demande d'affiliation.",
     href: "/affiliation",
-    cta: "Ouvrir le formulaire",
+    cta: "Remplir le formulaire",
     Icon: FileSignature,
   },
   {
@@ -16,7 +27,7 @@ export const forms = [
     category: "Paiement",
     description: "Creer un nouveau mandat ou signaler un changement de compte bancaire.",
     href: "/mandat-sepa",
-    cta: "Acceder au formulaire",
+    cta: "Remplir le formulaire",
     Icon: CreditCard,
   },
   {
@@ -27,5 +38,14 @@ export const forms = [
     href: "/formulaire-c1",
     cta: "Remplir le formulaire",
     Icon: ClipboardList,
+  },
+  {
+    title: "Formulaire C3.2 — Chômage temporaire",
+    shortTitle: "Formulaire C3.2",
+    category: "ONEM",
+    description: "Demande d'allocations de chômage temporaire (formulaire officiel ONEM).",
+    href: "/formulaire-c3-2",
+    cta: "Remplir le formulaire",
+    Icon: FileText,
   },
 ] as const;

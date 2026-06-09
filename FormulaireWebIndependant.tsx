@@ -2145,9 +2145,23 @@ const MENTIONS_INIT = {
   rgpd:        false,
 };
 
-export default function FormulaireWebIndependant() {
+export interface AffiliationFormProps {
+  journeyMode?: boolean;
+  initialData?: Partial<FormData>;
+  onComplete?: (result: {
+    data: FormData;
+    pdfBase64: string;
+    fileName: string;
+  }) => void;
+}
+
+export default function FormulaireWebIndependant({
+  journeyMode = false,
+  initialData,
+  onComplete,
+}: AffiliationFormProps = {}) {
   const [step,        setStep]        = useState(0);
-  const [data,        setData]        = useState<FormData>(INIT);
+  const [data,        setData]        = useState<FormData>({ ...INIT, ...initialData });
   const [errors,      setErrors]      = useState<Errors>({});
   const [loading,     setLoading]     = useState(false);
   const [submitted,   setSubmitted]   = useState(false);
@@ -2346,8 +2360,9 @@ export default function FormulaireWebIndependant() {
 
     // 2. Génération du PDF côté navigateur → conversion en base64
     // Les échéanciers sont calculés ici (thread React) avant d'entrer dans le worker PDF.
+    let generatedPdfBase64: string | null = null;
+    const pdfFileName = `FGTB_Affiliation_${data.nom}_${data.prenom}.pdf`;
     try {
-      const pdfFileName = `FGTB_Affiliation_${data.nom}_${data.prenom}.pdf`;
 
       // Récupération de l'IP publique de l'utilisateur (fail-safe : "N/A" si indisponible)
       let resolvedIp = "N/A";
@@ -2383,6 +2398,7 @@ export default function FormulaireWebIndependant() {
         reader.onerror = reject;
         reader.readAsDataURL(pdfBlob);
       });
+      generatedPdfBase64 = base64;
 
       // 3. Calcul du premier montant à payer (virement)
       //    → Si 2025 : paiement unique 2025 (prioritaire sur le trimestriel)
@@ -2428,6 +2444,10 @@ export default function FormulaireWebIndependant() {
     }
 
     setLoading(false);
+    if (journeyMode && onComplete && generatedPdfBase64) {
+      onComplete({ data, pdfBase64: generatedPdfBase64, fileName: pdfFileName });
+      return;
+    }
     setSubmitted(true);
   };
 

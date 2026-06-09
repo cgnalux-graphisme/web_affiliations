@@ -407,9 +407,23 @@ const STEP_LABELS = [
 ];
 const TOTAL_STEPS = STEP_LABELS.length;
 
-export default function FormulaireC1() {
+export interface C1FormProps {
+  journeyMode?: boolean;
+  initialData?: Partial<C1Data>;
+  onComplete?: (result: {
+    form: C1Data;
+    pdfBase64: string;
+    fileName: string;
+  }) => void;
+}
+
+export default function FormulaireC1({
+  journeyMode = false,
+  initialData,
+  onComplete,
+}: C1FormProps = {}) {
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<C1Data>(EMPTY);
+  const [form, setForm] = useState<C1Data>({ ...EMPTY, ...initialData });
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [loading, setLoading] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
@@ -508,6 +522,11 @@ export default function FormulaireC1() {
         }),
       });
 
+      const fileName = `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
+      if (journeyMode && onComplete) {
+        onComplete({ form, pdfBase64: b64, fileName });
+        return;
+      }
       setSubmitted(true);
     } catch (err) {
       console.error(err);

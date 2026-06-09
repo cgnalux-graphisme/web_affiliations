@@ -27,3 +27,10 @@ export function dateFrToIso(value: string): string | null {
 
   return `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
 }
+
+/** Convertit AAAA-MM-JJ → JJ/MM/AAAA. Retourne une chaîne vide si invalide. */
+export function isoToDateFr(iso: string): string {
+  const m = iso.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return "";
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
