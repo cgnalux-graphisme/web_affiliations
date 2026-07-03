@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { CheckCircle, FileDown, ChevronRight, ChevronLeft } from "lucide-react";
 import type { C1Data, CohabitantRow } from "./app/api/fill-c1/route";
 import { getSupabase } from "./lib/supabase";
+import { postJson } from "./lib/post-json";
+import { useOnceSubmit } from "./lib/use-once-submit";
 
 // ── Valeurs initiales ────────────────────────────────────────────────────────
 const EMPTY: C1Data = {
@@ -428,6 +430,7 @@ export default function FormulaireC1({
   const [loading, setLoading] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const { acquire, release } = useOnceSubmit();
 
   function set<K extends keyof C1Data>(field: K, value: C1Data[K]) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -487,7 +490,11 @@ export default function FormulaireC1({
   function prev() { setStep(s => Math.max(s - 1, 1)); }
 
   async function handleSubmit() {
-    if (!validateStep(step)) return;
+    if (!acquire() || loading) return;
+    if (!validateStep(step)) {
+      release();
+      return;
+    }
     setLoading(true);
     try {
       // Fill PDF
@@ -509,20 +516,19 @@ export default function FormulaireC1({
         data: form,
       });
 
-      // Send email
-      await fetch("/api/send-c1", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const fileName = `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
+
+      // En parcours guidé, l'e-mail C1+C3.2 est envoyé à la fin du C3.2
+      if (!journeyMode) {
+        await postJson("/api/send-c1", {
           nom: form.nom.trim(),
           prenom: form.prenom.trim(),
           email: form.email.trim().toLowerCase(),
           pdfBase64: b64,
-          fileName: `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`,
-        }),
-      });
+          fileName,
+        });
+      }
 
-      const fileName = `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
       if (journeyMode && onComplete) {
         onComplete({ form, pdfBase64: b64, fileName });
         return;
@@ -530,6 +536,7 @@ export default function FormulaireC1({
       setSubmitted(true);
     } catch (err) {
       console.error(err);
+      release();
       alert("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setLoading(false);

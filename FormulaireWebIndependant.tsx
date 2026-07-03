@@ -11,6 +11,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { getSupabase } from "./lib/supabase";
+import { postJson } from "./lib/post-json";
+import { useOnceSubmit } from "./lib/use-once-submit";
 import {
   User,
   MapPin,
@@ -2171,6 +2173,7 @@ export default function FormulaireWebIndependant({
   const [logoBase64,  setLogoBase64]  = useState<string | null>(null);
   const [userIp,      setUserIp]      = useState<string>("N/A");
   const [showDossierJuridiqueModal, setShowDossierJuridiqueModal] = useState(false);
+  const { acquire, release } = useOnceSubmit();
 
   // Précharge le logo en base64 dès le montage du composant,
   // pour qu'il soit disponible lors de la génération du PDF.
@@ -2293,7 +2296,11 @@ export default function FormulaireWebIndependant({
 
   // ── Soumission vers Supabase + envoi email avec PDF ───────────────────────
   const handleSubmit = async () => {
-    if (!validate()) return;
+    if (!acquire() || loading) return;
+    if (!validate()) {
+      release();
+      return;
+    }
     setLoading(true);
     setServerError("");
 
@@ -2354,6 +2361,7 @@ export default function FormulaireWebIndependant({
 
     if (error) {
       setLoading(false);
+      release();
       setServerError("Une erreur s'est produite lors de l'envoi. Veuillez réessayer.");
       return;
     }
@@ -2418,24 +2426,20 @@ export default function FormulaireWebIndependant({
       }
 
       // 4. Appel de la route API pour envoyer l'email via Resend
-      await fetch("/api/send-confirmation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email:                   data.email,
-          nom:                     data.nom,
-          prenom:                  data.prenom,
-          pdfBase64:               base64,
-          fileName:                pdfFileName,
-          affiliationDebut:
-            data.affiliationMois && data.affiliationAnnee
-              ? `${MONTHS_FR[parseInt(data.affiliationMois, 10) - 1]} ${data.affiliationAnnee}`
-              : "—",
-          cotisationMensuelle:     cotisationEmail?.montant?.toFixed(2) ?? null,
-          modePaiement:            data.modePaiement,
-          niss:                    data.niss || null,
-          premiereEcheanceMontant,
-        }),
+      await postJson("/api/send-confirmation", {
+        email:                   data.email,
+        nom:                     data.nom,
+        prenom:                  data.prenom,
+        pdfBase64:               base64,
+        fileName:                pdfFileName,
+        affiliationDebut:
+          data.affiliationMois && data.affiliationAnnee
+            ? `${MONTHS_FR[parseInt(data.affiliationMois, 10) - 1]} ${data.affiliationAnnee}`
+            : "—",
+        cotisationMensuelle:     cotisationEmail?.montant?.toFixed(2) ?? null,
+        modePaiement:            data.modePaiement,
+        niss:                    data.niss || null,
+        premiereEcheanceMontant,
       });
     } catch (emailErr) {
       // L'inscription Supabase a réussi, on affiche la confirmation même si

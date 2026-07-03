@@ -321,6 +321,7 @@ export default function ParcoursTransfert() {
 
   const c1Initial = state.profile ? profileToC1(state.profile) : undefined;
   const c32Initial = state.profile ? profileToC32(state.profile) : undefined;
+  const c1Pdf = state.pdfs.find((p) => p.key === "c1");
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
@@ -367,6 +368,11 @@ export default function ParcoursTransfert() {
           <FormulaireC32
             journeyMode
             initialData={c32Initial}
+            bundleC1={
+              c1Pdf
+                ? { pdfBase64: c1Pdf.pdfBase64, fileName: c1Pdf.fileName }
+                : undefined
+            }
             onComplete={handleC32Complete}
           />
         )}

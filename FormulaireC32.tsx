@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { CheckCircle, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import type { C32Data } from "./app/api/fill-c3-2/route";
 import { getSupabase } from "./lib/supabase";
+import { postJson } from "./lib/post-json";
+import { useOnceSubmit } from "./lib/use-once-submit";
 
 const EMPTY: C32Data = {
   prenom: "",
@@ -207,6 +209,8 @@ const TOTAL_STEPS = STEP_LABELS.length;
 export interface C32FormProps {
   journeyMode?: boolean;
   initialData?: Partial<C32Data>;
+  /** PDF C1 du parcours guidé — déclenche un e-mail groupé C1+C3.2 à la soumission. */
+  bundleC1?: { pdfBase64: string; fileName: string };
   onComplete?: (result: {
     form: C32Data;
     pdfBase64: string;
@@ -217,6 +221,7 @@ export interface C32FormProps {
 export default function FormulaireC32({
   journeyMode = false,
   initialData,
+  bundleC1,
   onComplete,
 }: C32FormProps = {}) {
   const [step, setStep] = useState(1);
@@ -225,6 +230,7 @@ export default function FormulaireC32({
   const [loading, setLoading] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const { acquire, release } = useOnceSubmit();
 
   function set<K extends keyof C32Data>(field: K, value: C32Data[K]) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -268,7 +274,11 @@ export default function FormulaireC32({
   }
 
   async function handleSubmit() {
-    if (!validateStep(step)) return;
+    if (!acquire() || loading) return;
+    if (!validateStep(step)) {
+      release();
+      return;
+    }
     setLoading(true);
     try {
       const fillRes = await fetch("/api/fill-c3-2", {
@@ -288,19 +298,26 @@ export default function FormulaireC32({
         data: form,
       });
 
-      await fetch("/api/send-c3-2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const fileName = `formulaire-c3-2-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
+
+      if (journeyMode && bundleC1) {
+        await postJson("/api/send-onem-bundle", {
+          nom: form.nom.trim(),
+          prenom: form.prenom.trim(),
+          email: form.email.trim().toLowerCase(),
+          c1: { pdfBase64: bundleC1.pdfBase64, fileName: bundleC1.fileName },
+          c32: { pdfBase64: b64, fileName },
+        });
+      } else if (!journeyMode) {
+        await postJson("/api/send-c3-2", {
           nom: form.nom.trim(),
           prenom: form.prenom.trim(),
           email: form.email.trim().toLowerCase(),
           pdfBase64: b64,
-          fileName: `formulaire-c3-2-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`,
-        }),
-      });
+          fileName,
+        });
+      }
 
-      const fileName = `formulaire-c3-2-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
       if (journeyMode && onComplete) {
         onComplete({ form, pdfBase64: b64, fileName });
         return;
@@ -308,6 +325,7 @@ export default function FormulaireC32({
       setSubmitted(true);
     } catch (err) {
       console.error(err);
+      release();
       alert("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setLoading(false);

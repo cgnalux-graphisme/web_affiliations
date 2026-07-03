@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { getResendClient, sendIsolatedEmail } from "@/lib/resend-mail";
 
 const ADMIN_EMAIL    = "admin.nalux@accg.be";
 const TEL_NAMUR      = "+32 (0) 81 64 99 61";
 const TEL_LUXEMBOURG = "+32 (0) 61 53 01 60";
 const SITE_WEB       = "www.accg-nalux.be";
-
-function getResendClient(): Resend {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY manquante");
-  return new Resend(apiKey);
-}
 
 interface Payload {
   email:       string;
@@ -124,12 +118,10 @@ export async function POST(request: Request) {
     const pdfBuffer = Buffer.from(pdfBase64, "base64");
     const resend = getResendClient();
 
-    const { error } = await resend.emails.send({
-      from:        process.env.RESEND_FROM_EMAIL ?? "noreply@accg.be",
-      to:          [email],
-      cc:          [ADMIN_EMAIL],
-      subject:     `${typeDemande === "nouveau_mandat" ? "Nouveau mandat SEPA" : "Changement de compte / Mandat SEPA"} — Centrale Générale FGTB Namur Luxembourg`,
-      html:        buildHtml({ email, nom, prenom, pdfBase64, fileName, nouveauIban, typeDemande }),
+    const { error } = await sendIsolatedEmail(resend, {
+      bcc: [email, ADMIN_EMAIL],
+      subject: `${typeDemande === "nouveau_mandat" ? "Nouveau mandat SEPA" : "Changement de compte / Mandat SEPA"} — Centrale Générale FGTB Namur Luxembourg`,
+      html: buildHtml({ email, nom, prenom, pdfBase64, fileName, nouveauIban, typeDemande }),
       attachments: [{ filename: fileName, content: pdfBuffer }],
     });
 

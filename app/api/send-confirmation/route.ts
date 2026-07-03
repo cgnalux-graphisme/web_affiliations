@@ -3,7 +3,7 @@
  *
  * Route API Next.js (App Router) — côté serveur.
  * Reçoit les données du nouveau membre + le PDF en base64,
- * puis envoie via Resend :
+ * puis envoie via Resend (tous les destinataires en CCI — voir lib/resend-mail.ts) :
  *   • un email de confirmation personnalisé au membre (avec PDF en pièce jointe)
  *   • une copie à l'adresse admin
  *
@@ -13,7 +13,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { getResendClient, sendIsolatedEmail } from "@/lib/resend-mail";
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
 const ADMIN_EMAIL   = "admin.nalux@accg.be";
@@ -21,15 +21,6 @@ const TEL_NAMUR     = "+32 (0) 81 64 99 61";
 const TEL_LUXEMBOURG = "+32 (0) 61 53 01 60";
 const SITE_WEB      = "www.accg-nalux.be";
 const IBAN_VIREMENT = "BE94 8791 5049 0114";
-
-// ── Client Resend (initialisation différée) ───────────────────────────────────
-function getResendClient(): Resend {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    throw new Error("Variable d'environnement RESEND_API_KEY manquante côté serveur");
-  }
-  return new Resend(apiKey);
-}
 
 // ── Types des données reçues ───────────────────────────────────────────────────
 interface EmailPayload {
@@ -305,12 +296,10 @@ export async function POST(request: Request) {
     const pdfBuffer = Buffer.from(pdfBase64, "base64");
     const resend = getResendClient();
 
-    const { error } = await resend.emails.send({
-      from:    process.env.RESEND_FROM_EMAIL ?? "noreply@accg.be",
-      to:      [email],
-      cc:      [ADMIN_EMAIL],
+    const { error } = await sendIsolatedEmail(resend, {
+      bcc: [email, ADMIN_EMAIL],
       subject: `Confirmation de votre demande d'affiliation – Centrale Générale FGTB Namur Luxembourg`,
-      html:    buildEmailHtml({
+      html: buildEmailHtml({
         email, nom, prenom, pdfBase64, fileName,
         affiliationDebut:        affiliationDebut        ?? "—",
         cotisationMensuelle:     cotisationMensuelle     ?? null,

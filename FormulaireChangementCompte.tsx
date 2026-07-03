@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { dateFrToIso, formatDateFr, isValidDateFr } from "./lib/dates";
 import { getSupabase } from "./lib/supabase";
+import { postJson } from "./lib/post-json";
+import { useOnceSubmit } from "./lib/use-once-submit";
 import {
   pdf,
   Document,
@@ -464,6 +466,7 @@ export default function FormulaireChangementCompte() {
   const [submitted, setSubmitted] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfError, setPdfError] = useState(false);
+  const { acquire, release } = useOnceSubmit();
 
   function set(field: keyof FormData, value: string | boolean) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -524,7 +527,11 @@ export default function FormulaireChangementCompte() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
+    if (!acquire() || loading) return;
+    if (!validate()) {
+      release();
+      return;
+    }
     setLoading(true);
     setPdfError(false);
 
@@ -599,28 +606,20 @@ export default function FormulaireChangementCompte() {
       const prefix = form.typeDemande === "nouveau_mandat" ? "nouveau-mandat" : "changement-compte";
       const fileName = `${prefix}-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
 
-      const emailRes = await fetch("/api/send-mandat-sepa", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: form.email.trim().toLowerCase(),
-          nom: form.nom.trim(),
-          prenom: form.prenom.trim(),
-          pdfBase64,
-          fileName,
-          nouveauIban: formatIBAN(form.nouveauIban),
-          typeDemande: form.typeDemande,
-        }),
+      await postJson("/api/send-mandat-sepa", {
+        email: form.email.trim().toLowerCase(),
+        nom: form.nom.trim(),
+        prenom: form.prenom.trim(),
+        pdfBase64,
+        fileName,
+        nouveauIban: formatIBAN(form.nouveauIban),
+        typeDemande: form.typeDemande,
       });
-
-      if (!emailRes.ok) {
-        console.error("Erreur envoi email, mais données sauvegardées");
-        setPdfError(true);
-      }
 
       setSubmitted(true);
     } catch (err) {
       console.error(err);
+      release();
       const msg = err instanceof Error ? err.message : "Une erreur est survenue.";
       alert(`${msg}\n\nSi le problème persiste, contactez-nous.`);
     } finally {
