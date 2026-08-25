@@ -26,4 +26,18 @@ describe("moisEntre", () => {
   it("retourne 0 si les dates sont identiques", () => {
     expect(moisEntre("2020-01-15", "2020-01-15")).toBe(0);
   });
+
+  it("anniversaire 29 février retombant sur un 28 février (année non bissextile) : le mois n'est pas encore décompté", () => {
+    // (2021-2020)*12 + (2-2) = 12 mois bruts, puis -1 car 28 < 29 -> 11
+    expect(moisEntre("2020-02-29", "2021-02-28")).toBe(11);
+  });
+
+  it("embauche le 31 janvier, jusqu'au 29 février (année bissextile) : le mois n'est pas encore décompté", () => {
+    // (2020-2020)*12 + (2-1) = 1 mois brut, puis -1 car 29 < 31 -> 0
+    expect(moisEntre("2020-01-31", "2020-02-29")).toBe(0);
+  });
+
+  it("retourne 0 (par conception) si finISO est antérieure à debutISO (arguments inversés)", () => {
+    expect(moisEntre("2022-01-01", "2020-01-01")).toBe(0);
+  });
 });
