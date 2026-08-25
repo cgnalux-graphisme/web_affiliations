@@ -1124,7 +1124,7 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
 - [ ] **Step 4: Lancer les tests, vérifier le succès**
 
 Run: `npm test -- calcul-preavis`
-Expected: PASS (7 tests)
+Expected: PASS (6 tests)
 
 - [ ] **Step 5: Commit**
 
