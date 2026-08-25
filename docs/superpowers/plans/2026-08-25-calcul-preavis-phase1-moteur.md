@@ -85,7 +85,15 @@ export interface ResultatPreavisOuvrier {
   quiRompt: QuiRompt;
   cp: string;
   cpCouverte: boolean;
-  regimeApplique: "cp-specifique" | "cct75-supletif";
+  regimeApplique: "cp-specifique" | "cct75-supletif" | "non-source";
+  /**
+   * true si la partie 1 (pré-2014) n'a pas pu être calculée faute de source
+   * légale (démission hors CP couvertes, ou < 6 mois d'ancienneté au
+   * 31/12/2013 sous CCT75) — dans ce cas javantPart1 vaut 0 par défaut mais
+   * ne reflète PAS un vrai calcul. Le résultat doit être affiché avec un
+   * avertissement visible, pas comme un chiffre fiable.
+   */
+  avertissementNonSource: boolean;
   javantPart1: DureePreavis;
   japresPart2: DureePreavis;
   total: DureePreavis;
@@ -985,6 +993,36 @@ describe("calculerPreavisOuvrier — CP non couverte", () => {
     expect(resultat.regimeApplique).toBe("cct75-supletif");
     // moisEntre("2005-01-01", "2013-12-31") = 107 mois (8 ans et 11 mois) -> palier "5 à 10 ans" -> 42 jours.
     expect(resultat.javantPart1.jours).toBe(42);
+    expect(resultat.avertissementNonSource).toBe(false);
+  });
+});
+
+describe("calculerPreavisOuvrier — lacunes de source légale (design spec §12.2)", () => {
+  it("signale un avertissement pour une démission avec CP non couverte et ancienneté pré-2014", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "999.99",
+      dateEmbauche: "2005-01-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "travailleur",
+    });
+
+    expect(resultat.avertissementNonSource).toBe(true);
+    expect(resultat.regimeApplique).toBe("non-source");
+    expect(resultat.javantPart1.jours).toBe(0);
+  });
+
+  it("signale un avertissement pour un licenciement CCT75 sous 6 mois d'ancienneté au 31/12/2013", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "999.99",
+      dateEmbauche: "2013-08-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "employeur",
+    });
+
+    // moisEntre("2013-08-01", "2013-12-31") = 4 mois -> non couvert par la CCT75 (min 6 mois).
+    expect(resultat.avertissementNonSource).toBe(true);
+    expect(resultat.regimeApplique).toBe("non-source");
+    expect(resultat.javantPart1.jours).toBe(0);
   });
 });
 
@@ -1061,18 +1099,32 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
 
   // Partie 1 : gelée au 31/12/2013. Le correctif 2026 ne s'applique jamais ici :
   // un contrat concerné par la réforme (embauche >= 2026) n'a par construction pas
-  // d'ancienneté pré-2014, donc cette branche est déjà à 0 dans ce cas.
+  // d'ancienneté pré-2014, donc cette branche est déjà à 0 dans ce cas (et
+  // avertissementNonSource reste false : il n'y a alors aucune lacune, juste
+  // rien à calculer sur cette partie).
   let joursPart1 = 0;
+  let avertissementNonSource = false;
+  let regimeApplique: ResultatPreavisOuvrier["regimeApplique"] = cpCouverte ? "cp-specifique" : "non-source";
+
   if (!anciennePost2014) {
     if (table) {
       const eras = quiRompt === "employeur" ? table.employeur : table.demission;
       joursPart1 = joursParEraDate(eras, dateEmbauche);
+      // regimeApplique reste "cp-specifique" (déjà positionné ci-dessus).
     } else if (quiRompt === "employeur") {
       const moisAu20131231 = moisEntre(dateEmbauche, DATE_FIN_2013);
-      joursPart1 = preavisCct75Employeur(moisAu20131231) ?? 0;
+      const joursCct75 = preavisCct75Employeur(moisAu20131231);
+      if (joursCct75 !== null) {
+        joursPart1 = joursCct75;
+        regimeApplique = "cct75-supletif";
+      } else {
+        // < 6 mois d'ancienneté au 31/12/2013, non sourcé par la CCT75 (design spec §12.2).
+        avertissementNonSource = true;
+      }
+    } else {
+      // Démission hors CP couvertes : régime supplétif démission non sourcé (design spec §12.2).
+      avertissementNonSource = true;
     }
-    // Démission hors CP couvertes : régime supplétif démission non sourcé (design spec §12.2) -> 0,
-    // à signaler à l'appelant via cpCouverte=false + regimeApplique.
   }
 
   // Partie 2 : depuis le 1/1/2014 (ou depuis l'embauche si post-2014), corrigée par la réforme 2026.
@@ -1112,7 +1164,8 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
     quiRompt,
     cp,
     cpCouverte,
-    regimeApplique: cpCouverte ? "cp-specifique" : "cct75-supletif",
+    regimeApplique,
+    avertissementNonSource,
     javantPart1: versDuree(joursPart1),
     japresPart2: versDuree(joursPart2),
     total: versDuree(joursTotal),
@@ -1124,7 +1177,7 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
 - [ ] **Step 4: Lancer les tests, vérifier le succès**
 
 Run: `npm test -- calcul-preavis`
-Expected: PASS (6 tests)
+Expected: PASS (8 tests)
 
 - [ ] **Step 5: Commit**
 
