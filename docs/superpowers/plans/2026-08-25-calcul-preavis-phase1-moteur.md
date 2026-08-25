@@ -822,10 +822,18 @@ describe("preavisEmployePre2014", () => {
     });
   });
 
-  it("marque le résultat comme incertain pour une démission au-dessus du seuil", () => {
+  it("marque le résultat comme incertain et applique le plafond de 3 mois pour une démission au-dessus du seuil", () => {
     const resultat = preavisEmployePre2014({ anneesAnciennete: 10, remunerationAnnuelle: 50000, quiRompt: "travailleur" });
     expect(resultat.incertain).toBe(true);
-    expect(resultat.mois).toBe(5); // moitié de 10 mois, règle non confirmée sur source primaire
+    // moitié de 10 mois = 5, mais plafonné à 3 mois (~13 semaines, design spec §12.4) ; règle non confirmée sur source primaire.
+    expect(resultat.mois).toBe(3);
+  });
+
+  it("n'écrête pas le plafond de 3 mois quand la moitié du délai employeur est déjà inférieure", () => {
+    const resultat = preavisEmployePre2014({ anneesAnciennete: 3, remunerationAnnuelle: 50000, quiRompt: "travailleur" });
+    // moisLicenciement = max(3, 3) = 3 -> moitié = 2 (arrondi), sous le plafond de 3 -> reste 2.
+    expect(resultat.mois).toBe(2);
+    expect(resultat.incertain).toBe(true);
   });
 
   it("n'est pas incertain pour une démission sous le seuil (règle légale claire)", () => {
@@ -871,15 +879,18 @@ export function preavisEmployePre2014(params: ParamsEmployePre2014): ResultatEmp
   }
 
   // Au-dessus du seuil : 1 mois par année entamée, minimum 3 mois (licenciement, confirmé).
-  const moisLicenciement = Math.max(3, Math.ceil(anneesAnciennete) || 1);
+  const moisLicenciement = Math.max(3, Math.ceil(anneesAnciennete));
 
   if (quiRompt === "employeur") {
     return { mois: moisLicenciement, incertain: false };
   }
 
   // Démission au-dessus du seuil : règle non confirmée sur source primaire
-  // (design spec §12.4) — approximation "moitié, plafond 13 semaines/~3 mois".
-  const moisDemission = Math.round(moisLicenciement / 2);
+  // (design spec §12.4) — approximation "moitié, plafond 13 semaines (~3 mois)".
+  // Le plafond est indispensable ici : sans lui, la moitié du délai employeur
+  // peut dépasser largement les 13 semaines légales pour une ancienneté élevée.
+  const PLAFOND_MOIS_DEMISSION = 3;
+  const moisDemission = Math.min(Math.round(moisLicenciement / 2), PLAFOND_MOIS_DEMISSION);
   return { mois: moisDemission, incertain: true };
 }
 ```
@@ -887,7 +898,7 @@ export function preavisEmployePre2014(params: ParamsEmployePre2014): ResultatEmp
 - [ ] **Step 4: Lancer les tests, vérifier le succès**
 
 Run: `npm test -- employe-pre-2014`
-Expected: PASS (5 tests)
+Expected: PASS (6 tests)
 
 - [ ] **Step 5: Commit**
 
