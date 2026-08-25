@@ -13,6 +13,8 @@ export interface TransferJourneyState {
   phase: JourneyPhase;
   profile: PersonProfile | null;
   pdfs: JourneyPdf[];
+  /** E-mail groupé C1+C3.2 déjà envoyé (évite un doublon en cas de re-soumission). */
+  onemEmailSent?: boolean;
   updatedAt: string;
 }
 

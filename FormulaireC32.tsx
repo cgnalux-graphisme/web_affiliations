@@ -209,19 +209,17 @@ const TOTAL_STEPS = STEP_LABELS.length;
 export interface C32FormProps {
   journeyMode?: boolean;
   initialData?: Partial<C32Data>;
-  /** PDF C1 du parcours guidé — déclenche un e-mail groupé C1+C3.2 à la soumission. */
-  bundleC1?: { pdfBase64: string; fileName: string };
+  /** En parcours guidé : le parent envoie l'e-mail groupé C1+C3.2 (une seule fois). */
   onComplete?: (result: {
     form: C32Data;
     pdfBase64: string;
     fileName: string;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 export default function FormulaireC32({
   journeyMode = false,
   initialData,
-  bundleC1,
   onComplete,
 }: C32FormProps = {}) {
   const [step, setStep] = useState(1);
@@ -300,15 +298,12 @@ export default function FormulaireC32({
 
       const fileName = `formulaire-c3-2-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
 
-      if (journeyMode && bundleC1) {
-        await postJson("/api/send-onem-bundle", {
-          nom: form.nom.trim(),
-          prenom: form.prenom.trim(),
-          email: form.email.trim().toLowerCase(),
-          c1: { pdfBase64: bundleC1.pdfBase64, fileName: bundleC1.fileName },
-          c32: { pdfBase64: b64, fileName },
-        });
-      } else if (!journeyMode) {
+      if (journeyMode && onComplete) {
+        await onComplete({ form, pdfBase64: b64, fileName });
+        return;
+      }
+
+      if (!journeyMode) {
         await postJson("/api/send-c3-2", {
           nom: form.nom.trim(),
           prenom: form.prenom.trim(),
@@ -318,10 +313,6 @@ export default function FormulaireC32({
         });
       }
 
-      if (journeyMode && onComplete) {
-        onComplete({ form, pdfBase64: b64, fileName });
-        return;
-      }
       setSubmitted(true);
     } catch (err) {
       console.error(err);

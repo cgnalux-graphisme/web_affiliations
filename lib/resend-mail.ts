@@ -4,8 +4,7 @@ export const NOREPLY_FALLBACK = "noreply@accg.be";
 
 /**
  * Point d'entrée unique pour tous les envois Resend de l'application.
- * Règle obligatoire : les destinataires réels passent toujours en CCI (bcc)
- * via sendIsolatedEmail — jamais en « À » ou « Cc » visibles entre eux.
+ * Règle obligatoire : un e-mail séparé par destinataire — personne ne voit les autres.
  */
 
 export function getResendClient(): Resend {
@@ -18,7 +17,7 @@ export function getFromEmail(): string {
   return process.env.RESEND_FROM_EMAIL ?? NOREPLY_FALLBACK;
 }
 
-/** Déduplique, normalise et retire l'adresse expéditrice des destinataires CCI. */
+/** Déduplique, normalise et retire l'adresse expéditrice de la liste. */
 export function uniqueRecipients(
   from: string,
   ...emails: (string | null | undefined)[]
@@ -33,34 +32,48 @@ export function uniqueRecipients(
 }
 
 interface IsolatedEmailOptions {
-  /** Destinataires réels — seront placés en CCI, jamais en « À » ou « Cc ». */
-  bcc: string[];
+  /** Destinataires — chacun reçoit son propre e-mail, seul en « À ». */
+  recipients: string[];
   subject: string;
   html: string;
   attachments?: { filename: string; content: Buffer }[];
 }
 
 /**
- * Envoie un e-mail où chaque destinataire est en CCI : personne ne voit les autres.
- * L'adresse expéditrice sert de destinataire technique visible (champ « À »).
+ * Envoie le même contenu à chaque destinataire via un e-mail individuel.
+ * Isolation totale : aucun Cc/Cci, chaque personne ne voit que sa propre adresse.
  */
 export async function sendIsolatedEmail(
   resend: Resend,
-  { bcc, subject, html, attachments }: IsolatedEmailOptions
+  { recipients, subject, html, attachments }: IsolatedEmailOptions
 ) {
   const from = getFromEmail();
-  const recipients = uniqueRecipients(from, ...bcc);
+  const toList = uniqueRecipients(from, ...recipients);
 
-  if (recipients.length === 0) {
+  if (toList.length === 0) {
     throw new Error("Aucun destinataire.");
   }
 
-  return resend.emails.send({
-    from,
-    to: [from],
-    bcc: recipients,
-    subject,
-    html,
-    attachments,
-  });
+  const results = await Promise.all(
+    toList.map((to) =>
+      resend.emails.send({
+        from,
+        to: [to],
+        subject,
+        html,
+        attachments,
+      })
+    )
+  );
+
+  const failed = results.find((r) => r.error);
+  if (failed?.error) {
+    console.error(
+      "[sendIsolatedEmail] Échec d'envoi :",
+      results.filter((r) => r.error).map((r) => r.error)
+    );
+    return { data: null, error: failed.error };
+  }
+
+  return { data: results[0]?.data ?? null, error: null };
 }

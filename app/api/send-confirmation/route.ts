@@ -3,7 +3,7 @@
  *
  * Route API Next.js (App Router) — côté serveur.
  * Reçoit les données du nouveau membre + le PDF en base64,
- * puis envoie via Resend (tous les destinataires en CCI — voir lib/resend-mail.ts) :
+ * puis envoie via Resend (un e-mail individuel par destinataire — voir lib/resend-mail.ts) :
  *   • un email de confirmation personnalisé au membre (avec PDF en pièce jointe)
  *   • une copie à l'adresse admin
  *
@@ -297,7 +297,7 @@ export async function POST(request: Request) {
     const resend = getResendClient();
 
     const { error } = await sendIsolatedEmail(resend, {
-      bcc: [email, ADMIN_EMAIL],
+      recipients: [email, ADMIN_EMAIL],
       subject: `Confirmation de votre demande d'affiliation – Centrale Générale FGTB Namur Luxembourg`,
       html: buildEmailHtml({
         email, nom, prenom, pdfBase64, fileName,

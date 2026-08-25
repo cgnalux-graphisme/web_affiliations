@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const resend = getResendClient();
 
     const { error } = await sendIsolatedEmail(resend, {
-      bcc: [ADMIN_EMAIL, OP_EMAIL, email],
+      recipients: [ADMIN_EMAIL, OP_EMAIL, email],
       subject: `Formulaire C3.2 — ${prenom} ${nom}`,
       html: buildC32Html({ nom, prenom, email, adminEmail: ADMIN_EMAIL }),
       attachments: [{ filename: fileName, content: pdfBuffer }],

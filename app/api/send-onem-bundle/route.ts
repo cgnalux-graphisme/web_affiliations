@@ -1,3 +1,7 @@
+/**
+ * Envoi groupé C1 + C3.2 — utilisé uniquement par le parcours de transfert.
+ * Seul point d'envoi vers op.namlux@fgtb.be pour un dossier parcours complet.
+ */
 import { NextResponse } from "next/server";
 import { buildOnemBundleHtml } from "@/lib/onem-email-html";
 import { getResendClient, sendIsolatedEmail } from "@/lib/resend-mail";
@@ -30,7 +34,7 @@ export async function POST(request: Request) {
     const resend = getResendClient();
 
     const { error } = await sendIsolatedEmail(resend, {
-      bcc: [ADMIN_EMAIL, OP_EMAIL, email],
+      recipients: [ADMIN_EMAIL, OP_EMAIL, email],
       subject: `Formulaires C1 et C3.2 — ${prenom} ${nom}`,
       html: buildOnemBundleHtml({ nom, prenom, email, adminEmail: ADMIN_EMAIL }),
       attachments: [

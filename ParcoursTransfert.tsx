@@ -29,6 +29,7 @@ import {
   type JourneyPhase,
   type TransferJourneyState,
 } from "./lib/transfer-journey";
+import { postJson } from "./lib/post-json";
 
 const STEPS = [
   { key: "affiliation" as const, label: "Affiliation", Icon: FileSignature },
@@ -294,13 +295,30 @@ export default function ParcoursTransfert() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function handleC32Complete(result: {
+  async function handleC32Complete(result: {
+    form: { nom: string; prenom: string; email: string };
     pdfBase64: string;
     fileName: string;
   }) {
+    const c1Pdf = state.pdfs.find((p) => p.key === "c1");
+    if (!c1Pdf) {
+      throw new Error("PDF C1 introuvable — impossible d'envoyer l'e-mail groupé.");
+    }
+
+    if (!state.onemEmailSent) {
+      await postJson("/api/send-onem-bundle", {
+        nom: result.form.nom.trim(),
+        prenom: result.form.prenom.trim(),
+        email: result.form.email.trim().toLowerCase(),
+        c1: { pdfBase64: c1Pdf.pdfBase64, fileName: c1Pdf.fileName },
+        c32: { pdfBase64: result.pdfBase64, fileName: result.fileName },
+      });
+    }
+
     const next: TransferJourneyState = {
       ...state,
       phase: "complete",
+      onemEmailSent: true,
       pdfs: [
         ...state.pdfs.filter((p) => p.key !== "c32"),
         {
@@ -364,17 +382,27 @@ export default function ParcoursTransfert() {
           />
         )}
 
-        {state.phase === "c32" && c32Initial && (
+        {state.phase === "c32" && c32Initial && c1Pdf && (
           <FormulaireC32
             journeyMode
             initialData={c32Initial}
-            bundleC1={
-              c1Pdf
-                ? { pdfBase64: c1Pdf.pdfBase64, fileName: c1Pdf.fileName }
-                : undefined
-            }
             onComplete={handleC32Complete}
           />
+        )}
+
+        {state.phase === "c32" && c32Initial && !c1Pdf && (
+          <div className="mx-auto max-w-lg rounded-2xl bg-white p-8 text-center shadow-lg">
+            <p className="mb-4 text-sm text-gray-600">
+              Le formulaire C1 est introuvable. Veuillez reprendre l&apos;étape C1 avant de continuer.
+            </p>
+            <button
+              type="button"
+              onClick={() => persist({ ...state, phase: "c1", updatedAt: new Date().toISOString() })}
+              className="rounded-xl bg-red-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-950"
+            >
+              Retour au formulaire C1
+            </button>
+          </div>
         )}
 
         {state.phase === "complete" && (

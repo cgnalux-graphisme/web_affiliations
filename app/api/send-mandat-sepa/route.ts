@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     const resend = getResendClient();
 
     const { error } = await sendIsolatedEmail(resend, {
-      bcc: [email, ADMIN_EMAIL],
+      recipients: [email, ADMIN_EMAIL],
       subject: `${typeDemande === "nouveau_mandat" ? "Nouveau mandat SEPA" : "Changement de compte / Mandat SEPA"} — Centrale Générale FGTB Namur Luxembourg`,
       html: buildHtml({ email, nom, prenom, pdfBase64, fileName, nouveauIban, typeDemande }),
       attachments: [{ filename: fileName, content: pdfBuffer }],
