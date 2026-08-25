@@ -219,7 +219,7 @@ describe("preavisGeneralEmployeur", () => {
   it("suit la progression mensuelle jusqu'à 2 ans", () => {
     expect(preavisGeneralEmployeur(3)).toBe(3);
     expect(preavisGeneralEmployeur(6)).toBe(6);
-    expect(preavisGeneralEmployeur(12)).toBe(7);
+    expect(preavisGeneralEmployeur(12)).toBe(8);
     expect(preavisGeneralEmployeur(24)).toBe(12);
   });
 
