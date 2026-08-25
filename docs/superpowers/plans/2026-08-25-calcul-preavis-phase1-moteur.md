@@ -976,6 +976,37 @@ describe("calculerPreavisOuvrier — CP non couverte", () => {
     expect(resultat.javantPart1.jours).toBe(42);
   });
 });
+
+describe("calculerPreavisOuvrier — correctif 2026 (contrat entièrement post-réforme)", () => {
+  it("applique le forfait d'1 semaine sous 6 mois pour un contrat commencé après le 31/7/2026", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "124.00",
+      dateEmbauche: "2026-08-01",
+      dateDebutPreavis: "2026-12-15",
+      quiRompt: "employeur",
+    });
+
+    // Ancienneté au début du préavis: 4 mois -> le barème général donnerait 4 semaines,
+    // mais le correctif 2026 impose 1 semaine forfaitaire (contrat commencé après le 31/7/2026).
+    expect(resultat.javantPart1.jours).toBe(0);
+    expect(resultat.total.semaines).toBe(1);
+  });
+
+  it("plafonne à 52 semaines dès 17 ans pour un contrat commencé après le 31/5/2026", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "124.00",
+      dateEmbauche: "2026-06-01",
+      dateDebutPreavis: "2043-06-01", // 17 ans pile plus tard
+      quiRompt: "employeur",
+    });
+
+    expect(resultat.total.semaines).toBe(52);
+    // Sans le plafond, le barème général donnerait 54 semaines à 204 mois (17 ans) pile — l'indemnité
+    // compensatoire ne doit PAS se déclencher ici : la comparaison "nouvelle formule complète" doit elle
+    // aussi être plafonnée, sinon on créerait artificiellement une fausse indemnité de 2 semaines (54-52).
+    expect(resultat.indemniteCompensatoire).toBeNull();
+  });
+});
 ```
 
 - [ ] **Step 2: Lancer les tests, vérifier l'échec**
@@ -988,6 +1019,7 @@ Expected: FAIL — module introuvable
 ```typescript
 import { moisEntre } from "./anciennete";
 import { preavisGeneralEmployeur, preavisGeneralDemission } from "./baremes/general-2014";
+import { appliquerReforme2026 } from "./baremes/reforme-2026";
 import { tableCP, joursParEraDate, preavisCct75Employeur } from "./baremes/ouvrier-pre-2014";
 import type { DateISO, DureePreavis, QuiRompt, ResultatPreavisOuvrier } from "./types";
 
@@ -996,6 +1028,10 @@ const DATE_FIN_2013 = "2013-12-31";
 
 function versDuree(jours: number): DureePreavis {
   return { jours, semaines: Math.round((jours / 7) * 100) / 100 };
+}
+
+function semainesBaremeGeneral(quiRompt: QuiRompt, mois: number): number {
+  return quiRompt === "employeur" ? preavisGeneralEmployeur(mois) : preavisGeneralDemission(mois);
 }
 
 interface ParamsCalculOuvrier {
@@ -1012,7 +1048,9 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
   const table = tableCP(cp);
   const cpCouverte = table !== null;
 
-  // Partie 1 : gelée au 31/12/2013.
+  // Partie 1 : gelée au 31/12/2013. Le correctif 2026 ne s'applique jamais ici :
+  // un contrat concerné par la réforme (embauche >= 2026) n'a par construction pas
+  // d'ancienneté pré-2014, donc cette branche est déjà à 0 dans ce cas.
   let joursPart1 = 0;
   if (!anciennePost2014) {
     if (table) {
@@ -1026,20 +1064,31 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
     // à signaler à l'appelant via cpCouverte=false + regimeApplique.
   }
 
-  // Partie 2 : depuis le 1/1/2014 (ou depuis l'embauche si post-2014).
+  // Partie 2 : depuis le 1/1/2014 (ou depuis l'embauche si post-2014), corrigée par la réforme 2026.
   const moisPart2 = anciennePost2014
     ? moisEntre(dateEmbauche, dateDebutPreavis)
     : moisEntre(DATE_PIVOT, dateDebutPreavis);
-  const semainesPart2 =
-    quiRompt === "employeur" ? preavisGeneralEmployeur(moisPart2) : preavisGeneralDemission(moisPart2);
+  const semainesPart2 = appliquerReforme2026({
+    dateEmbauche,
+    moisAnciennete: moisPart2,
+    semaines: semainesBaremeGeneral(quiRompt, moisPart2),
+  });
   const joursPart2 = semainesPart2 * 7;
 
   let joursTotal = joursPart1 + joursPart2;
   let indemniteCompensatoire: DureePreavis | null = null;
 
   if (quiRompt === "employeur") {
+    // La comparaison "nouvelle formule complète" doit elle aussi subir le correctif 2026,
+    // sinon un plafond appliqué à joursPart2 mais pas ici créerait une fausse indemnité
+    // compensatoire (voir revue de code Task 4).
     const moisTotal = moisEntre(dateEmbauche, dateDebutPreavis);
-    const joursNouvelleFormuleComplete = preavisGeneralEmployeur(moisTotal) * 7;
+    const semainesNouvelleFormuleComplete = appliquerReforme2026({
+      dateEmbauche,
+      moisAnciennete: moisTotal,
+      semaines: preavisGeneralEmployeur(moisTotal),
+    });
+    const joursNouvelleFormuleComplete = semainesNouvelleFormuleComplete * 7;
     if (joursNouvelleFormuleComplete > joursTotal) {
       indemniteCompensatoire = versDuree(joursNouvelleFormuleComplete - joursTotal);
     }
@@ -1064,7 +1113,7 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
 - [ ] **Step 4: Lancer les tests, vérifier le succès**
 
 Run: `npm test -- calcul-preavis`
-Expected: PASS (5 tests)
+Expected: PASS (7 tests)
 
 - [ ] **Step 5: Commit**
 
