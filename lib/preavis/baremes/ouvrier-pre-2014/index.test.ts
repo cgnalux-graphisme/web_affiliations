@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { tableCP, joursParEraDate, preavisCct75Employeur } from "./index";
+import { tableCP, joursParEraDate, preavisCct75Employeur, REGISTRE } from "./index";
+import type { EraJours } from "./types";
+
+function estTrieCroissant(eras: EraJours[]): boolean {
+  for (let i = 1; i < eras.length; i++) {
+    if (eras[i].depuis < eras[i - 1].depuis) return false;
+  }
+  return true;
+}
 
 describe("tableCP", () => {
   it("retrouve la table CP124", () => {
@@ -22,6 +30,26 @@ describe("joursParEraDate — exemple ACCG CP124 démission (embauche 1993-02-02
   it("retourne 28 jours", () => {
     const cp124 = tableCP("124.00")!;
     expect(joursParEraDate(cp124.demission, "1993-02-02")).toBe(28);
+  });
+});
+
+describe("intégrité du registre REGISTRE", () => {
+  const entries = Object.entries(REGISTRE);
+
+  it("couvre bien les 6 CP prioritaires", () => {
+    expect(entries.length).toBe(6);
+  });
+
+  it.each(entries)("%s : le champ cp de la table correspond à la clé du registre", (cle, table) => {
+    expect(table.cp).toBe(cle);
+  });
+
+  it.each(entries)("%s : les eras employeur sont triées par date croissante", (_cle, table) => {
+    expect(estTrieCroissant(table.employeur)).toBe(true);
+  });
+
+  it.each(entries)("%s : les eras démission sont triées par date croissante", (_cle, table) => {
+    expect(estTrieCroissant(table.demission)).toBe(true);
   });
 });
 

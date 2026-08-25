@@ -1,5 +1,6 @@
 import type { TableCP } from "./types";
 
+/** Source: classeur ACCG accg-preavis-employeur.xlsx / accg-preavis-travailleur.xlsx (design spec §12.2). */
 export const cp126Ameublement: TableCP = {
   cp: "126.00",
   nom: "Ameublement et industrie transformatrice du bois",

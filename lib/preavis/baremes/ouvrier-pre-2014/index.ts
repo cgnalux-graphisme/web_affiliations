@@ -6,7 +6,8 @@ import { cp109Confection } from "./cp-109-confection";
 import { cp12801Tanneries } from "./cp-128-01-tanneries";
 import { cp12802Cuir } from "./cp-128-02-cuir";
 
-const REGISTRE: Record<string, TableCP> = {
+/** Exporté (en plus de `tableCP`) pour permettre les tests d'intégrité sur l'ensemble du registre. */
+export const REGISTRE: Record<string, TableCP> = {
   "124.00": cp124Construction,
   "126.00": cp126Ameublement,
   "142.02": cp14202RecuperationMetaux,
