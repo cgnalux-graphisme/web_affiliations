@@ -25,7 +25,7 @@ export function preavisEmployePre2014(params: ParamsEmployePre2014): ResultatEmp
   }
 
   // Au-dessus du seuil : 1 mois par année entamée, minimum 3 mois (licenciement, confirmé).
-  const moisLicenciement = Math.max(3, Math.ceil(anneesAnciennete) || 1);
+  const moisLicenciement = Math.max(3, Math.ceil(anneesAnciennete));
 
   if (quiRompt === "employeur") {
     return { mois: moisLicenciement, incertain: false };
@@ -33,6 +33,7 @@ export function preavisEmployePre2014(params: ParamsEmployePre2014): ResultatEmp
 
   // Démission au-dessus du seuil : règle non confirmée sur source primaire
   // (design spec §12.4) — approximation "moitié, plafond 13 semaines/~3 mois".
-  const moisDemission = Math.round(moisLicenciement / 2);
+  const PLAFOND_MOIS_DEMISSION = 3;
+  const moisDemission = Math.min(Math.round(moisLicenciement / 2), PLAFOND_MOIS_DEMISSION);
   return { mois: moisDemission, incertain: true };
 }
