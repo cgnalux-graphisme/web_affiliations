@@ -62,6 +62,36 @@ describe("calculerPreavisOuvrier — CP non couverte", () => {
     expect(resultat.regimeApplique).toBe("cct75-supletif");
     // moisEntre("2005-01-01", "2013-12-31") = 107 mois (8 ans et 11 mois) -> palier "5 à 10 ans" -> 42 jours.
     expect(resultat.javantPart1.jours).toBe(42);
+    expect(resultat.avertissementNonSource).toBe(false);
+  });
+});
+
+describe("calculerPreavisOuvrier — lacunes de source légale (design spec §12.2)", () => {
+  it("signale un avertissement pour une démission avec CP non couverte et ancienneté pré-2014", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "999.99",
+      dateEmbauche: "2005-01-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "travailleur",
+    });
+
+    expect(resultat.avertissementNonSource).toBe(true);
+    expect(resultat.regimeApplique).toBe("non-source");
+    expect(resultat.javantPart1.jours).toBe(0);
+  });
+
+  it("signale un avertissement pour un licenciement CCT75 sous 6 mois d'ancienneté au 31/12/2013", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "999.99",
+      dateEmbauche: "2013-08-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "employeur",
+    });
+
+    // moisEntre("2013-08-01", "2013-12-31") = 4 mois -> non couvert par la CCT75 (min 6 mois).
+    expect(resultat.avertissementNonSource).toBe(true);
+    expect(resultat.regimeApplique).toBe("non-source");
+    expect(resultat.javantPart1.jours).toBe(0);
   });
 });
 
