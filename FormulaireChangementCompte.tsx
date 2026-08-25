@@ -251,28 +251,223 @@ async function fetchLogoBase64(): Promise<string> {
   });
 }
 
-// ── PDF ──────────────────────────────────────────────────────────────────────
+// ── PDF (look aligné sur le formulaire d'affiliation) ────────────────────────
 const pdfStyles = StyleSheet.create({
-  page: { fontSize: 9, fontFamily: "Helvetica", padding: "30 36 30 36", color: "#111" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: "#b91c1c" },
-  headerTitle: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#b91c1c", textTransform: "uppercase" },
-  headerSub: { fontSize: 8, color: "#555", marginTop: 2 },
-  logo: { width: 80, height: 40, objectFit: "contain" },
-  sectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#fff", backgroundColor: "#b91c1c", padding: "4 8", marginBottom: 6, marginTop: 10 },
-  row: { flexDirection: "row", marginBottom: 4 },
-  label: { fontFamily: "Helvetica-Bold", width: 160, color: "#333" },
-  value: { flex: 1, color: "#111" },
-  divider: { borderBottomWidth: 0.5, borderBottomColor: "#ddd", marginVertical: 6 },
-  rgpd: { fontSize: 7, color: "#666", marginTop: 18, borderTopWidth: 0.5, borderTopColor: "#ccc", paddingTop: 6, lineHeight: 1.5 },
-  sigBox: { borderWidth: 0.5, borderColor: "#ccc", height: 50, marginTop: 4, padding: 4, justifyContent: "flex-end" },
-  sigText: { fontSize: 7, color: "#999" },
-  sigImage: { maxHeight: 42, objectFit: "contain", alignSelf: "flex-start" },
-  metaRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: 6 },
-  metaText: { fontSize: 7, color: "#888" },
-  footer: { position: "absolute", bottom: 20, left: 36, right: 36, borderTopWidth: 0.5, borderTopColor: "#e5e7eb", paddingTop: 6, flexDirection: "row", justifyContent: "space-between" },
-  footerText: { fontSize: 7, color: "#9ca3af" },
-  creditorBox: { backgroundColor: "#f9fafb", borderWidth: 0.5, borderColor: "#e5e7eb", borderRadius: 4, padding: "6 8", marginBottom: 6 },
+  page: {
+    fontFamily: "Helvetica",
+    fontSize: 9,
+    paddingTop: 40,
+    paddingBottom: 40,
+    paddingLeft: 40,
+    paddingRight: 40,
+    backgroundColor: "#ffffff",
+    color: "#111827",
+  },
+  header: {
+    backgroundColor: "#b91c1c",
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingLeft: 10,
+    paddingRight: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  logoImage: {
+    width: 96,
+    marginRight: 12,
+  },
+  headerTitle: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    color: "#fca5a5",
+    fontSize: 7.5,
+    marginTop: 2,
+  },
+  headerRight: {
+    alignItems: "flex-end",
+  },
+  headerDateLabel: {
+    color: "#fecaca",
+    fontSize: 6.5,
+  },
+  headerDateValue: {
+    color: "#ffffff",
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 1,
+  },
+  headerMember: {
+    color: "#fecaca",
+    fontSize: 7,
+    marginTop: 3,
+    textAlign: "right",
+  },
+  body: {
+    paddingLeft: 0,
+    paddingRight: 0,
+    paddingTop: 10,
+  },
+  sectionTitle: {
+    backgroundColor: "#b91c1c",
+    color: "#ffffff",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8,
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 7,
+    paddingRight: 7,
+    marginBottom: 5,
+    marginTop: 7,
+    borderRadius: 2,
+  },
+  section: { marginBottom: 3 },
+  twoCol: { flexDirection: "row" },
+  colLeft: { flex: 1, marginRight: 12 },
+  colRight: { flex: 1 },
+  row: {
+    flexDirection: "row",
+    marginBottom: 3.5,
+  },
+  label: {
+    width: "42%",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 7.5,
+    color: "#6b7280",
+  },
+  value: {
+    width: "58%",
+    fontSize: 7.5,
+    color: "#111827",
+  },
+  adminBox: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+    borderRadius: 3,
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingLeft: 10,
+    paddingRight: 10,
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  adminFieldWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  adminFieldLabel: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#374151",
+    marginRight: 6,
+    width: "52%",
+  },
+  adminFieldLine: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    borderBottomStyle: "solid",
+    height: 12,
+  },
+  sepaBox: {
+    backgroundColor: "#fff8f8",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    borderTopStyle: "solid",
+    borderRightWidth: 1,
+    borderRightColor: "#e5e7eb",
+    borderRightStyle: "solid",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    borderBottomStyle: "solid",
+    borderLeftWidth: 3,
+    borderLeftColor: "#b91c1c",
+    borderLeftStyle: "solid",
+    borderRadius: 3,
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingLeft: 10,
+    paddingRight: 8,
+    marginTop: 4,
+  },
+  infoBoxTitle: {
+    fontSize: 7,
+    fontFamily: "Helvetica-Bold",
+    color: "#374151",
+    marginBottom: 3,
+  },
+  signatureBox: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "solid",
+    borderRadius: 3,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+    paddingRight: 8,
+    marginTop: 3,
+    backgroundColor: "#f9fafb",
+    alignItems: "center",
+  },
+  signatureImage: {
+    width: 150,
+    alignSelf: "center",
+  },
+  signatureDate: {
+    fontSize: 6.5,
+    color: "#6b7280",
+    marginTop: 3,
+    fontFamily: "Helvetica-Oblique",
+  },
+  luApprouve: {
+    fontSize: 7,
+    color: "#6b7280",
+    marginTop: 6,
+    lineHeight: 1.5,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    borderTopStyle: "solid",
+    paddingTop: 5,
+    textAlign: "center",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 16,
+    left: 40,
+    right: 40,
+    textAlign: "center",
+    fontSize: 6,
+    color: "#9ca3af",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    borderTopStyle: "solid",
+    paddingTop: 4,
+  },
 });
+
+const v = (val?: string) => val?.trim() || "—";
+
+function PdfRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={pdfStyles.row}>
+      <Text style={pdfStyles.label}>{label}</Text>
+      <Text style={pdfStyles.value}>{value}</Text>
+    </View>
+  );
+}
 
 function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
   data: FormData;
@@ -280,112 +475,204 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
   ipAddress: string;
   dateHeure: string;
 }) {
+  const now = new Date();
+  const dateDoc = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const dateSignLong = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "long", year: "numeric" });
+
   const titreDemande =
     data.typeDemande === "nouveau_mandat"
       ? "Nouveau mandat SEPA"
-      : "Changement de numéro de compte — Mandat";
-  const ibanAffiche = data.nouveauIban
-    ? formatIBAN(data.nouveauIban)
+      : data.typeDemande === "changement_compte"
+        ? "Changement de numéro de compte"
+        : "Mandat SEPA";
+  const typeDemandeLabel =
+    data.typeDemande === "nouveau_mandat" ? "Nouveau mandat"
+    : data.typeDemande === "changement_compte" ? "Changement de compte"
+    : "—";
+  const ibanAffiche = data.nouveauIban ? formatIBAN(data.nouveauIban) : "—";
+  const titulaireLabel = data.estTitulaire ? "Oui" : "Non";
+  const accordLabel =
+    data.accordCloture === "avec_cloture" ? "Oui, avec clôture du compte précédent"
+    : data.accordCloture === "sans_cloture" ? "Oui, sans clôture du compte précédent"
     : "—";
 
   return (
-    <Document title={`${titreDemande} - Mandat SEPA`}>
+    <Document
+      title={`${titreDemande} - Mandat SEPA`}
+      author="Centrale Générale FGTB Namur-Luxembourg"
+      subject="Mandat SEPA"
+    >
       <Page size="A4" style={pdfStyles.page}>
 
-        {/* En-tête */}
         <View style={pdfStyles.header}>
-          <View>
-            <Text style={pdfStyles.headerTitle}>{titreDemande}</Text>
-            <Text style={pdfStyles.headerSub}>Centrale Générale FGTB Namur – Luxembourg</Text>
-            <Text style={pdfStyles.headerSub}>Rue Fonteny Maroy, 13 · 6800 Libramont-Chevigny · N° BE00000647821</Text>
+          <View style={pdfStyles.headerLeft}>
+            {logoBase64 ? (
+              <PDFImage src={logoBase64} style={pdfStyles.logoImage} />
+            ) : (
+              <View style={{ width: 96, marginRight: 12, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 4, alignItems: "center", justifyContent: "center", paddingTop: 8, paddingBottom: 8 }}>
+                <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Helvetica-Bold" }}>CG</Text>
+              </View>
+            )}
+            <View style={{ flex: 1, alignItems: "center" }}>
+              <Text style={pdfStyles.headerTitle}>{titreDemande}</Text>
+              <Text style={pdfStyles.headerSubtitle}>Centrale Générale FGTB Namur-Luxembourg</Text>
+            </View>
           </View>
-          {logoBase64 ? (
-            <PDFImage src={logoBase64} style={pdfStyles.logo} />
-          ) : null}
-        </View>
-
-        {/* Note légale mandat */}
-        <View style={{ backgroundColor: "#fef2f2", padding: "6 8", marginBottom: 8, borderLeftWidth: 3, borderLeftColor: "#b91c1c" }}>
-          <Text style={{ fontSize: 7.5, color: "#7f1d1d", lineHeight: 1.5 }}>
-            En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur - Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire, et ce conformément aux instructions disponibles sur simple demande. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
-          </Text>
-        </View>
-
-        {/* Section A */}
-        <Text style={pdfStyles.sectionTitle}>A. IDENTIFICATION DU MANDAT (Réservé au service)</Text>
-        <View style={pdfStyles.creditorBox}>
-          <View style={pdfStyles.row}><Text style={pdfStyles.label}>Créancier :</Text><Text style={pdfStyles.value}>Centrale Générale FGTB Namur – Luxembourg</Text></View>
-          <View style={pdfStyles.row}><Text style={pdfStyles.label}>Adresse créancier :</Text><Text style={pdfStyles.value}>Rue Fonteny Maroy, 13</Text></View>
-          <View style={pdfStyles.row}><Text style={pdfStyles.label}>Code postal / Ville :</Text><Text style={pdfStyles.value}>6800 Libramont-Chevigny</Text></View>
-          <View style={pdfStyles.row}><Text style={pdfStyles.label}>N° créancier :</Text><Text style={pdfStyles.value}>BE00000647821</Text></View>
-        </View>
-        <View style={pdfStyles.row}>
-          <Text style={pdfStyles.label}>Type de demande :</Text>
-          <Text style={pdfStyles.value}>
-            {data.typeDemande === "nouveau_mandat" ? "Nouveau mandat" :
-             data.typeDemande === "changement_compte" ? "Changement de compte" : "—"}
-          </Text>
-        </View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Type d&apos;encaissement :</Text><Text style={pdfStyles.value}>Récurrent</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Périodicité :</Text><Text style={pdfStyles.value}>Mensuel</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Description :</Text><Text style={pdfStyles.value}>Convention pour la perception syndicale</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Catégorie cotisation :</Text><Text style={[pdfStyles.value, { color: "#b91c1c" }]}>À compléter par le service</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Numéro de mandat :</Text><Text style={[pdfStyles.value, { color: "#b91c1c" }]}>À compléter par le service</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Date d&apos;enregistrement :</Text><Text style={[pdfStyles.value, { color: "#b91c1c" }]}>À compléter par le service</Text></View>
-
-        {/* Section B */}
-        <Text style={pdfStyles.sectionTitle}>B. COORDONNÉES & IDENTIFICATION BANCAIRE</Text>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Nom, prénom :</Text><Text style={pdfStyles.value}>{data.nom} {data.prenom}</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Adresse :</Text><Text style={pdfStyles.value}>{data.adresseRue} {data.adresseNumero}</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Code postal / Localité / Pays :</Text><Text style={pdfStyles.value}>{data.codePostal} {data.localite} — {data.pays}</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>N° registre national :</Text><Text style={pdfStyles.value}>{data.niss || "—"}</Text></View>
-        <View style={pdfStyles.divider} />
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Nouveau IBAN :</Text><Text style={[pdfStyles.value, { fontFamily: "Helvetica-Bold" }]}>{ibanAffiche}</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Nouveau BIC :</Text><Text style={pdfStyles.value}>{data.nouveauBic.toUpperCase() || "—"}</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Ancien IBAN :</Text><Text style={pdfStyles.value}>{data.ancienIban ? formatIBAN(data.ancienIban) : "—"}</Text></View>
-
-        {/* Section C */}
-        <Text style={pdfStyles.sectionTitle}>C. AUTORISATION & SIGNATURE</Text>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Titulaire du compte :</Text><Text style={pdfStyles.value}>{data.estTitulaire ? "Oui" : "Non"}</Text></View>
-        {!data.estTitulaire && (
-          <View style={pdfStyles.row}><Text style={pdfStyles.label}>Nom du titulaire :</Text><Text style={pdfStyles.value}>{data.nomTitulaire || "—"}</Text></View>
-        )}
-        {data.typeDemande === "changement_compte" && (
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Accord transfert :</Text>
-            <Text style={pdfStyles.value}>
-              {data.accordCloture === "avec_cloture" ? "Oui, avec clôture du compte précédent" :
-               data.accordCloture === "sans_cloture" ? "Oui, sans clôture du compte précédent" : "—"}
-            </Text>
+          <View style={pdfStyles.headerRight}>
+            <Text style={pdfStyles.headerDateLabel}>Document du</Text>
+            <Text style={pdfStyles.headerDateValue}>{dateDoc}</Text>
+            <Text style={pdfStyles.headerMember}>{data.prenom} {data.nom}</Text>
           </View>
-        )}
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Date :</Text><Text style={pdfStyles.value}>{data.dateSig || "—"}</Text></View>
-        <View style={pdfStyles.row}><Text style={pdfStyles.label}>Lieu :</Text><Text style={pdfStyles.value}>{data.lieu || "—"}</Text></View>
-
-        <Text style={{ fontSize: 8, marginTop: 10, marginBottom: 4, fontFamily: "Helvetica-Bold", color: "#333" }}>Signature du titulaire :</Text>
-        <View style={pdfStyles.sigBox}>
-          {data.signature ? (
-            <PDFImage src={data.signature} style={pdfStyles.sigImage} />
-          ) : (
-            <Text style={pdfStyles.sigText}>Signature non fournie</Text>
-          )}
         </View>
 
-        {/* Méta */}
-        <View style={pdfStyles.metaRow}>
-          <Text style={pdfStyles.metaText}>Généré le {dateHeure} · IP : {ipAddress}</Text>
+        <View style={pdfStyles.body}>
+
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>0. Réservé à l&apos;administration</Text>
+            <View style={pdfStyles.adminBox}>
+              <View style={pdfStyles.adminFieldWrap}>
+                <Text style={pdfStyles.adminFieldLabel}>N° de mandat :</Text>
+                <View style={pdfStyles.adminFieldLine} />
+              </View>
+              <View style={[pdfStyles.adminFieldWrap, { marginRight: 0 }]}>
+                <Text style={pdfStyles.adminFieldLabel}>Date d&apos;encodage :</Text>
+                <View style={pdfStyles.adminFieldLine} />
+              </View>
+            </View>
+            <View style={pdfStyles.adminBox}>
+              <View style={[pdfStyles.adminFieldWrap, { marginRight: 0 }]}>
+                <Text style={pdfStyles.adminFieldLabel}>Catégorie cotisation :</Text>
+                <View style={pdfStyles.adminFieldLine} />
+              </View>
+            </View>
+          </View>
+
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>1. Identité</Text>
+            <View style={pdfStyles.twoCol}>
+              <View style={pdfStyles.colLeft}>
+                <PdfRow label="Nom :" value={v(data.nom)} />
+                <PdfRow label="Prénom :" value={v(data.prenom)} />
+                <PdfRow label="NISS :" value={v(data.niss)} />
+              </View>
+              <View style={pdfStyles.colRight}>
+                <PdfRow label="Email :" value={v(data.email)} />
+                <PdfRow label="Type de demande :" value={typeDemandeLabel} />
+              </View>
+            </View>
+          </View>
+
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>2. Adresse</Text>
+            <View style={pdfStyles.twoCol}>
+              <View style={pdfStyles.colLeft}>
+                <PdfRow label="Rue :" value={v(data.adresseRue)} />
+                <PdfRow label="Code postal :" value={v(data.codePostal)} />
+                <PdfRow label="Pays :" value={v(data.pays)} />
+              </View>
+              <View style={pdfStyles.colRight}>
+                <PdfRow label="N° :" value={v(data.adresseNumero)} />
+                <PdfRow label="Localité :" value={v(data.localite)} />
+              </View>
+            </View>
+          </View>
+
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>3. Créancier SEPA</Text>
+            <View style={pdfStyles.sepaBox}>
+              <Text style={[pdfStyles.infoBoxTitle, { color: "#b91c1c", fontSize: 7.5 }]}>
+                Informations créancier SEPA
+              </Text>
+              <View style={pdfStyles.twoCol}>
+                <View style={pdfStyles.colLeft}>
+                  <PdfRow label="Créancier :" value="Centrale Générale FGTB Namur-Luxembourg" />
+                  <PdfRow label="Adresse :" value="Rue Fonteny Maroy, 13" />
+                  <PdfRow label="Localité :" value="6800 Libramont-Chevigny" />
+                </View>
+                <View style={pdfStyles.colRight}>
+                  <PdfRow label="Identifiant (ICS) :" value="BE00000647821" />
+                  <PdfRow label="Type d'encaissement :" value="Récurrent" />
+                  <PdfRow label="Périodicité :" value="Mensuel" />
+                </View>
+              </View>
+              <PdfRow label="Description :" value="Convention pour la perception syndicale" />
+            </View>
+          </View>
+
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>4. Coordonnées bancaires</Text>
+            <View style={pdfStyles.twoCol}>
+              <View style={pdfStyles.colLeft}>
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Nouvel IBAN :</Text>
+                  <Text style={[pdfStyles.value, { fontFamily: "Helvetica-Bold" }]}>{ibanAffiche}</Text>
+                </View>
+                <PdfRow label="BIC / SWIFT :" value={v(data.nouveauBic.toUpperCase())} />
+              </View>
+              <View style={pdfStyles.colRight}>
+                <PdfRow label="Titulaire du compte :" value={titulaireLabel} />
+                {!data.estTitulaire && (
+                  <PdfRow label="Nom du titulaire :" value={v(data.nomTitulaire)} />
+                )}
+                {data.typeDemande === "changement_compte" && (
+                  <PdfRow
+                    label="Ancien IBAN :"
+                    value={data.ancienIban ? formatIBAN(data.ancienIban) : "—"}
+                  />
+                )}
+              </View>
+            </View>
+          </View>
+
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>5. Autorisation</Text>
+            <View style={pdfStyles.sepaBox}>
+              <Text style={[pdfStyles.infoBoxTitle, { color: "#b91c1c", fontSize: 7.5 }]}>
+                Mandat de domiciliation
+              </Text>
+              <Text style={{ fontSize: 7, color: "#7f1d1d", lineHeight: 1.5 }}>
+                En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur - Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire, et ce conformément aux instructions disponibles sur simple demande. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
+              </Text>
+            </View>
+            <View style={[pdfStyles.twoCol, { marginTop: 6 }]}>
+              <View style={pdfStyles.colLeft}>
+                <PdfRow label="Date :" value={v(data.dateSig)} />
+                {data.typeDemande === "changement_compte" && (
+                  <PdfRow label="Accord transfert :" value={accordLabel} />
+                )}
+              </View>
+              <View style={pdfStyles.colRight}>
+                <PdfRow label="Lieu :" value={v(data.lieu)} />
+              </View>
+            </View>
+          </View>
+
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>6. Signature du membre</Text>
+            <View style={pdfStyles.signatureBox}>
+              {data.signature ? (
+                <PDFImage src={data.signature} style={pdfStyles.signatureImage} />
+              ) : (
+                <Text style={{ fontSize: 8, color: "#9ca3af", alignSelf: "center" }}>
+                  (aucune signature fournie)
+                </Text>
+              )}
+              <Text style={[pdfStyles.signatureDate, { textAlign: "center" }]}>
+                Signé électroniquement le {dateSignLong}
+              </Text>
+              <Text style={pdfStyles.luApprouve}>
+                Lu et approuvé. Mandat complété en ligne le {dateHeure} via accg-nalux.be.{"\n"}
+                Certifié conforme par signature électronique.{ipAddress ? ` IP : ${ipAddress}` : ""}{"\n"}
+                Vos données personnelles sont traitées conformément au RGPD. Politique de confidentialité : https://www.accg.be/fr/protection-de-la-vie-privee — privacy@accg.be
+              </Text>
+            </View>
+          </View>
+
         </View>
 
-        {/* RGPD */}
-        <Text style={pdfStyles.rgpd}>
-          Vos données personnelles sont traitées conformément au règlement européen RGPD. Vous pouvez lire la politique de confidentialité de la Centrale Générale via https://www.accg.be/fr/protection-de-la-vie-privee. Pour toute question : privacy@accg.be
+        <Text style={pdfStyles.footer} fixed>
+          Centrale Générale FGTB Namur-Luxembourg · cg.namurluxembourg@accg.be · Données traitées conformément au RGPD
         </Text>
-
-        {/* Footer */}
-        <View style={pdfStyles.footer} fixed>
-          <Text style={pdfStyles.footerText}>Centrale Générale FGTB Namur – Luxembourg · cg.namurluxembourg@accg.be</Text>
-          <Text style={pdfStyles.footerText}>IBAN BE94 8791 5049 0114</Text>
-        </View>
 
       </Page>
     </Document>
@@ -606,15 +893,21 @@ export default function FormulaireChangementCompte() {
       const prefix = form.typeDemande === "nouveau_mandat" ? "nouveau-mandat" : "changement-compte";
       const fileName = `${prefix}-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
 
-      await postJson("/api/send-mandat-sepa", {
-        email: form.email.trim().toLowerCase(),
-        nom: form.nom.trim(),
-        prenom: form.prenom.trim(),
-        pdfBase64,
-        fileName,
-        nouveauIban: formatIBAN(form.nouveauIban),
-        typeDemande: form.typeDemande,
-      });
+      try {
+        await postJson("/api/send-mandat-sepa", {
+          email: form.email.trim().toLowerCase(),
+          nom: form.nom.trim(),
+          prenom: form.prenom.trim(),
+          pdfBase64,
+          fileName,
+          nouveauIban: formatIBAN(form.nouveauIban),
+          typeDemande: form.typeDemande,
+        });
+      } catch (emailErr) {
+        // L'enregistrement a réussi : on laisse télécharger le PDF même si l'e-mail échoue.
+        console.error("Erreur envoi email :", emailErr);
+        setPdfError(true);
+      }
 
       setSubmitted(true);
     } catch (err) {
@@ -660,12 +953,13 @@ export default function FormulaireChangementCompte() {
           </header>
 
           <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
-            <p className="text-gray-600 text-sm mb-6">
-              Un email de confirmation a été envoyé à <strong>{form.email}</strong>.
-            </p>
-            {pdfError && (
-              <p className="text-amber-700 bg-amber-50 rounded-xl p-3 text-xs mb-4">
-                L&apos;email n&apos;a pas pu être envoyé, mais vos données sont bien enregistrées. Vous pouvez télécharger le PDF ci-dessous.
+            {!pdfError ? (
+              <p className="text-gray-600 text-sm mb-6">
+                Un email de confirmation a été envoyé à <strong>{form.email}</strong>.
+              </p>
+            ) : (
+              <p className="text-amber-700 bg-amber-50 rounded-xl p-3 text-sm mb-4">
+                L&apos;e-mail n&apos;a pas pu être envoyé, mais vos données sont bien enregistrées. Vous pouvez télécharger le PDF ci-dessous.
               </p>
             )}
             {pdfBlob && (
