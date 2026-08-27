@@ -41,3 +41,25 @@ export interface ResultatPreavisEmploye {
 }
 
 export type ResultatPreavis = ResultatPreavisOuvrier | ResultatPreavisEmploye;
+
+/**
+ * Une section de contenu informatif écrite en langage simple : phrases
+ * courtes, un sujet par phrase, destinée à être comprise sans
+ * connaissance juridique préalable (voir contenu-onem-sanctions.ts et
+ * contenu-procedures-envoi.ts).
+ */
+export interface SectionInfo {
+  titre: string;
+  /** Chaque entrée est une phrase courte et autonome, à afficher séparément. */
+  phrases: string[];
+}
+
+export interface ContenuInformatif {
+  /** Date à laquelle le contenu légal a été vérifié pour la dernière fois. */
+  derniereVerification: DateISO;
+  sections: SectionInfo[];
+  /** Points à retenir, affichés en évidence (liste courte). */
+  pointsCles: string[];
+  /** Avertissement permanent affiché avec ce bloc (ex. "ne remplace pas un conseil personnalisé"). */
+  avertissement: string;
+}
