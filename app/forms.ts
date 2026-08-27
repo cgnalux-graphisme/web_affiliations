@@ -50,7 +50,7 @@ export const forms = [
   },
   {
     title: "Calcul de préavis",
-    shortTitle: "Préavis",
+    shortTitle: "Calcul préavis",
     category: "Préavis",
     description: "Calculez la durée de votre préavis et générez votre courrier de démission ou de commun accord.",
     href: "/preavis",
