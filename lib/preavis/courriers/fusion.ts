@@ -47,7 +47,11 @@ export function genererConventionCommunAccord(donnees: DonneesConventionCommunAc
     // Non collecté par le wizard (design spec §3) : toujours en pointillés.
     REPRESENTANT_EMPLOYEUR: POINTILLES,
     SIEGE_EMPLOYEUR: donnees.siegeEmployeur ?? POINTILLES,
-    DATE_FIN_CONTRAT: isoToDateFr(donnees.dateFinContratIso),
+    // Champ requis dans le flux principal (§3), mais un appelant peut désormais
+    // présenter ce courrier avant que la date ne soit renseignée (ex. bascule
+    // vers "commun accord" depuis un contexte démission) — repli sur les
+    // pointillés plutôt que d'afficher une date vide.
+    DATE_FIN_CONTRAT: donnees.dateFinContratIso ? isoToDateFr(donnees.dateFinContratIso) : POINTILLES,
     MENTION_PRESTATION: formaterMentionPrestation(donnees.avecPrestation),
     LIEU_SIGNATURE: donnees.lieuSignature ?? POINTILLES,
     DATE_SIGNATURE: donnees.dateSignatureIso ? isoToDateFr(donnees.dateSignatureIso) : POINTILLES,

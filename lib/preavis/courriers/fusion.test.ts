@@ -53,6 +53,13 @@ describe("genererConventionCommunAccord", () => {
     expect(texte).not.toContain("biffer");
   });
 
+  it("garde les pointillés si la date de fin de contrat est une chaîne vide (au lieu d'afficher une date vide)", () => {
+    const texte = genererConventionCommunAccord({ dateFinContratIso: "" });
+    const pointilles = "...........................................";
+    expect(texte).toContain(`à la date du ${pointilles}, après`);
+    expect(texte).not.toContain("à la date du ,");
+  });
+
   it("interpole la date de signature fournie", () => {
     const texte = genererConventionCommunAccord({
       dateFinContratIso: "2026-09-30",

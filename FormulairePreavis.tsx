@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Copy, AlertTriangle, RotateCcw, CheckCircle } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Copy, AlertTriangle, RotateCcw, CheckCircle, FileDown } from "lucide-react";
+import { pdf, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { isoToDateFr, formatDateFr, dateFrToIso } from "./lib/dates";
 import type { QuiRompt, Statut } from "./lib/preavis/types";
 import { calculerPreavisOuvrier } from "./lib/preavis/calcul-preavis";
@@ -33,7 +34,7 @@ const COMMISSIONS_PARITAIRES: { code: string; nom: string }[] = [
 
 type RuptureChoix = QuiRompt | "commun-accord";
 type ModeEmployeur = "preavis" | "indemnite";
-type Etape = "situation" | "coordonnees" | "resultat";
+type Etape = "situation" | "complement" | "resultat";
 
 interface DonneesFormulaire {
   statut: Statut;
@@ -42,13 +43,8 @@ interface DonneesFormulaire {
   ruptureChoix: RuptureChoix;
   modeEmployeur: ModeEmployeur;
   remunerationAnnuelle: string;
-  dateRupture: string; // ISO — date d'envoi (employeur/travailleur) ou date de fin de contrat (commun accord)
+  dateRupture: string; // ISO — date de début de préavis souhaitée (démission/licenciement) ou date de fin de contrat (commun accord)
   avecPrestation: "avec" | "sans" | "";
-  nomTravailleur: string;
-  domicileTravailleur: string;
-  nomEmployeur: string;
-  siegeEmployeur: string;
-  lieuSignature: string;
 }
 
 const DONNEES_INITIALES: DonneesFormulaire = {
@@ -60,20 +56,20 @@ const DONNEES_INITIALES: DonneesFormulaire = {
   remunerationAnnuelle: "",
   dateRupture: "",
   avecPrestation: "",
-  nomTravailleur: "",
-  domicileTravailleur: "",
-  nomEmployeur: "",
-  siegeEmployeur: "",
-  lieuSignature: "",
 };
 
+interface SourceCalcul {
+  methode: string;
+  lien: string;
+}
+
 type Resultat =
-  | { type: "commun-accord"; texte: string }
-  | { type: "indemnite"; jours: number; semaines: number; montantIndemnite: number | null }
+  | { type: "commun-accord"; dateFinContratIso: string; avecPrestation: boolean | undefined }
+  | { type: "indemnite"; jours: number; montantIndemnite: number | null }
   | {
       type: "preavis";
+      quiRompt: QuiRompt;
       jours: number;
-      semaines: number;
       dateDebut: string;
       dateFin: string;
       dateEnvoiLimite: string;
@@ -81,7 +77,7 @@ type Resultat =
       dateDebutAuPlusTot: string | null;
       avertissement: string | null;
       indemniteCompensatoireJours: number | null;
-      courrier: string | undefined;
+      source: SourceCalcul;
       contenuProcedures: ContenuInformatif;
       contenuOnem: ContenuInformatif | undefined;
     };
@@ -92,13 +88,57 @@ const AVERTISSEMENT_OUVRIER_NON_SOURCE =
 const AVERTISSEMENT_EMPLOYE_INCERTAIN =
   "Ce calcul comporte une estimation non confirmée officiellement (démission, ancienneté avant 2014, rémunération au-dessus du seuil légal). Vérifiez ce point avec votre secrétariat FGTB avant d'envoyer votre lettre.";
 
-/** Jours de préavis + avertissement éventuel, pour le statut et le mode choisis. */
+const LIEN_SPF_EMPLOYEUR =
+  "https://emploi.belgique.be/fr/themes/contrats-de-travail/fin-du-contrat-de-travail/fin-du-contrat-duree-indeterminee-11";
+const LIEN_SPF_DEMISSION =
+  "https://emploi.belgique.be/fr/themes/contrats-de-travail/fin-du-contrat-de-travail/fin-du-contrat-duree-indeterminee-1";
+const LIEN_SPF_EMPLOYE_PRE2014 =
+  "https://emploi.belgique.be/fr/themes/contrats-de-travail/fin-du-contrat-de-travail/fin-du-contrat-duree-indeterminee-10";
+const LIEN_CCT75 = "https://cnt-nar.be/sites/default/files/documents/CCT-COORD/cct-075.pdf";
+const LIEN_ACCG = "https://www.accg.be/fr/secteur/construction/outils/outils-de-calcul/preavis-employeur";
+
+/** Explication courte + lien source, selon le régime effectivement appliqué (design spec §12). */
+function determinerSource(
+  d: DonneesFormulaire,
+  quiRompt: QuiRompt,
+  regimeApplique: "cp-specifique" | "cct75-supletif" | "non-source" | null,
+): SourceCalcul {
+  const lienGeneral = quiRompt === "employeur" ? LIEN_SPF_EMPLOYEUR : LIEN_SPF_DEMISSION;
+
+  if (d.statut === "employe") {
+    return {
+      methode: "Barème légal général (statut unique) et, pour l'ancienneté avant 2014, règle du seuil de rémunération.",
+      lien: d.dateEntreeService < "2014-01-01" ? LIEN_SPF_EMPLOYE_PRE2014 : lienGeneral,
+    };
+  }
+  if (regimeApplique === "cp-specifique") {
+    return {
+      methode:
+        "Barème légal général et régime spécifique de votre commission paritaire pour l'ancienneté avant 2014 (source : Centrale Générale FGTB).",
+      lien: LIEN_ACCG,
+    };
+  }
+  if (regimeApplique === "cct75-supletif") {
+    return {
+      methode: "Barème légal général et régime supplétif (CCT n°75) pour l'ancienneté avant 2014.",
+      lien: LIEN_CCT75,
+    };
+  }
+  return { methode: "Barème légal général (statut unique).", lien: lienGeneral };
+}
+
+/** Jours de préavis + avertissement + régime appliqué, pour le statut et le mode choisis. */
 function calculerJoursEtAvertissement(
   d: DonneesFormulaire,
   quiRompt: QuiRompt,
   dateDebut: string,
   remuneration: number,
-): { jours: number; avertissement: string | null; indemniteCompensatoireJours: number | null } {
+): {
+  jours: number;
+  avertissement: string | null;
+  indemniteCompensatoireJours: number | null;
+  regimeApplique: "cp-specifique" | "cct75-supletif" | "non-source" | null;
+} {
   if (d.statut === "ouvrier") {
     const resultat = calculerPreavisOuvrier({
       cp: d.cp,
@@ -110,6 +150,7 @@ function calculerJoursEtAvertissement(
       jours: resultat.total.jours,
       avertissement: resultat.avertissementNonSource ? AVERTISSEMENT_OUVRIER_NON_SOURCE : null,
       indemniteCompensatoireJours: resultat.indemniteCompensatoire?.jours ?? null,
+      regimeApplique: resultat.regimeApplique,
     };
   }
 
@@ -123,22 +164,14 @@ function calculerJoursEtAvertissement(
     jours: resultat.total.jours,
     avertissement: resultat.part1DemissionIncertaine ? AVERTISSEMENT_EMPLOYE_INCERTAIN : null,
     indemniteCompensatoireJours: null,
+    regimeApplique: null,
   };
 }
 
 function calculerResultat(d: DonneesFormulaire): Resultat {
   if (d.ruptureChoix === "commun-accord") {
     const avecPrestation = d.avecPrestation === "" ? undefined : d.avecPrestation === "avec";
-    const texte = genererConventionCommunAccord({
-      dateFinContratIso: d.dateRupture,
-      avecPrestation,
-      nomTravailleur: d.nomTravailleur || undefined,
-      domicileTravailleur: d.domicileTravailleur || undefined,
-      nomEmployeur: d.nomEmployeur || undefined,
-      siegeEmployeur: d.siegeEmployeur || undefined,
-      lieuSignature: d.lieuSignature || undefined,
-    });
-    return { type: "commun-accord", texte };
+    return { type: "commun-accord", dateFinContratIso: d.dateRupture, avecPrestation };
   }
 
   const quiRompt: QuiRompt = d.ruptureChoix === "employeur" ? "employeur" : "travailleur";
@@ -152,10 +185,10 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
     const { jours } = calculerJoursEtAvertissement(d, "employeur", dateDebut, remuneration);
     const semaines = jours / 7;
     const montantIndemnite = remuneration > 0 ? (remuneration / 52) * semaines : null;
-    return { type: "indemnite", jours, semaines, montantIndemnite };
+    return { type: "indemnite", jours, montantIndemnite };
   }
 
-  const { jours, avertissement, indemniteCompensatoireJours } = calculerJoursEtAvertissement(
+  const { jours, avertissement, indemniteCompensatoireJours, regimeApplique } = calculerJoursEtAvertissement(
     d,
     quiRompt,
     dateDebut,
@@ -171,23 +204,10 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
   const dateEnvoiDepassee = dateEnvoiLimite < aujourdHui;
   const dateDebutAuPlusTot = dateEnvoiDepassee ? debutPreavisDepuisEnvoi(aujourdHui) : null;
 
-  const courrier =
-    quiRompt === "travailleur"
-      ? genererNotificationDemission({
-          dureeJours: jours,
-          dateDebutPreavisIso: dateDebut,
-          dateFinPreavisIso: dateFin,
-          nomTravailleur: d.nomTravailleur || undefined,
-          domicileTravailleur: d.domicileTravailleur || undefined,
-          nomEmployeur: d.nomEmployeur || undefined,
-          lieuSignature: d.lieuSignature || undefined,
-        })
-      : undefined;
-
   return {
     type: "preavis",
+    quiRompt,
     jours,
-    semaines: jours / 7,
     dateDebut,
     dateFin,
     dateEnvoiLimite,
@@ -195,7 +215,7 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
     dateDebutAuPlusTot,
     avertissement,
     indemniteCompensatoireJours,
-    courrier,
+    source: determinerSource(d, quiRompt, regimeApplique),
     contenuProcedures: contenuProceduresEnvoi(quiRompt),
     contenuOnem: quiRompt === "travailleur" ? contenuOnemSanctions : undefined,
   };
@@ -207,7 +227,7 @@ const CLASSE_LABEL = "block text-sm font-medium text-gray-700 mb-1.5";
 const CLASSE_BOUTON_PRIMAIRE =
   "inline-flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
 const CLASSE_BOUTON_SECONDAIRE =
-  "inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors";
+  "inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
 
 /**
  * Champ date au format JJ/MM/AAAA saisi au clavier (comme dans les autres
@@ -285,12 +305,324 @@ function BlocInformatif({ contenu }: { contenu: ContenuInformatif }): React.Reac
   );
 }
 
-function BlocCourrier({ texte }: { texte: string }): React.ReactElement {
-  const [copie, setCopie] = useState(false);
+// ─── Adresse (autocomplete Bpost, comme dans les autres formulaires) ──────────
 
-  async function copier() {
+interface AddressSuggestion {
+  street: string;
+  housenumber: string;
+  postcode: string;
+  city: string;
+  display: string;
+}
+
+interface Adresse {
+  rue: string;
+  numero: string;
+  codePostal: string;
+  ville: string;
+  pays: string;
+}
+
+const ADRESSE_VIDE: Adresse = { rue: "", numero: "", codePostal: "", ville: "", pays: "Belgique" };
+
+function adresseVide(a: Adresse): boolean {
+  return !a.rue && !a.codePostal && !a.ville;
+}
+
+function adresseComplete(a: Adresse): string {
+  const ligne1 = [a.rue, a.numero].filter(Boolean).join(" ");
+  const ligne2 = [a.codePostal, a.ville].filter(Boolean).join(" ");
+  return [ligne1, ligne2, a.pays && a.pays !== "Belgique" ? a.pays : ""].filter(Boolean).join(", ");
+}
+
+function ChampAdresse({ valeur, onChange }: { valeur: Adresse; onChange: (a: Adresse) => void }): React.ReactElement {
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [ouvert, setOuvert] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOuvert(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  function handleRueChange(v: string) {
+    onChange({ ...valeur, rue: v });
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (v.trim().length < 3) {
+      setSuggestions([]);
+      setOuvert(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/address-autocomplete?q=${encodeURIComponent(v)}`);
+        const json = await res.json();
+        const liste = (json.suggestions ?? []) as AddressSuggestion[];
+        setSuggestions(liste.slice(0, 6));
+        setOuvert(liste.length > 0);
+      } catch {
+        setSuggestions([]);
+        setOuvert(false);
+      }
+    }, 300);
+  }
+
+  function handleSelect(s: AddressSuggestion) {
+    onChange({
+      rue: s.street || valeur.rue,
+      numero: s.housenumber || valeur.numero,
+      codePostal: s.postcode || valeur.codePostal,
+      ville: s.city || valeur.ville,
+      pays: valeur.pays || "Belgique",
+    });
+    setSuggestions([]);
+    setOuvert(false);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
+        <div ref={containerRef} className="relative col-span-2">
+          <label className={CLASSE_LABEL}>Rue</label>
+          <input
+            type="text"
+            className={CLASSE_INPUT}
+            value={valeur.rue}
+            onChange={(e) => handleRueChange(e.target.value)}
+            placeholder="Rue de la Loi"
+            autoComplete="off"
+          />
+          {ouvert && suggestions.length > 0 && (
+            <ul className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden text-sm">
+              {suggestions.map((s, i) => (
+                <li
+                  key={`${s.display}-${i}`}
+                  onMouseDown={() => handleSelect(s)}
+                  className="px-3 py-2 cursor-pointer hover:bg-red-50 border-b border-gray-100 last:border-0"
+                >
+                  {s.display}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <label className={CLASSE_LABEL}>Numéro</label>
+          <input
+            type="text"
+            className={CLASSE_INPUT}
+            value={valeur.numero}
+            onChange={(e) => onChange({ ...valeur, numero: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className={CLASSE_LABEL}>Code postal</label>
+          <input
+            type="text"
+            className={CLASSE_INPUT}
+            value={valeur.codePostal}
+            onChange={(e) => onChange({ ...valeur, codePostal: e.target.value })}
+          />
+        </div>
+        <div className="col-span-2">
+          <label className={CLASSE_LABEL}>Ville</label>
+          <input
+            type="text"
+            className={CLASSE_INPUT}
+            value={valeur.ville}
+            onChange={(e) => onChange({ ...valeur, ville: e.target.value })}
+          />
+        </div>
+      </div>
+      <div>
+        <label className={CLASSE_LABEL}>Pays</label>
+        <input
+          type="text"
+          className={CLASSE_INPUT}
+          value={valeur.pays}
+          onChange={(e) => onChange({ ...valeur, pays: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── PDF du courrier (mise en forme standard d'un courrier belge) ────────────
+
+const stylesPdf = StyleSheet.create({
+  page: { paddingTop: 70, paddingBottom: 60, paddingHorizontal: 60, fontSize: 11, fontFamily: "Helvetica", color: "#111827" },
+  bloc: { marginBottom: 26 },
+  ligne: { marginBottom: 2, lineHeight: 1.3 },
+  corps: { lineHeight: 1.5 },
+});
+
+interface DonneesLettrePDF {
+  expediteurNom: string;
+  expediteurAdresse: Adresse;
+  destinataireNom: string;
+  destinataireAttention: string;
+  destinataireAdresse: Adresse;
+  corps: string;
+}
+
+function LettrePDF({ donnees }: { donnees: DonneesLettrePDF }) {
+  return (
+    <Document>
+      <Page size="A4" style={stylesPdf.page}>
+        <View style={stylesPdf.bloc}>
+          {donnees.expediteurNom && <Text style={stylesPdf.ligne}>{donnees.expediteurNom}</Text>}
+          {(donnees.expediteurAdresse.rue || donnees.expediteurAdresse.numero) && (
+            <Text style={stylesPdf.ligne}>
+              {donnees.expediteurAdresse.rue} {donnees.expediteurAdresse.numero}
+            </Text>
+          )}
+          {(donnees.expediteurAdresse.codePostal || donnees.expediteurAdresse.ville) && (
+            <Text style={stylesPdf.ligne}>
+              {donnees.expediteurAdresse.codePostal} {donnees.expediteurAdresse.ville}
+            </Text>
+          )}
+          {donnees.expediteurAdresse.pays && donnees.expediteurAdresse.pays !== "Belgique" && (
+            <Text style={stylesPdf.ligne}>{donnees.expediteurAdresse.pays}</Text>
+          )}
+        </View>
+
+        <View style={stylesPdf.bloc}>
+          {donnees.destinataireNom && <Text style={stylesPdf.ligne}>{donnees.destinataireNom}</Text>}
+          <Text style={stylesPdf.ligne}>{donnees.destinataireAttention}</Text>
+          {(donnees.destinataireAdresse.rue || donnees.destinataireAdresse.numero) && (
+            <Text style={stylesPdf.ligne}>
+              {donnees.destinataireAdresse.rue} {donnees.destinataireAdresse.numero}
+            </Text>
+          )}
+          {(donnees.destinataireAdresse.codePostal || donnees.destinataireAdresse.ville) && (
+            <Text style={stylesPdf.ligne}>
+              {donnees.destinataireAdresse.codePostal} {donnees.destinataireAdresse.ville}
+            </Text>
+          )}
+        </View>
+
+        <Text style={stylesPdf.corps}>{donnees.corps}</Text>
+      </Page>
+    </Document>
+  );
+}
+
+// ─── Constructeur de courrier (bloc opt-in à l'étape résultat) ───────────────
+
+type ContexteCourrier =
+  | { type: "demission"; dureeJours: number; dateDebut: string; dateFin: string; dateEnvoiLimite: string }
+  | { type: "commun-accord"; dateFinContratIso: string; avecPrestation: boolean | undefined };
+
+function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): React.ReactElement {
+  const [souhaite, setSouhaite] = useState(false);
+  const [typeLettre, setTypeLettre] = useState<"recommande" | "commun-accord">(
+    contexte.type === "demission" ? "recommande" : "commun-accord",
+  );
+  const [prenom, setPrenom] = useState("");
+  const [nom, setNom] = useState("");
+  const [adresse, setAdresse] = useState<Adresse>(ADRESSE_VIDE);
+  const [nomEmployeur, setNomEmployeur] = useState("");
+  const [responsableEmployeur, setResponsableEmployeur] = useState("");
+  const [adresseEmployeur, setAdresseEmployeur] = useState<Adresse>(ADRESSE_VIDE);
+  const [lieuSignature, setLieuSignature] = useState("");
+  const [dateSignature, setDateSignature] = useState("");
+  const [dateFinContratChoisie, setDateFinContratChoisie] = useState(
+    contexte.type === "commun-accord" ? contexte.dateFinContratIso : "",
+  );
+  const [avecPrestationChoisie, setAvecPrestationChoisie] = useState<"avec" | "sans" | "">(
+    contexte.type === "commun-accord" && contexte.avecPrestation !== undefined
+      ? contexte.avecPrestation
+        ? "avec"
+        : "sans"
+      : "",
+  );
+  const [copie, setCopie] = useState(false);
+  const [telechargementEnCours, setTelechargementEnCours] = useState(false);
+
+  // Date par défaut : la date limite d'envoi du recommandé pour ce type de courrier,
+  // ou aujourd'hui pour une convention de commun accord. Se met à jour si l'utilisateur
+  // change de type de courrier (mais n'écrase pas une saisie manuelle sur le même type).
+  useEffect(() => {
+    if (typeLettre === "recommande" && contexte.type === "demission") {
+      setDateSignature(contexte.dateEnvoiLimite);
+    } else {
+      setDateSignature(new Date().toISOString().slice(0, 10));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeLettre]);
+
+  const lieuSignatureEffectif = lieuSignature || adresse.ville;
+
+  function texteCorps(): string {
+    const nomComplet = `${prenom} ${nom}`.trim() || undefined;
+    const adresseTexte = adresseVide(adresse) ? undefined : adresseComplete(adresse);
+    const nomEmployeurTexte = nomEmployeur.trim() || undefined;
+    const lieuEffectif = lieuSignatureEffectif || undefined;
+
+    if (typeLettre === "recommande" && contexte.type === "demission") {
+      return genererNotificationDemission({
+        dureeJours: contexte.dureeJours,
+        dateDebutPreavisIso: contexte.dateDebut,
+        dateFinPreavisIso: contexte.dateFin,
+        nomTravailleur: nomComplet,
+        domicileTravailleur: adresseTexte,
+        nomEmployeur: nomEmployeurTexte,
+        lieuSignature: lieuEffectif,
+        dateSignatureIso: dateSignature || undefined,
+      });
+    }
+
+    const dateFinContrat = contexte.type === "commun-accord" ? contexte.dateFinContratIso : dateFinContratChoisie;
+    const avecPrestationValeur =
+      contexte.type === "commun-accord"
+        ? contexte.avecPrestation
+        : avecPrestationChoisie === ""
+          ? undefined
+          : avecPrestationChoisie === "avec";
+
+    return genererConventionCommunAccord({
+      dateFinContratIso: dateFinContrat,
+      avecPrestation: avecPrestationValeur,
+      nomTravailleur: nomComplet,
+      domicileTravailleur: adresseTexte,
+      nomEmployeur: nomEmployeurTexte,
+      siegeEmployeur: adresseVide(adresseEmployeur) ? undefined : adresseComplete(adresseEmployeur),
+      lieuSignature: lieuEffectif,
+      dateSignatureIso: dateSignature || undefined,
+    });
+  }
+
+  const texteApercu = useMemo(() => {
     try {
-      await navigator.clipboard.writeText(texte);
+      return texteCorps();
+    } catch {
+      return "";
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    typeLettre,
+    prenom,
+    nom,
+    adresse,
+    nomEmployeur,
+    adresseEmployeur,
+    lieuSignature,
+    dateSignature,
+    dateFinContratChoisie,
+    avecPrestationChoisie,
+  ]);
+
+  async function copierTexte() {
+    try {
+      await navigator.clipboard.writeText(texteApercu);
       setCopie(true);
       setTimeout(() => setCopie(false), 2000);
     } catch {
@@ -298,28 +630,201 @@ function BlocCourrier({ texte }: { texte: string }): React.ReactElement {
     }
   }
 
+  async function telechargerPdf() {
+    setTelechargementEnCours(true);
+    try {
+      const destinataireAttention = responsableEmployeur.trim()
+        ? `À l'attention de ${responsableEmployeur.trim()}`
+        : "À l'attention du service des ressources humaines";
+
+      const blob = await pdf(
+        <LettrePDF
+          donnees={{
+            expediteurNom: `${prenom} ${nom}`.trim(),
+            expediteurAdresse: adresse,
+            destinataireNom: nomEmployeur.trim(),
+            destinataireAttention,
+            destinataireAdresse: adresseEmployeur,
+            corps: texteApercu,
+          }}
+        />,
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const prefixe = typeLettre === "recommande" ? "demission" : "rupture-commun-accord";
+      a.download = `${prefixe}${nom ? `-${nom.toLowerCase().replace(/\s+/g, "-")}` : ""}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setTelechargementEnCours(false);
+    }
+  }
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-gray-900">Votre courrier</h3>
-        <button type="button" onClick={copier} className={CLASSE_BOUTON_SECONDAIRE}>
-          {copie ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-          {copie ? "Copié" : "Copier le texte"}
-        </button>
+    <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+      <div>
+        <label className={CLASSE_LABEL}>Souhaitez-vous un modèle de lettre ?</label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-800">
+            <input type="radio" name="souhaiteLettre" checked={souhaite} onChange={() => setSouhaite(true)} />
+            Oui
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-800">
+            <input type="radio" name="souhaiteLettre" checked={!souhaite} onChange={() => setSouhaite(false)} />
+            Non
+          </label>
+        </div>
       </div>
-      <textarea
-        readOnly
-        value={texte}
-        rows={16}
-        className="w-full border border-gray-200 rounded-xl p-4 text-sm font-mono text-gray-800 bg-gray-50 resize-y"
-      />
-      <p className="text-xs text-gray-500 mt-2">
-        Vous pouvez modifier ce texte avant de l'imprimer ou de l'envoyer. Les champs laissés en pointillés ("...")
-        sont à compléter à la main.
-      </p>
+
+      {souhaite && (
+        <div className="space-y-4 pt-2">
+          {contexte.type === "demission" && (
+            <div>
+              <label className={CLASSE_LABEL}>Quel type de courrier ?</label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm text-gray-800">
+                  <input
+                    type="radio"
+                    name="typeLettre"
+                    checked={typeLettre === "recommande"}
+                    onChange={() => setTypeLettre("recommande")}
+                  />
+                  Démission par courrier recommandé
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-800">
+                  <input
+                    type="radio"
+                    name="typeLettre"
+                    checked={typeLettre === "commun-accord"}
+                    onChange={() => setTypeLettre("commun-accord")}
+                  />
+                  Proposer une rupture de commun accord
+                </label>
+              </div>
+            </div>
+          )}
+
+          {typeLettre === "commun-accord" && contexte.type === "demission" && (
+            <>
+              <ChampDate
+                label="Date de fin de contrat proposée"
+                valeurIso={dateFinContratChoisie}
+                onChange={setDateFinContratChoisie}
+              />
+              <div>
+                <label className={CLASSE_LABEL}>Le dernier jour, y a-t-il prestation ?</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-800">
+                    <input
+                      type="radio"
+                      name="avecPrestationChoisie"
+                      checked={avecPrestationChoisie === "avec"}
+                      onChange={() => setAvecPrestationChoisie("avec")}
+                    />
+                    Oui, prestation ce jour-là
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-800">
+                    <input
+                      type="radio"
+                      name="avecPrestationChoisie"
+                      checked={avecPrestationChoisie === "sans"}
+                      onChange={() => setAvecPrestationChoisie("sans")}
+                    />
+                    Non, sans prestation
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={CLASSE_LABEL}>Prénom</label>
+              <input type="text" className={CLASSE_INPUT} value={prenom} onChange={(e) => setPrenom(e.target.value)} />
+            </div>
+            <div>
+              <label className={CLASSE_LABEL}>Nom</label>
+              <input type="text" className={CLASSE_INPUT} value={nom} onChange={(e) => setNom(e.target.value)} />
+            </div>
+          </div>
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 pt-2">Votre adresse</p>
+          <ChampAdresse valeur={adresse} onChange={setAdresse} />
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 pt-2">Votre employeur</p>
+          <div>
+            <label className={CLASSE_LABEL}>Nom de l'employeur / de la société</label>
+            <input
+              type="text"
+              className={CLASSE_INPUT}
+              value={nomEmployeur}
+              onChange={(e) => setNomEmployeur(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={CLASSE_LABEL}>Responsable (facultatif)</label>
+            <input
+              type="text"
+              className={CLASSE_INPUT}
+              value={responsableEmployeur}
+              onChange={(e) => setResponsableEmployeur(e.target.value)}
+              placeholder="Si vide : « à l'attention du service des ressources humaines »"
+            />
+          </div>
+          <ChampAdresse valeur={adresseEmployeur} onChange={setAdresseEmployeur} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={CLASSE_LABEL}>Lieu de signature</label>
+              <input
+                type="text"
+                className={CLASSE_INPUT}
+                value={lieuSignatureEffectif}
+                onChange={(e) => setLieuSignature(e.target.value)}
+                placeholder="Ex : Namur"
+              />
+            </div>
+            <ChampDate label="Date" valeurIso={dateSignature} onChange={setDateSignature} />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2 pt-2">
+              <p className="text-sm font-semibold text-gray-900">Aperçu</p>
+              <button type="button" onClick={copierTexte} className={CLASSE_BOUTON_SECONDAIRE}>
+                {copie ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                {copie ? "Copié" : "Copier le texte"}
+              </button>
+            </div>
+            <textarea
+              readOnly
+              value={texteApercu}
+              rows={14}
+              className="w-full border border-gray-200 rounded-xl p-4 text-sm font-mono text-gray-800 bg-gray-50 resize-y"
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              Vous pouvez modifier ce texte avant de l'imprimer ou de l'envoyer. Les champs laissés en pointillés
+              ("...") sont à compléter à la main.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={telechargerPdf}
+            disabled={telechargementEnCours}
+            className={CLASSE_BOUTON_PRIMAIRE}
+          >
+            <FileDown className="w-4 h-4" />
+            Télécharger le courrier en PDF
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+
+// ─── Assistant principal ──────────────────────────────────────────────────────
 
 export default function FormulairePreavis() {
   const [etape, setEtape] = useState<Etape>("situation");
@@ -339,13 +844,12 @@ export default function FormulairePreavis() {
   // pour l'ancienneté acquise avant 2014 (le seuil légal dépend du salaire), et
   // l'estimation d'indemnité en cas de rupture immédiate. On ne la demande donc
   // jamais à l'étape "situation", pour obtenir le délai de préavis le plus vite
-  // possible — elle est demandée à l'étape suivante, seulement si nécessaire.
+  // possible — elle n'est demandée qu'à l'étape suivante, et seulement si nécessaire.
   const remunerationRequise =
     (donnees.statut === "employe" && donnees.dateEntreeService !== "" && donnees.dateEntreeService < "2014-01-01") ||
     (donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite");
 
-  const afficheCoordonnees = donnees.ruptureChoix === "travailleur" || donnees.ruptureChoix === "commun-accord";
-  const afficheEtapeIntermediaire = afficheCoordonnees || remunerationRequise;
+  const afficheEtapeIntermediaire = remunerationRequise;
   const etapeIntermediaireValide = !remunerationRequise || donnees.remunerationAnnuelle !== "";
 
   const resultat = useMemo<Resultat | null>(() => {
@@ -512,7 +1016,7 @@ export default function FormulairePreavis() {
               <button
                 type="button"
                 disabled={!situationValide}
-                onClick={() => setEtape(afficheEtapeIntermediaire ? "coordonnees" : "resultat")}
+                onClick={() => setEtape(afficheEtapeIntermediaire ? "complement" : "resultat")}
                 className={CLASSE_BOUTON_PRIMAIRE}
               >
                 Suivant
@@ -522,83 +1026,24 @@ export default function FormulairePreavis() {
           </div>
         )}
 
-        {etape === "coordonnees" && (
+        {etape === "complement" && (
           <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
-            {remunerationRequise && (
-              <div>
-                <label className={CLASSE_LABEL}>Rémunération annuelle brute (€)</label>
-                <input
-                  type="number"
-                  min={0}
-                  className={CLASSE_INPUT}
-                  value={donnees.remunerationAnnuelle}
-                  onChange={(e) => majChamp("remunerationAnnuelle", e.target.value)}
-                  placeholder="Ex : 35000"
-                />
-                <p className="text-xs text-gray-500 mt-1.5">
-                  {donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite"
-                    ? "Nécessaire pour estimer le montant de l'indemnité."
-                    : "Nécessaire car votre ancienneté avant 2014 dépend d'un seuil de rémunération légal."}
-                </p>
-              </div>
-            )}
-
-            {afficheCoordonnees && (
-              <>
-                <p className="text-sm text-gray-600">
-                  Ces informations sont facultatives. Elles servent uniquement à pré-remplir votre courrier — vous
-                  pourrez toujours le compléter ou le corriger vous-même avant de l'envoyer.
-                </p>
-                <div>
-                  <label className={CLASSE_LABEL}>Votre nom</label>
-                  <input
-                    type="text"
-                    className={CLASSE_INPUT}
-                    value={donnees.nomTravailleur}
-                    onChange={(e) => majChamp("nomTravailleur", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className={CLASSE_LABEL}>Votre domicile</label>
-                  <input
-                    type="text"
-                    className={CLASSE_INPUT}
-                    value={donnees.domicileTravailleur}
-                    onChange={(e) => majChamp("domicileTravailleur", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className={CLASSE_LABEL}>Nom de votre employeur / de la société</label>
-                  <input
-                    type="text"
-                    className={CLASSE_INPUT}
-                    value={donnees.nomEmployeur}
-                    onChange={(e) => majChamp("nomEmployeur", e.target.value)}
-                  />
-                </div>
-                {donnees.ruptureChoix === "commun-accord" && (
-                  <div>
-                    <label className={CLASSE_LABEL}>Siège de l'employeur / de la société</label>
-                    <input
-                      type="text"
-                      className={CLASSE_INPUT}
-                      value={donnees.siegeEmployeur}
-                      onChange={(e) => majChamp("siegeEmployeur", e.target.value)}
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className={CLASSE_LABEL}>Lieu de signature souhaité</label>
-                  <input
-                    type="text"
-                    className={CLASSE_INPUT}
-                    value={donnees.lieuSignature}
-                    onChange={(e) => majChamp("lieuSignature", e.target.value)}
-                    placeholder="Ex : Namur"
-                  />
-                </div>
-              </>
-            )}
+            <div>
+              <label className={CLASSE_LABEL}>Rémunération annuelle brute (€)</label>
+              <input
+                type="number"
+                min={0}
+                className={CLASSE_INPUT}
+                value={donnees.remunerationAnnuelle}
+                onChange={(e) => majChamp("remunerationAnnuelle", e.target.value)}
+                placeholder="Ex : 35000"
+              />
+              <p className="text-xs text-gray-500 mt-1.5">
+                {donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite"
+                  ? "Nécessaire pour estimer le montant de l'indemnité."
+                  : "Nécessaire car votre ancienneté avant 2014 dépend d'un seuil de rémunération légal."}
+              </p>
+            </div>
 
             <div className="flex justify-between pt-2">
               <button type="button" onClick={() => setEtape("situation")} className={CLASSE_BOUTON_SECONDAIRE}>
@@ -620,7 +1065,15 @@ export default function FormulairePreavis() {
 
         {etape === "resultat" && resultat && (
           <div className="space-y-5">
-            {resultat.type === "commun-accord" && <BlocCourrier texte={resultat.texte} />}
+            {resultat.type === "commun-accord" && (
+              <ConstructeurCourrier
+                contexte={{
+                  type: "commun-accord",
+                  dateFinContratIso: resultat.dateFinContratIso,
+                  avecPrestation: resultat.avecPrestation,
+                }}
+              />
+            )}
 
             {resultat.type === "indemnite" && (
               <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
@@ -689,9 +1142,30 @@ export default function FormulairePreavis() {
                       <p className="text-sm text-amber-800">{resultat.avertissement}</p>
                     </div>
                   )}
+                  <p className="text-xs text-gray-400 pt-1">
+                    Méthode de calcul : {resultat.source.methode}{" "}
+                    <a
+                      href={resultat.source.lien}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-gray-600"
+                    >
+                      Source
+                    </a>
+                  </p>
                 </div>
 
-                {resultat.courrier && <BlocCourrier texte={resultat.courrier} />}
+                {resultat.quiRompt === "travailleur" && (
+                  <ConstructeurCourrier
+                    contexte={{
+                      type: "demission",
+                      dureeJours: resultat.jours,
+                      dateDebut: resultat.dateDebut,
+                      dateFin: resultat.dateFin,
+                      dateEnvoiLimite: resultat.dateEnvoiLimite,
+                    }}
+                  />
+                )}
                 {resultat.contenuOnem && <BlocInformatif contenu={resultat.contenuOnem} />}
                 <BlocInformatif contenu={resultat.contenuProcedures} />
               </>
@@ -707,7 +1181,7 @@ export default function FormulairePreavis() {
             <div className="flex justify-between">
               <button
                 type="button"
-                onClick={() => setEtape(afficheEtapeIntermediaire ? "coordonnees" : "situation")}
+                onClick={() => setEtape(afficheEtapeIntermediaire ? "complement" : "situation")}
                 className={CLASSE_BOUTON_SECONDAIRE}
               >
                 <ArrowLeft className="w-4 h-4" />
