@@ -2,20 +2,23 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Copy, AlertTriangle, RotateCcw, CheckCircle, FileDown } from "lucide-react";
-import { pdf, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 import { isoToDateFr, formatDateFr, dateFrToIso } from "./lib/dates";
 import type { QuiRompt, Statut } from "./lib/preavis/types";
 import { calculerPreavisOuvrier } from "./lib/preavis/calcul-preavis";
 import { calculerPreavisEmploye } from "./lib/preavis/calcul-preavis-employe";
 import { debutPreavisDepuisEnvoi, finPreavisJours, dateLimiteEnvoiRecommande } from "./lib/preavis/dates-preavis";
 import { premierLundiApres } from "./lib/preavis/jours-ouvrables";
+import { calculerRuptureCdd, type CasRuptureCdd, type ResultatRuptureCdd } from "./lib/preavis/calcul-preavis-cdd";
 import {
   genererConventionCommunAccord,
   genererNotificationDemission,
   formaterDureePreavis,
 } from "./lib/preavis/courriers/fusion";
 import { contenuOnemSanctions } from "./lib/preavis/contenu-onem-sanctions";
+import { contenuRulingOnem } from "./lib/preavis/contenu-ruling-onem";
 import { contenuProceduresEnvoi } from "./lib/preavis/contenu-procedures-envoi";
+import { LettrePDF, ADRESSE_VIDE, adresseVide, adresseComplete, type Adresse } from "./lib/preavis/courriers/LettrePDF";
 import type { ContenuInformatif } from "./lib/preavis/types";
 
 /**
@@ -36,18 +39,25 @@ type RuptureChoix = QuiRompt | "commun-accord";
 type ModeEmployeur = "preavis" | "indemnite";
 type Etape = "situation" | "complement" | "resultat";
 
+type TypeContrat = "cdi" | "cdd";
+
 interface DonneesFormulaire {
+  typeContrat: TypeContrat;
   statut: Statut;
-  dateEntreeService: string; // ISO (AAAA-MM-JJ)
+  dateEntreeService: string; // ISO (AAAA-MM-JJ) — aussi utilisée comme date de début du CDD si typeContrat === "cdd"
   cp: string; // "" = inconnu / régime général
   ruptureChoix: RuptureChoix;
   modeEmployeur: ModeEmployeur;
   remunerationAnnuelle: string;
-  dateRupture: string; // ISO — date de début de préavis souhaitée (démission/licenciement) ou date de fin de contrat (commun accord)
-  avecPrestation: "avec" | "sans" | "";
+  dateRupture: string; // ISO — date de début de préavis souhaitée (démission/licenciement), date de fin de contrat (commun accord), ou date de rupture envisagée (CDD, cas "1ère moitié")
+  // Champs spécifiques à la rupture d'un CDD (voir lib/preavis/calcul-preavis-cdd.ts).
+  dateFinCdd: string; // ISO
+  casCdd: CasRuptureCdd;
+  premierCdd: boolean;
 }
 
 const DONNEES_INITIALES: DonneesFormulaire = {
+  typeContrat: "cdi",
   statut: "ouvrier",
   dateEntreeService: "",
   cp: "",
@@ -55,7 +65,9 @@ const DONNEES_INITIALES: DonneesFormulaire = {
   modeEmployeur: "preavis",
   remunerationAnnuelle: "",
   dateRupture: "",
-  avecPrestation: "",
+  dateFinCdd: "",
+  casCdd: "premiere-moitie",
+  premierCdd: true,
 };
 
 interface SourceCalcul {
@@ -64,8 +76,9 @@ interface SourceCalcul {
 }
 
 type Resultat =
-  | { type: "commun-accord"; dateFinContratIso: string; avecPrestation: boolean | undefined }
+  | { type: "commun-accord"; dateFinContratIso: string; dateEntreeService: string }
   | { type: "indemnite"; jours: number; montantIndemnite: number | null }
+  | { type: "cdd"; resultat: ResultatRuptureCdd; dateDebutCdd: string; dateRupture: string }
   | {
       type: "preavis";
       quiRompt: QuiRompt;
@@ -168,10 +181,32 @@ function calculerJoursEtAvertissement(
   };
 }
 
+function calculerResultatCdd(d: DonneesFormulaire): Resultat {
+  const params =
+    d.casCdd === "premiere-moitie"
+      ? {
+          cas: "premiere-moitie" as const,
+          dateDebutCdd: d.dateEntreeService,
+          dateFinCdd: d.dateFinCdd,
+          dateRupture: d.dateRupture,
+          premierCdd: d.premierCdd,
+        }
+      : { cas: d.casCdd };
+  return {
+    type: "cdd",
+    resultat: calculerRuptureCdd(params),
+    dateDebutCdd: d.dateEntreeService,
+    dateRupture: d.dateRupture,
+  };
+}
+
 function calculerResultat(d: DonneesFormulaire): Resultat {
+  if (d.typeContrat === "cdd") {
+    return calculerResultatCdd(d);
+  }
+
   if (d.ruptureChoix === "commun-accord") {
-    const avecPrestation = d.avecPrestation === "" ? undefined : d.avecPrestation === "avec";
-    return { type: "commun-accord", dateFinContratIso: d.dateRupture, avecPrestation };
+    return { type: "commun-accord", dateFinContratIso: d.dateRupture, dateEntreeService: d.dateEntreeService };
   }
 
   const quiRompt: QuiRompt = d.ruptureChoix === "employeur" ? "employeur" : "travailleur";
@@ -285,6 +320,16 @@ function BlocInformatif({ contenu }: { contenu: ContenuInformatif }): React.Reac
               </p>
             ))}
           </div>
+          {section.lien && (
+            <a
+              href={section.lien.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-2 text-sm text-red-700 underline hover:text-red-800"
+            >
+              {section.lien.texte}
+            </a>
+          )}
         </div>
       ))}
       {contenu.pointsCles.length > 0 && (
@@ -313,26 +358,6 @@ interface AddressSuggestion {
   postcode: string;
   city: string;
   display: string;
-}
-
-interface Adresse {
-  rue: string;
-  numero: string;
-  codePostal: string;
-  ville: string;
-  pays: string;
-}
-
-const ADRESSE_VIDE: Adresse = { rue: "", numero: "", codePostal: "", ville: "", pays: "Belgique" };
-
-function adresseVide(a: Adresse): boolean {
-  return !a.rue && !a.codePostal && !a.ville;
-}
-
-function adresseComplete(a: Adresse): string {
-  const ligne1 = [a.rue, a.numero].filter(Boolean).join(" ");
-  const ligne2 = [a.codePostal, a.ville].filter(Boolean).join(" ");
-  return [ligne1, ligne2, a.pays && a.pays !== "Belgique" ? a.pays : ""].filter(Boolean).join(", ");
 }
 
 function ChampAdresse({ valeur, onChange }: { valeur: Adresse; onChange: (a: Adresse) => void }): React.ReactElement {
@@ -455,71 +480,11 @@ function ChampAdresse({ valeur, onChange }: { valeur: Adresse; onChange: (a: Adr
   );
 }
 
-// ─── PDF du courrier (mise en forme standard d'un courrier belge) ────────────
-
-const stylesPdf = StyleSheet.create({
-  page: { paddingTop: 70, paddingBottom: 60, paddingHorizontal: 60, fontSize: 11, fontFamily: "Helvetica", color: "#111827" },
-  bloc: { marginBottom: 26 },
-  ligne: { marginBottom: 2, lineHeight: 1.3 },
-  corps: { lineHeight: 1.5 },
-});
-
-interface DonneesLettrePDF {
-  expediteurNom: string;
-  expediteurAdresse: Adresse;
-  destinataireNom: string;
-  destinataireAttention: string;
-  destinataireAdresse: Adresse;
-  corps: string;
-}
-
-function LettrePDF({ donnees }: { donnees: DonneesLettrePDF }) {
-  return (
-    <Document>
-      <Page size="A4" style={stylesPdf.page}>
-        <View style={stylesPdf.bloc}>
-          {donnees.expediteurNom && <Text style={stylesPdf.ligne}>{donnees.expediteurNom}</Text>}
-          {(donnees.expediteurAdresse.rue || donnees.expediteurAdresse.numero) && (
-            <Text style={stylesPdf.ligne}>
-              {donnees.expediteurAdresse.rue} {donnees.expediteurAdresse.numero}
-            </Text>
-          )}
-          {(donnees.expediteurAdresse.codePostal || donnees.expediteurAdresse.ville) && (
-            <Text style={stylesPdf.ligne}>
-              {donnees.expediteurAdresse.codePostal} {donnees.expediteurAdresse.ville}
-            </Text>
-          )}
-          {donnees.expediteurAdresse.pays && donnees.expediteurAdresse.pays !== "Belgique" && (
-            <Text style={stylesPdf.ligne}>{donnees.expediteurAdresse.pays}</Text>
-          )}
-        </View>
-
-        <View style={stylesPdf.bloc}>
-          {donnees.destinataireNom && <Text style={stylesPdf.ligne}>{donnees.destinataireNom}</Text>}
-          <Text style={stylesPdf.ligne}>{donnees.destinataireAttention}</Text>
-          {(donnees.destinataireAdresse.rue || donnees.destinataireAdresse.numero) && (
-            <Text style={stylesPdf.ligne}>
-              {donnees.destinataireAdresse.rue} {donnees.destinataireAdresse.numero}
-            </Text>
-          )}
-          {(donnees.destinataireAdresse.codePostal || donnees.destinataireAdresse.ville) && (
-            <Text style={stylesPdf.ligne}>
-              {donnees.destinataireAdresse.codePostal} {donnees.destinataireAdresse.ville}
-            </Text>
-          )}
-        </View>
-
-        <Text style={stylesPdf.corps}>{donnees.corps}</Text>
-      </Page>
-    </Document>
-  );
-}
-
 // ─── Constructeur de courrier (bloc opt-in à l'étape résultat) ───────────────
 
 type ContexteCourrier =
-  | { type: "demission"; dureeJours: number; dateDebut: string; dateFin: string; dateEnvoiLimite: string }
-  | { type: "commun-accord"; dateFinContratIso: string; avecPrestation: boolean | undefined };
+  | { type: "demission"; dureeJours: number; dateDebut: string; dateEnvoiLimite: string; dateEntreeService: string }
+  | { type: "commun-accord"; dateFinContratIso: string; dateEntreeService: string };
 
 function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): React.ReactElement {
   const [souhaite, setSouhaite] = useState(false);
@@ -529,20 +494,16 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
   const [adresse, setAdresse] = useState<Adresse>(ADRESSE_VIDE);
+  const [email, setEmail] = useState("");
+  const [telephone, setTelephone] = useState("");
   const [nomEmployeur, setNomEmployeur] = useState("");
   const [responsableEmployeur, setResponsableEmployeur] = useState("");
   const [adresseEmployeur, setAdresseEmployeur] = useState<Adresse>(ADRESSE_VIDE);
+  const [fonction, setFonction] = useState("");
   const [lieuSignature, setLieuSignature] = useState("");
   const [dateSignature, setDateSignature] = useState("");
   const [dateFinContratChoisie, setDateFinContratChoisie] = useState(
     contexte.type === "commun-accord" ? contexte.dateFinContratIso : "",
-  );
-  const [avecPrestationChoisie, setAvecPrestationChoisie] = useState<"avec" | "sans" | "">(
-    contexte.type === "commun-accord" && contexte.avecPrestation !== undefined
-      ? contexte.avecPrestation
-        ? "avec"
-        : "sans"
-      : "",
   );
   const [copie, setCopie] = useState(false);
   const [telechargementEnCours, setTelechargementEnCours] = useState(false);
@@ -571,30 +532,21 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
       return genererNotificationDemission({
         dureeJours: contexte.dureeJours,
         dateDebutPreavisIso: contexte.dateDebut,
-        dateFinPreavisIso: contexte.dateFin,
-        nomTravailleur: nomComplet,
-        domicileTravailleur: adresseTexte,
-        nomEmployeur: nomEmployeurTexte,
         lieuSignature: lieuEffectif,
         dateSignatureIso: dateSignature || undefined,
       });
     }
 
     const dateFinContrat = contexte.type === "commun-accord" ? contexte.dateFinContratIso : dateFinContratChoisie;
-    const avecPrestationValeur =
-      contexte.type === "commun-accord"
-        ? contexte.avecPrestation
-        : avecPrestationChoisie === ""
-          ? undefined
-          : avecPrestationChoisie === "avec";
 
     return genererConventionCommunAccord({
       dateFinContratIso: dateFinContrat,
-      avecPrestation: avecPrestationValeur,
       nomTravailleur: nomComplet,
       domicileTravailleur: adresseTexte,
       nomEmployeur: nomEmployeurTexte,
       siegeEmployeur: adresseVide(adresseEmployeur) ? undefined : adresseComplete(adresseEmployeur),
+      dateEntreeServiceIso: contexte.dateEntreeService || undefined,
+      fonction: fonction.trim() || undefined,
       lieuSignature: lieuEffectif,
       dateSignatureIso: dateSignature || undefined,
     });
@@ -614,10 +566,10 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
     adresse,
     nomEmployeur,
     adresseEmployeur,
+    fonction,
     lieuSignature,
     dateSignature,
     dateFinContratChoisie,
-    avecPrestationChoisie,
   ]);
 
   async function copierTexte() {
@@ -633,22 +585,25 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
   async function telechargerPdf() {
     setTelechargementEnCours(true);
     try {
-      const destinataireAttention = responsableEmployeur.trim()
-        ? `À l'attention de ${responsableEmployeur.trim()}`
-        : "À l'attention du service des ressources humaines";
+      // L'Annexe B (commun accord) intègre déjà les identités des deux
+      // parties dans son propre corps : pas de bloc d'adresse expéditeur/
+      // destinataire façon courrier classique, pour éviter la répétition.
+      const entetes =
+        typeLettre === "commun-accord"
+          ? null
+          : {
+              expediteurNom: `${prenom} ${nom}`.trim(),
+              expediteurAdresse: adresse,
+              expediteurEmail: email.trim() || undefined,
+              expediteurTelephone: telephone.trim() || undefined,
+              destinataireNom: nomEmployeur.trim(),
+              destinataireAttention: responsableEmployeur.trim()
+                ? `À l'attention de ${responsableEmployeur.trim()}`
+                : "À l'attention du service des ressources humaines",
+              destinataireAdresse: adresseEmployeur,
+            };
 
-      const blob = await pdf(
-        <LettrePDF
-          donnees={{
-            expediteurNom: `${prenom} ${nom}`.trim(),
-            expediteurAdresse: adresse,
-            destinataireNom: nomEmployeur.trim(),
-            destinataireAttention,
-            destinataireAdresse: adresseEmployeur,
-            corps: texteApercu,
-          }}
-        />,
-      ).toBlob();
+      const blob = await pdf(<LettrePDF donnees={{ entetes, corps: texteApercu }} />).toBlob();
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -707,36 +662,24 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
           )}
 
           {typeLettre === "commun-accord" && contexte.type === "demission" && (
-            <>
-              <ChampDate
-                label="Date de fin de contrat proposée"
-                valeurIso={dateFinContratChoisie}
-                onChange={setDateFinContratChoisie}
+            <ChampDate
+              label="Date de fin de contrat proposée"
+              valeurIso={dateFinContratChoisie}
+              onChange={setDateFinContratChoisie}
+            />
+          )}
+
+          {typeLettre === "commun-accord" && (
+            <div>
+              <label className={CLASSE_LABEL}>Fonction occupée (facultatif)</label>
+              <input
+                type="text"
+                className={CLASSE_INPUT}
+                value={fonction}
+                onChange={(e) => setFonction(e.target.value)}
+                placeholder="Ex : ouvrier polyvalent"
               />
-              <div>
-                <label className={CLASSE_LABEL}>Le dernier jour, y a-t-il prestation ?</label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-800">
-                    <input
-                      type="radio"
-                      name="avecPrestationChoisie"
-                      checked={avecPrestationChoisie === "avec"}
-                      onChange={() => setAvecPrestationChoisie("avec")}
-                    />
-                    Oui, prestation ce jour-là
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-800">
-                    <input
-                      type="radio"
-                      name="avecPrestationChoisie"
-                      checked={avecPrestationChoisie === "sans"}
-                      onChange={() => setAvecPrestationChoisie("sans")}
-                    />
-                    Non, sans prestation
-                  </label>
-                </div>
-              </div>
-            </>
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
@@ -752,6 +695,31 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
 
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 pt-2">Votre adresse</p>
           <ChampAdresse valeur={adresse} onChange={setAdresse} />
+
+          {typeLettre === "recommande" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={CLASSE_LABEL}>E-mail (facultatif)</label>
+                <input
+                  type="email"
+                  className={CLASSE_INPUT}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="exemple@gmail.com"
+                />
+              </div>
+              <div>
+                <label className={CLASSE_LABEL}>Téléphone (facultatif)</label>
+                <input
+                  type="tel"
+                  className={CLASSE_INPUT}
+                  value={telephone}
+                  onChange={(e) => setTelephone(e.target.value)}
+                  placeholder="02 51 51 00 99"
+                />
+              </div>
+            </div>
+          )}
 
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 pt-2">Votre employeur</p>
           <div>
@@ -835,19 +803,25 @@ export default function FormulairePreavis() {
   }
 
   const dateRuptureValide = donnees.dateRupture !== "";
-  const situationValide =
+
+  const situationValideCdd =
     donnees.dateEntreeService !== "" &&
-    dateRuptureValide &&
-    (donnees.ruptureChoix !== "commun-accord" || donnees.avecPrestation !== "");
+    donnees.dateFinCdd !== "" &&
+    (donnees.casCdd !== "premiere-moitie" || dateRuptureValide) &&
+    (donnees.casCdd !== "commun-accord" || dateRuptureValide);
+  const situationValideCdi = donnees.dateEntreeService !== "" && dateRuptureValide;
+  const situationValide = donnees.typeContrat === "cdd" ? situationValideCdd : situationValideCdi;
 
   // La rémunération n'influence le résultat que dans deux cas : le calcul employé
   // pour l'ancienneté acquise avant 2014 (le seuil légal dépend du salaire), et
   // l'estimation d'indemnité en cas de rupture immédiate. On ne la demande donc
   // jamais à l'étape "situation", pour obtenir le délai de préavis le plus vite
   // possible — elle n'est demandée qu'à l'étape suivante, et seulement si nécessaire.
+  // Un CDD n'en a jamais besoin : sa durée de préavis ne dépend pas de la rémunération.
   const remunerationRequise =
-    (donnees.statut === "employe" && donnees.dateEntreeService !== "" && donnees.dateEntreeService < "2014-01-01") ||
-    (donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite");
+    donnees.typeContrat === "cdi" &&
+    ((donnees.statut === "employe" && donnees.dateEntreeService !== "" && donnees.dateEntreeService < "2014-01-01") ||
+      (donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite"));
 
   const afficheEtapeIntermediaire = remunerationRequise;
   const etapeIntermediaireValide = !remunerationRequise || donnees.remunerationAnnuelle !== "";
@@ -877,24 +851,118 @@ export default function FormulairePreavis() {
         {etape === "situation" && (
           <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
             <div>
-              <label className={CLASSE_LABEL}>Votre statut</label>
-              <select
-                className={CLASSE_INPUT}
-                value={donnees.statut}
-                onChange={(e) => majChamp("statut", e.target.value as Statut)}
-              >
-                <option value="ouvrier">Ouvrier</option>
-                <option value="employe">Employé</option>
-              </select>
+              <label className={CLASSE_LABEL}>Type de contrat</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm text-gray-800">
+                  <input
+                    type="radio"
+                    name="typeContrat"
+                    checked={donnees.typeContrat === "cdi"}
+                    onChange={() => majChamp("typeContrat", "cdi")}
+                  />
+                  CDI (durée indéterminée)
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-800">
+                  <input
+                    type="radio"
+                    name="typeContrat"
+                    checked={donnees.typeContrat === "cdd"}
+                    onChange={() => majChamp("typeContrat", "cdd")}
+                  />
+                  CDD (durée déterminée)
+                </label>
+              </div>
             </div>
 
-            <ChampDate
-              label="Date d'entrée en service"
-              valeurIso={donnees.dateEntreeService}
-              onChange={(iso) => majChamp("dateEntreeService", iso)}
-            />
+            {donnees.typeContrat === "cdd" ? (
+              <>
+                <ChampDate
+                  label="Date de début du CDD"
+                  valeurIso={donnees.dateEntreeService}
+                  onChange={(iso) => majChamp("dateEntreeService", iso)}
+                />
+                <ChampDate
+                  label="Date de fin prévue du CDD"
+                  valeurIso={donnees.dateFinCdd}
+                  onChange={(iso) => majChamp("dateFinCdd", iso)}
+                />
 
-            {donnees.statut === "ouvrier" && (
+                <div>
+                  <label className={CLASSE_LABEL}>Dans quel cas vous trouvez-vous ?</label>
+                  <div className="space-y-2">
+                    {(
+                      [
+                        { valeur: "premiere-moitie", texte: "Je romps pendant la 1ère moitié de mon 1er CDD chez cet employeur (max. 6 mois)" },
+                        { valeur: "commun-accord", texte: "Rupture d'un commun accord avec mon employeur" },
+                        { valeur: "engagement-cdi-ailleurs", texte: "J'ai un engagement en CDI chez un autre employeur" },
+                        { valeur: "aucun", texte: "Aucun de ces cas" },
+                      ] as { valeur: CasRuptureCdd; texte: string }[]
+                    ).map((option) => (
+                      <label key={option.valeur} className="flex items-center gap-2 text-sm text-gray-800">
+                        <input
+                          type="radio"
+                          name="casCdd"
+                          checked={donnees.casCdd === option.valeur}
+                          onChange={() => majChamp("casCdd", option.valeur)}
+                        />
+                        {option.texte}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {donnees.casCdd === "premiere-moitie" && (
+                  <>
+                    <label className="flex items-center gap-2 text-sm text-gray-800">
+                      <input
+                        type="checkbox"
+                        checked={donnees.premierCdd}
+                        onChange={(e) => majChamp("premierCdd", e.target.checked)}
+                      />
+                      C'est bien mon premier CDD chez cet employeur
+                    </label>
+                    <ChampDate
+                      label="Date à laquelle vous envisagez de rompre le contrat"
+                      valeurIso={donnees.dateRupture}
+                      onChange={(iso) => majChamp("dateRupture", iso)}
+                    />
+                  </>
+                )}
+
+                {donnees.casCdd === "commun-accord" && (
+                  <ChampDate
+                    label="Date de fin du contrat convenue"
+                    valeurIso={donnees.dateRupture}
+                    onChange={(iso) => majChamp("dateRupture", iso)}
+                  />
+                )}
+
+                <p className="text-xs text-gray-500 mt-1.5">
+                  La rupture anticipée d'un CDD n'est possible que dans des cas précis. En dehors de ces cas, elle est
+                  illégale et peut entraîner une indemnité à payer à l'employeur.
+                </p>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className={CLASSE_LABEL}>Votre statut</label>
+                  <select
+                    className={CLASSE_INPUT}
+                    value={donnees.statut}
+                    onChange={(e) => majChamp("statut", e.target.value as Statut)}
+                  >
+                    <option value="ouvrier">Ouvrier</option>
+                    <option value="employe">Employé</option>
+                  </select>
+                </div>
+
+                <ChampDate
+                  label="Date d'entrée en service"
+                  valeurIso={donnees.dateEntreeService}
+                  onChange={(iso) => majChamp("dateEntreeService", iso)}
+                />
+
+                {donnees.statut === "ouvrier" && (
               <div>
                 <label className={CLASSE_LABEL}>Commission paritaire</label>
                 <select className={CLASSE_INPUT} value={donnees.cp} onChange={(e) => majChamp("cp", e.target.value)}>
@@ -964,36 +1032,11 @@ export default function FormulairePreavis() {
             )}
 
             {donnees.ruptureChoix === "commun-accord" ? (
-              <>
-                <ChampDate
-                  label="Date de fin du contrat convenue"
-                  valeurIso={donnees.dateRupture}
-                  onChange={(iso) => majChamp("dateRupture", iso)}
-                />
-                <div>
-                  <label className={CLASSE_LABEL}>Le dernier jour, travaillez-vous ou non ?</label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-gray-800">
-                      <input
-                        type="radio"
-                        name="avecPrestation"
-                        checked={donnees.avecPrestation === "avec"}
-                        onChange={() => majChamp("avecPrestation", "avec")}
-                      />
-                      Je travaille ce jour-là
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-800">
-                      <input
-                        type="radio"
-                        name="avecPrestation"
-                        checked={donnees.avecPrestation === "sans"}
-                        onChange={() => majChamp("avecPrestation", "sans")}
-                      />
-                      Je ne travaille pas ce jour-là
-                    </label>
-                  </div>
-                </div>
-              </>
+              <ChampDate
+                label="Date de fin du contrat convenue"
+                valeurIso={donnees.dateRupture}
+                onChange={(iso) => majChamp("dateRupture", iso)}
+              />
             ) : (
               <div>
                 <ChampDate
@@ -1010,6 +1053,8 @@ export default function FormulairePreavis() {
                   atteindre cette date — vous pourrez toujours ajuster la date choisie après avoir vu le résultat.
                 </p>
               </div>
+            )}
+              </>
             )}
 
             <div className="flex justify-end pt-2">
@@ -1070,7 +1115,7 @@ export default function FormulairePreavis() {
                 contexte={{
                   type: "commun-accord",
                   dateFinContratIso: resultat.dateFinContratIso,
-                  avecPrestation: resultat.avecPrestation,
+                  dateEntreeService: resultat.dateEntreeService,
                 }}
               />
             )}
@@ -1096,6 +1141,62 @@ export default function FormulairePreavis() {
                   officiel par un secrétariat social.
                 </p>
               </div>
+            )}
+
+            {resultat.type === "cdd" && (
+              <>
+                <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
+                  <h3 className="font-semibold text-gray-900">Rupture anticipée de votre CDD</h3>
+                  {resultat.resultat.valide ? (
+                    <>
+                      <p className="text-2xl font-bold text-red-700">
+                        {resultat.resultat.dureePreavis ? formaterDureePreavis(resultat.resultat.dureePreavis.jours) : "Sans préavis"}
+                      </p>
+                      {resultat.resultat.dateLimitePremiereMoitie && (
+                        <p className="text-sm text-gray-700">
+                          La 1ère moitié de votre CDD se termine le{" "}
+                          <span className="font-medium">{isoToDateFr(resultat.resultat.dateLimitePremiereMoitie)}</span>.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex gap-2 items-start bg-amber-50 rounded-lg p-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-sm text-amber-800">{resultat.resultat.motifInvalide}</p>
+                    </div>
+                  )}
+                  {resultat.resultat.cas === "premiere-moitie" && (
+                    <p className="text-xs text-gray-400">
+                      Méthode de calcul : même barème qu'une démission ordinaire (art. 37/2), appliqué à l'ancienneté
+                      acquise depuis le début du CDD, corrigé le cas échéant par la réforme du 1er août 2026 (délai
+                      unique d'1 semaine durant les 6 premiers mois pour les CDD ayant débuté à partir de cette date).
+                    </p>
+                  )}
+                  {resultat.resultat.cas === "engagement-cdi-ailleurs" && (
+                    <div className="flex gap-2 items-start bg-amber-50 rounded-lg p-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-sm text-amber-800">
+                        Cette durée d'1 semaine provient d'un support interne FGTB et n'a pas été revérifiée
+                        indépendamment. Contactez votre secrétariat FGTB avant d'agir.
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    Ce module ne génère pas encore de modèle de lettre pour une démission de CDD par recommandé.
+                    Contactez votre secrétariat FGTB pour vous faire aider dans cette démarche.
+                  </p>
+                </div>
+
+                {resultat.resultat.cas === "commun-accord" && resultat.resultat.valide && (
+                  <ConstructeurCourrier
+                    contexte={{
+                      type: "commun-accord",
+                      dateFinContratIso: resultat.dateRupture,
+                      dateEntreeService: resultat.dateDebutCdd,
+                    }}
+                  />
+                )}
+              </>
             )}
 
             {resultat.type === "preavis" && (
@@ -1161,12 +1262,13 @@ export default function FormulairePreavis() {
                       type: "demission",
                       dureeJours: resultat.jours,
                       dateDebut: resultat.dateDebut,
-                      dateFin: resultat.dateFin,
                       dateEnvoiLimite: resultat.dateEnvoiLimite,
+                      dateEntreeService: donnees.dateEntreeService,
                     }}
                   />
                 )}
                 {resultat.contenuOnem && <BlocInformatif contenu={resultat.contenuOnem} />}
+                {resultat.contenuOnem && <BlocInformatif contenu={contenuRulingOnem} />}
                 <BlocInformatif contenu={resultat.contenuProcedures} />
               </>
             )}

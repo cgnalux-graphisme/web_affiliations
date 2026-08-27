@@ -29,13 +29,14 @@ export function contenuProceduresEnvoi(quiRompt: QuiRompt): ContenuInformatif {
             "Une lettre simple, envoyée par la poste normale (sans recommandé), n'est pas valable pour démissionner.",
             "Vous n'auriez aucune preuve que votre employeur l'a reçue, ni à quelle date.",
             "Utilisez toujours la remise en main propre (avec accusé de réception) ou le recommandé.",
+            "Ne prévenez jamais votre employeur seulement à l'oral, par mail ou par SMS : ce n'est pas valable pour démissionner.",
           ],
         },
       ],
       pointsCles: [
         "2 façons valables : remise en main propre avec accusé de réception, ou courrier recommandé.",
         "La remise en main propre fait effet tout de suite ; le recommandé fait effet quelques jours plus tard.",
-        "Une lettre simple (non recommandée) ne suffit pas.",
+        "Une lettre simple, un appel, un mail ou un SMS ne suffisent jamais.",
       ],
       avertissement:
         "Ce texte explique les règles générales. En cas de doute sur votre situation, contactez votre secrétariat FGTB avant d'envoyer votre lettre.",

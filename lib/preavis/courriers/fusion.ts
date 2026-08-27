@@ -1,12 +1,7 @@
 import { isoToDateFr } from "../../dates";
+import { nombreEnLettresFr } from "../nombre-lettres";
 import type { DateISO } from "../types";
-import {
-  TEMPLATE_COMMUN_ACCORD,
-  TEMPLATE_NOTIFICATION_DEMISSION,
-  MENTION_PRESTATION_AVEC,
-  MENTION_PRESTATION_SANS,
-  MENTION_PRESTATION_NON_RESOLUE,
-} from "./templates";
+import { TEMPLATE_COMMUN_ACCORD, TEMPLATE_NOTIFICATION_DEMISSION } from "./templates";
 
 /** Pointillés de remplacement pour un champ non renseigné (fidèle à la mise en page des documents originaux). */
 const POINTILLES = "...........................................";
@@ -28,15 +23,11 @@ export interface DonneesIdentite {
 
 export interface DonneesConventionCommunAccord extends DonneesIdentite {
   siegeEmployeur?: string;
+  /** Date à laquelle le contrat rompu avait été conclu (Annexe B : "conclu entre elles le ..."). */
+  dateEntreeServiceIso?: DateISO;
+  /** Fonction occupée par le travailleur (Annexe B : "pour la fonction de ..."). */
+  fonction?: string;
   dateFinContratIso: DateISO;
-  /** true = "après l'exécution de la journée de travail", false = "sans prestation ce jour-là", non précisé = les deux options + note "biffer" (comme l'original). */
-  avecPrestation?: boolean;
-}
-
-function formaterMentionPrestation(avecPrestation: boolean | undefined): string {
-  if (avecPrestation === true) return MENTION_PRESTATION_AVEC;
-  if (avecPrestation === false) return MENTION_PRESTATION_SANS;
-  return MENTION_PRESTATION_NON_RESOLUE;
 }
 
 export function genererConventionCommunAccord(donnees: DonneesConventionCommunAccord): string {
@@ -44,25 +35,25 @@ export function genererConventionCommunAccord(donnees: DonneesConventionCommunAc
     NOM_TRAVAILLEUR: donnees.nomTravailleur ?? POINTILLES,
     DOMICILE_TRAVAILLEUR: donnees.domicileTravailleur ?? POINTILLES,
     NOM_EMPLOYEUR: donnees.nomEmployeur ?? POINTILLES,
-    // Non collecté par le wizard (design spec §3) : toujours en pointillés.
-    REPRESENTANT_EMPLOYEUR: POINTILLES,
     SIEGE_EMPLOYEUR: donnees.siegeEmployeur ?? POINTILLES,
-    // Champ requis dans le flux principal (§3), mais un appelant peut désormais
-    // présenter ce courrier avant que la date ne soit renseignée (ex. bascule
-    // vers "commun accord" depuis un contexte démission) — repli sur les
-    // pointillés plutôt que d'afficher une date vide.
+    DATE_ENTREE_SERVICE: donnees.dateEntreeServiceIso ? isoToDateFr(donnees.dateEntreeServiceIso) : POINTILLES,
+    FONCTION: donnees.fonction ?? POINTILLES,
+    // Un appelant peut présenter ce courrier avant que la date ne soit
+    // renseignée (ex. bascule vers "commun accord" depuis un contexte
+    // démission) — repli sur les pointillés plutôt que d'afficher une date vide.
     DATE_FIN_CONTRAT: donnees.dateFinContratIso ? isoToDateFr(donnees.dateFinContratIso) : POINTILLES,
-    MENTION_PRESTATION: formaterMentionPrestation(donnees.avecPrestation),
     LIEU_SIGNATURE: donnees.lieuSignature ?? POINTILLES,
     DATE_SIGNATURE: donnees.dateSignatureIso ? isoToDateFr(donnees.dateSignatureIso) : POINTILLES,
   };
   return fusionner(TEMPLATE_COMMUN_ACCORD, champs);
 }
 
-export interface DonneesNotificationDemission extends DonneesIdentite {
+export interface DonneesNotificationDemission {
   dureeJours: number;
   dateDebutPreavisIso: DateISO;
-  dateFinPreavisIso: DateISO;
+  /** Ligne "Lieu, le Date" en tête du courrier (Annexe A) — l'adresse de l'expéditeur/destinataire est gérée par le composant PDF, pas par ce texte. */
+  lieuSignature?: string;
+  dateSignatureIso?: DateISO;
 }
 
 /**
@@ -76,14 +67,17 @@ export function formaterDureePreavis(jours: number): string {
   return semaines <= 1 ? "1 semaine" : `${semaines} semaines`;
 }
 
+/** Nombre de semaines entier le plus proche, utilisé à la fois pour l'affichage et l'écriture en toutes lettres. */
+function semainesArrondies(jours: number): number {
+  return Math.max(1, Math.round(jours / 7));
+}
+
 export function genererNotificationDemission(donnees: DonneesNotificationDemission): string {
+  const semaines = semainesArrondies(donnees.dureeJours);
   const champs: Champs = {
-    NOM_TRAVAILLEUR: donnees.nomTravailleur ?? POINTILLES,
-    DOMICILE_TRAVAILLEUR: donnees.domicileTravailleur ?? POINTILLES,
-    NOM_EMPLOYEUR: donnees.nomEmployeur ?? POINTILLES,
-    DUREE_PREAVIS: formaterDureePreavis(donnees.dureeJours),
+    DUREE_SEMAINES: String(semaines),
+    DUREE_SEMAINES_LETTRES: nombreEnLettresFr(semaines, { feminin: true }),
     DATE_DEBUT_PREAVIS: isoToDateFr(donnees.dateDebutPreavisIso),
-    DATE_FIN_PREAVIS: isoToDateFr(donnees.dateFinPreavisIso),
     LIEU_SIGNATURE: donnees.lieuSignature ?? POINTILLES,
     DATE_SIGNATURE: donnees.dateSignatureIso ? isoToDateFr(donnees.dateSignatureIso) : POINTILLES,
   };

@@ -3,7 +3,7 @@ import { contenuOnemSanctions } from "./contenu-onem-sanctions";
 
 describe("contenuOnemSanctions", () => {
   it("a une date de dernière vérification", () => {
-    expect(contenuOnemSanctions.derniereVerification).toBe("2026-08-25");
+    expect(contenuOnemSanctions.derniereVerification).toBe("2026-08-27");
   });
 
   it("a au moins une section", () => {
@@ -23,6 +23,18 @@ describe("contenuOnemSanctions", () => {
     const texteComplet = contenuOnemSanctions.sections.flatMap((s) => s.phrases).join(" ");
     expect(texteComplet).toContain("1er mars 2026");
     expect(texteComplet).toContain("10 ans");
+  });
+
+  it("mentionne la suspension pouvant atteindre 1 an (support interne Récap démission)", () => {
+    const texteComplet = contenuOnemSanctions.sections.flatMap((s) => s.phrases).join(" ");
+    expect(texteComplet).toContain("jusqu'à 1 an");
+  });
+
+  it("mentionne les 3 stratégies d'évitement (réembauche 13 semaines, motif légitime, ruling)", () => {
+    const texteComplet = contenuOnemSanctions.sections.flatMap((s) => s.phrases).join(" ");
+    expect(texteComplet).toContain("13 semaines");
+    expect(texteComplet).toContain("harcèlement");
+    expect(texteComplet).toContain("ruling");
   });
 
   it("recommande de contacter le secrétariat FGTB avant de démissionner", () => {

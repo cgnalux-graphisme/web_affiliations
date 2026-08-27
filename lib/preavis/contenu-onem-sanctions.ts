@@ -4,45 +4,53 @@ import type { ContenuInformatif } from "./types";
  * Contenu informatif sur les allocations de chômage après une démission
  * ("chômage volontaire"), écrit en langage simple (design spec §8, §12.3).
  *
- * Source : réforme ONEM du 1er mars 2026 ("droit au rebond"). Les chiffres
- * exacts (durée précise de suspension, liste complète des motifs
- * légitimes) n'ont pas été confirmés sur une source primaire — à faire
- * relire par le secrétariat juridique FGTB avant mise en production
- * (voir design spec §12.3).
+ * Structure voulue par la Centrale Générale FGTB Namur-Luxembourg (analyse du
+ * support interne "Récap démission", 2026-08-27) : d'abord la règle de base
+ * et les stratégies d'évitement telles que décrites dans ce support, puis un
+ * encart séparé sur la nouveauté 2026 ("droit au rebond"), dont les chiffres
+ * exacts n'ont pas été confirmés sur une source primaire — à faire relire par
+ * le secrétariat juridique FGTB avant mise en production (voir design spec
+ * §12.3). Dans les deux cas, le message central reste : contacter le
+ * secrétariat FGTB AVANT de démissionner pour faire vérifier sa situation.
  */
 export const contenuOnemSanctions: ContenuInformatif = {
-  derniereVerification: "2026-08-25",
+  derniereVerification: "2026-08-27",
   sections: [
     {
       titre: "Qu'est-ce qui se passe si vous démissionnez ?",
       phrases: [
-        "Si vous démissionnez, l'ONEM peut refuser de vous payer des allocations de chômage.",
-        "On appelle cela une sanction pour « chômage volontaire ».",
-        "Une nouvelle règle existe depuis le 1er mars 2026. Elle s'appelle le « droit au rebond ».",
-        "Avec cette nouvelle règle, démissionner n'entraîne plus toujours un refus complet des allocations.",
+        "Si vous démissionnez, l'ONEM peut considérer que vous avez abandonné votre emploi volontairement.",
+        "Dans ce cas, l'ONEM peut suspendre votre droit aux allocations de chômage.",
+        "Cette suspension peut durer longtemps : jusqu'à 1 an.",
       ],
     },
     {
-      titre: "À quelles conditions pouvez-vous toucher des allocations ?",
+      titre: "Comment prévenir cette sanction ?",
       phrases: [
-        "Il faut avoir travaillé pendant longtemps : environ 10 ans de carrière.",
-        "Si vous remplissez cette condition, vous pouvez recevoir des allocations pendant 6 mois maximum après votre démission.",
+        "1. Trouvez un nouvel emploi qui commence tout de suite après votre préavis, sans passer par le chômage entre les deux.",
+        "Ce nouvel emploi doit durer au moins 13 semaines d'affilée.",
+        "2. Prouvez que vous aviez une bonne raison de démissionner.",
+        "Par exemple : harcèlement, salaire non payé, conditions de travail abusives, intervention syndicale, ou problème de santé avec certificat médical.",
+        "3. Demandez à l'avance à l'ONEM ce qu'il décidera dans votre situation précise : c'est le « ruling ».",
+        "Voir plus bas la section sur le ruling ONEM pour plus de détails.",
       ],
     },
     {
-      titre: "Et si vous n'avez pas assez d'ancienneté, ou si votre raison de démissionner n'est pas acceptée ?",
+      titre: "Nouveauté 2026 : le « droit au rebond »",
       phrases: [
-        "L'ONEM peut alors suspendre vos allocations pendant plusieurs semaines (environ 8 à 9 semaines).",
-        "Après cette suspension, vous pouvez recevoir vos allocations normalement.",
+        "Depuis le 1er mars 2026, une nouvelle règle appelée « droit au rebond » existe en plus de ce qui précède.",
+        "Elle pourrait, sous certaines conditions, améliorer votre situation après une démission.",
+        "Il faut environ 10 ans de carrière pour en bénéficier.",
+        "Cette règle est très récente et ses détails précis ne sont pas encore totalement stabilisés.",
       ],
     },
   ],
   pointsCles: [
-    "Démissionner ne veut plus dire perdre automatiquement tout droit aux allocations.",
-    "Les règles exactes dépendent de votre situation personnelle (ancienneté, motif de la démission).",
-    "Les chiffres précis (durée de suspension, conditions détaillées) peuvent varier selon votre dossier.",
-    "Contactez votre secrétariat FGTB avant de démissionner, surtout si vous pensez avoir besoin d'allocations de chômage.",
+    "Une démission peut entraîner une suspension de vos allocations de chômage pouvant atteindre 1 an.",
+    "Il existe des moyens concrets de prévenir cette sanction : nouvel emploi immédiat, motif légitime prouvé, ou ruling ONEM demandé à l'avance.",
+    "La nouvelle règle 2026 (« droit au rebond ») peut, dans certains cas, améliorer votre situation — mais elle doit être vérifiée au cas par cas.",
+    "Contactez votre secrétariat FGTB AVANT de donner votre démission, pour faire vérifier votre situation précise et éviter une mauvaise surprise avec l'ONEM.",
   ],
   avertissement:
-    "Ces règles ont changé en 2026 et peuvent encore évoluer. Ce texte donne une explication simple, pas un calcul exact de vos droits. Pour connaître votre situation, contactez votre secrétariat FGTB avant de démissionner.",
+    "Ce texte donne une explication simple, pas un calcul exact de vos droits. Les règles ONEM (dont le « droit au rebond », très récent) peuvent encore évoluer. Contactez votre secrétariat FGTB avant de démissionner pour faire vérifier votre situation.",
 };

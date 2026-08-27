@@ -52,6 +52,8 @@ export interface SectionInfo {
   titre: string;
   /** Chaque entrée est une phrase courte et autonome, à afficher séparément. */
   phrases: string[];
+  /** Lien optionnel affiché à la fin de la section (ex. formulaire officiel à télécharger). */
+  lien?: { texte: string; url: string };
 }
 
 export interface ContenuInformatif {
