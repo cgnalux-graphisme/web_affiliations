@@ -36,8 +36,8 @@ describe("joursParEraDate — exemple ACCG CP124 démission (embauche 1993-02-02
 describe("intégrité du registre REGISTRE", () => {
   const entries = Object.entries(REGISTRE);
 
-  it("couvre bien les 6 CP prioritaires", () => {
-    expect(entries.length).toBe(6);
+  it("couvre les 6 CP prioritaires + les 49 CP supplémentaires extraites du classeur ACCG", () => {
+    expect(entries.length).toBe(55);
   });
 
   it.each(entries)("%s : le champ cp de la table correspond à la clé du registre", (cle, table) => {
