@@ -18,8 +18,19 @@ export function debutPreavisDepuisEnvoi(dateEnvoi: DateISO): DateISO {
 
 /** Date de fin (dernier jour inclus) du préavis, N semaines après le début. */
 export function finPreavis(dateDebut: DateISO, semaines: number): DateISO {
+  return finPreavisJours(dateDebut, semaines * 7);
+}
+
+/**
+ * Date de fin (dernier jour inclus) du préavis, en jours exacts. À utiliser
+ * de préférence à finPreavis() pour un total ouvrier "sac à dos" (Task 7),
+ * dont la partie 1 (pré-2014) peut ne pas être un multiple de 7 jours —
+ * passer `semaines * 7` à finPreavis() dans ce cas réintroduirait une
+ * imprécision (semaines déjà arrondie à 2 décimales dans DureePreavis).
+ */
+export function finPreavisJours(dateDebut: DateISO, jours: number): DateISO {
   const debut = toDate(dateDebut);
-  debut.setUTCDate(debut.getUTCDate() + semaines * 7 - 1);
+  debut.setUTCDate(debut.getUTCDate() + jours - 1);
   return toISO(debut);
 }
 
