@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-affiliations-preavis",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", ".worktrees/preavis-moteur", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}
