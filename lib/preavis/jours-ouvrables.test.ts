@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { estJourFerieLegalBE, estJourOuvrable, joursOuvrablesApres, premierLundiApres } from "./jours-ouvrables";
+import {
+  estJourFerieLegalBE,
+  estJourOuvrable,
+  joursOuvrablesApres,
+  premierLundiApres,
+  lundiDeLaSemaineSuivante,
+} from "./jours-ouvrables";
 
 describe("estJourFerieLegalBE", () => {
   it("reconnaît le 1er mai comme férié", () => {
@@ -45,5 +51,26 @@ describe("premierLundiApres", () => {
 
   it("avance au lundi suivant sinon", () => {
     expect(premierLundiApres("2026-08-25")).toBe("2026-08-31");
+  });
+});
+
+describe("lundiDeLaSemaineSuivante", () => {
+  // Exemple chiffré du support "Récap démission" (Centrale Générale FGTB) :
+  // un envoi le mercredi (2026-09-02) et un envoi le jeudi (2026-09-03) ne
+  // doivent PAS démarrer le préavis le même lundi — l'envoi du jeudi reporte
+  // d'une semaine complète supplémentaire.
+  it("mercredi + 3 jours ouvrables (samedi 2026-09-05) -> lundi 2026-09-07", () => {
+    // Samedi n'est pas lui-même un lundi : on avance simplement au lundi de la semaine suivante.
+    expect(lundiDeLaSemaineSuivante("2026-09-05")).toBe("2026-09-07");
+  });
+
+  it("jeudi + 3 jours ouvrables (lundi 2026-09-07) -> lundi 2026-09-14 (et non le jour même)", () => {
+    // Le 3e jour ouvrable tombe déjà un lundi : la règle empêche un départ le jour même.
+    expect(lundiDeLaSemaineSuivante("2026-09-07")).toBe("2026-09-14");
+  });
+
+  it("diffère de premierLundiApres précisément quand l'entrée est déjà un lundi", () => {
+    expect(premierLundiApres("2026-09-07")).toBe("2026-09-07");
+    expect(lundiDeLaSemaineSuivante("2026-09-07")).toBe("2026-09-14");
   });
 });

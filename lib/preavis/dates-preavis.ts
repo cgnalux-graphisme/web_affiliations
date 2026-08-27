@@ -1,4 +1,4 @@
-import { joursOuvrablesApres, premierLundiApres } from "./jours-ouvrables";
+import { joursOuvrablesApres, lundiDeLaSemaineSuivante } from "./jours-ouvrables";
 import type { DateISO } from "./types";
 
 function toDate(iso: DateISO): Date {
@@ -10,10 +10,15 @@ function toISO(date: Date): DateISO {
   return date.toISOString().slice(0, 10);
 }
 
-/** Date de début du préavis à partir d'une date d'envoi du recommandé (Art. 37 §2). */
+/**
+ * Date de début du préavis à partir d'une date d'envoi du recommandé (Art. 37
+ * §2) : le préavis prend cours le lundi qui suit la semaine durant laquelle
+ * se situe le 3e jour ouvrable après l'envoi — même si ce 3e jour ouvrable
+ * tombe lui-même un lundi (voir lundiDeLaSemaineSuivante).
+ */
 export function debutPreavisDepuisEnvoi(dateEnvoi: DateISO): DateISO {
   const troisiemeJourOuvrable = joursOuvrablesApres(dateEnvoi, 3);
-  return premierLundiApres(troisiemeJourOuvrable);
+  return lundiDeLaSemaineSuivante(troisiemeJourOuvrable);
 }
 
 /** Date de fin (dernier jour inclus) du préavis, N semaines après le début. */

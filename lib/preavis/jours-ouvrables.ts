@@ -81,3 +81,23 @@ export function premierLundiApres(iso: DateISO): DateISO {
   const decalage = jourSemaine === 0 ? 1 : 8 - jourSemaine;
   return toISO(ajouterJours(date, decalage));
 }
+
+/**
+ * Lundi de la semaine qui suit la semaine calendaire contenant `iso` — donc
+ * TOUJOURS strictement après la semaine de `iso`, y compris si `iso` est
+ * lui-même un lundi (contrairement à premierLundiApres, qui renvoie alors le
+ * même jour). C'est la règle utilisée par l'art. 37 pour la prise de cours
+ * du préavis envoyé par recommandé : si le 3e jour ouvrable après l'envoi
+ * tombe un lundi, le préavis ne démarre pas ce jour-là mais le lundi
+ * suivant. Confirmé par un exemple chiffré du support interne "Récap
+ * démission" de la Centrale Générale FGTB (envoi un jeudi -> report d'une
+ * semaine complète par rapport à un envoi le mercredi précédent).
+ */
+export function lundiDeLaSemaineSuivante(iso: DateISO): DateISO {
+  const date = toDate(iso);
+  const jourSemaine = date.getUTCDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
+  // Recule jusqu'au lundi de la semaine de `iso` (0 jour de recul si `iso` est déjà lundi).
+  const decalageVersLundi = jourSemaine === 0 ? 6 : jourSemaine - 1;
+  const lundiDeCetteSemaine = ajouterJours(date, -decalageVersLundi);
+  return toISO(ajouterJours(lundiDeCetteSemaine, 7));
+}

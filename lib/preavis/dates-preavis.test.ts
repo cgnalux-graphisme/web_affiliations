@@ -37,4 +37,12 @@ describe("dateLimiteEnvoiRecommande", () => {
     // La date limite trouvée doit elle-même produire ce même début si on l'utilise comme date d'envoi.
     expect(debutPreavisDepuisEnvoi(limite)).toBe(debut);
   });
+
+  it("la limite d'envoi pour un début le lundi 2026-09-07 est le mercredi 2026-09-02 (pas le jeudi)", () => {
+    // Un envoi le jeudi 2026-09-03 décale le début d'une semaine complète
+    // (voir lundiDeLaSemaineSuivante) : la limite doit donc être le mercredi.
+    expect(dateLimiteEnvoiRecommande("2026-09-07")).toBe("2026-09-02");
+    expect(debutPreavisDepuisEnvoi("2026-09-02")).toBe("2026-09-07");
+    expect(debutPreavisDepuisEnvoi("2026-09-03")).toBe("2026-09-14");
+  });
 });
