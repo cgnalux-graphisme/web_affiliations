@@ -23,6 +23,7 @@ export interface DonneesIdentite {
   domicileTravailleur?: string;
   nomEmployeur?: string;
   lieuSignature?: string;
+  dateSignatureIso?: DateISO;
 }
 
 export interface DonneesConventionCommunAccord extends DonneesIdentite {
@@ -49,8 +50,7 @@ export function genererConventionCommunAccord(donnees: DonneesConventionCommunAc
     DATE_FIN_CONTRAT: isoToDateFr(donnees.dateFinContratIso),
     MENTION_PRESTATION: formaterMentionPrestation(donnees.avecPrestation),
     LIEU_SIGNATURE: donnees.lieuSignature ?? POINTILLES,
-    // Non collecté par le wizard (design spec §3) : toujours en pointillés.
-    DATE_SIGNATURE: POINTILLES,
+    DATE_SIGNATURE: donnees.dateSignatureIso ? isoToDateFr(donnees.dateSignatureIso) : POINTILLES,
   };
   return fusionner(TEMPLATE_COMMUN_ACCORD, champs);
 }
@@ -61,12 +61,15 @@ export interface DonneesNotificationDemission extends DonneesIdentite {
   dateFinPreavisIso: DateISO;
 }
 
-/** "91 jours (13 semaines)" si le nombre de jours est un multiple de 7, sinon "44 jours" seul. */
+/**
+ * "13 semaines" — exprimé uniquement en semaines (arrondi à la semaine la
+ * plus proche), pour rester compréhensible sans connaissance du détail légal
+ * en jours. Le nombre de jours exact reste la donnée de référence utilisée
+ * pour tous les calculs de dates ; seul l'affichage est simplifié.
+ */
 export function formaterDureePreavis(jours: number): string {
-  if (jours % 7 === 0) {
-    return `${jours} jours (${jours / 7} semaines)`;
-  }
-  return `${jours} jours`;
+  const semaines = Math.round(jours / 7);
+  return semaines <= 1 ? "1 semaine" : `${semaines} semaines`;
 }
 
 export function genererNotificationDemission(donnees: DonneesNotificationDemission): string {
@@ -78,8 +81,7 @@ export function genererNotificationDemission(donnees: DonneesNotificationDemissi
     DATE_DEBUT_PREAVIS: isoToDateFr(donnees.dateDebutPreavisIso),
     DATE_FIN_PREAVIS: isoToDateFr(donnees.dateFinPreavisIso),
     LIEU_SIGNATURE: donnees.lieuSignature ?? POINTILLES,
-    // Non collecté par le wizard (design spec §3) : toujours en pointillés.
-    DATE_SIGNATURE: POINTILLES,
+    DATE_SIGNATURE: donnees.dateSignatureIso ? isoToDateFr(donnees.dateSignatureIso) : POINTILLES,
   };
   return fusionner(TEMPLATE_NOTIFICATION_DEMISSION, champs);
 }

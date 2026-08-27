@@ -52,6 +52,15 @@ describe("genererConventionCommunAccord", () => {
     expect(texte).toContain(`la date du 30/09/2026, ${MENTION_PRESTATION_SANS}.`);
     expect(texte).not.toContain("biffer");
   });
+
+  it("interpole la date de signature fournie", () => {
+    const texte = genererConventionCommunAccord({
+      dateFinContratIso: "2026-09-30",
+      lieuSignature: "Namur",
+      dateSignatureIso: "2026-08-21",
+    });
+    expect(texte).toContain("Fait en deux exemplaires à Namur, le 21/08/2026");
+  });
 });
 
 describe("genererNotificationDemission", () => {
@@ -67,23 +76,41 @@ describe("genererNotificationDemission", () => {
     expect(texte).not.toContain("{{");
   });
 
-  it("affiche la durée en jours et semaines quand le nombre de jours est un multiple de 7", () => {
+  it("affiche la durée en semaines uniquement (91 jours = 13 semaines)", () => {
     const texte = genererNotificationDemission({
       dureeJours: 91,
       dateDebutPreavisIso: "2026-09-07",
       dateFinPreavisIso: "2026-11-15",
     });
-    expect(texte).toContain("91 jours (13 semaines)");
+    expect(texte).toContain("13 semaines");
+    expect(texte).not.toContain("jours");
   });
 
-  it("affiche la durée en jours seulement quand ce n'est pas un multiple de 7", () => {
+  it("arrondit à la semaine la plus proche quand ce n'est pas un multiple de 7 (44 jours -> 6 semaines)", () => {
     const texte = genererNotificationDemission({
       dureeJours: 44,
       dateDebutPreavisIso: "2026-09-07",
       dateFinPreavisIso: "2026-10-20",
     });
-    expect(texte).toContain("44 jours");
-    expect(texte).not.toContain("semaines)");
+    expect(texte).toContain("6 semaines");
+  });
+
+  it("interpole la date de signature fournie, sinon garde les pointillés", () => {
+    const avecDate = genererNotificationDemission({
+      dureeJours: 91,
+      dateDebutPreavisIso: "2026-09-07",
+      dateFinPreavisIso: "2026-11-15",
+      dateSignatureIso: "2026-08-21",
+    });
+    expect(avecDate).toContain("le 21/08/2026");
+
+    const sansDate = genererNotificationDemission({
+      dureeJours: 91,
+      dateDebutPreavisIso: "2026-09-07",
+      dateFinPreavisIso: "2026-11-15",
+    });
+    const pointilles = "...........................................";
+    expect(sansDate).toContain(`Fait à ${pointilles}, le ${pointilles}`);
   });
 
   it("interpole les dates au format JJ/MM/AAAA et répète correctement la date de début (×2)", () => {
