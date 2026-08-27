@@ -6,7 +6,8 @@ import { isoToDateFr, formatDateFr, dateFrToIso } from "./lib/dates";
 import type { QuiRompt, Statut } from "./lib/preavis/types";
 import { calculerPreavisOuvrier } from "./lib/preavis/calcul-preavis";
 import { calculerPreavisEmploye } from "./lib/preavis/calcul-preavis-employe";
-import { debutPreavisDepuisEnvoi, finPreavisJours } from "./lib/preavis/dates-preavis";
+import { debutPreavisDepuisEnvoi, finPreavisJours, dateLimiteEnvoiRecommande } from "./lib/preavis/dates-preavis";
+import { premierLundiApres } from "./lib/preavis/jours-ouvrables";
 import {
   genererConventionCommunAccord,
   genererNotificationDemission,
@@ -75,6 +76,9 @@ type Resultat =
       semaines: number;
       dateDebut: string;
       dateFin: string;
+      dateEnvoiLimite: string;
+      dateEnvoiDepassee: boolean;
+      dateDebutAuPlusTot: string | null;
       avertissement: string | null;
       indemniteCompensatoireJours: number | null;
       courrier: string | undefined;
@@ -139,7 +143,10 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
 
   const quiRompt: QuiRompt = d.ruptureChoix === "employeur" ? "employeur" : "travailleur";
   const remuneration = Number(d.remunerationAnnuelle) || 0;
-  const dateDebut = debutPreavisDepuisEnvoi(d.dateRupture);
+  // Le préavis démarre toujours un lundi (Art. 37) : on aligne la date souhaitée par
+  // l'utilisateur sur le lundi légal correspondant, plutôt que de lui demander de le
+  // deviner lui-même.
+  const dateDebut = premierLundiApres(d.dateRupture);
 
   if (quiRompt === "employeur" && d.modeEmployeur === "indemnite") {
     const { jours } = calculerJoursEtAvertissement(d, "employeur", dateDebut, remuneration);
@@ -155,6 +162,14 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
     remuneration,
   );
   const dateFin = finPreavisJours(dateDebut, jours);
+
+  // Date limite d'envoi du recommandé pour atteindre ce début de préavis, et
+  // vérification que cette date limite n'est pas déjà dépassée par rapport à
+  // aujourd'hui (l'utilisateur reste libre de modifier sa date à l'étape précédente).
+  const dateEnvoiLimite = dateLimiteEnvoiRecommande(dateDebut);
+  const aujourdHui = new Date().toISOString().slice(0, 10);
+  const dateEnvoiDepassee = dateEnvoiLimite < aujourdHui;
+  const dateDebutAuPlusTot = dateEnvoiDepassee ? debutPreavisDepuisEnvoi(aujourdHui) : null;
 
   const courrier =
     quiRompt === "travailleur"
@@ -175,6 +190,9 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
     semaines: jours / 7,
     dateDebut,
     dateFin,
+    dateEnvoiLimite,
+    dateEnvoiDepassee,
+    dateDebutAuPlusTot,
     avertissement,
     indemniteCompensatoireJours,
     courrier,
@@ -312,15 +330,23 @@ export default function FormulairePreavis() {
   }
 
   const dateRuptureValide = donnees.dateRupture !== "";
-  const remunerationRequise =
-    donnees.statut === "employe" || (donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite");
   const situationValide =
     donnees.dateEntreeService !== "" &&
     dateRuptureValide &&
-    (donnees.ruptureChoix !== "commun-accord" || donnees.avecPrestation !== "") &&
-    (!remunerationRequise || donnees.remunerationAnnuelle !== "");
+    (donnees.ruptureChoix !== "commun-accord" || donnees.avecPrestation !== "");
+
+  // La rémunération n'influence le résultat que dans deux cas : le calcul employé
+  // pour l'ancienneté acquise avant 2014 (le seuil légal dépend du salaire), et
+  // l'estimation d'indemnité en cas de rupture immédiate. On ne la demande donc
+  // jamais à l'étape "situation", pour obtenir le délai de préavis le plus vite
+  // possible — elle est demandée à l'étape suivante, seulement si nécessaire.
+  const remunerationRequise =
+    (donnees.statut === "employe" && donnees.dateEntreeService !== "" && donnees.dateEntreeService < "2014-01-01") ||
+    (donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite");
 
   const afficheCoordonnees = donnees.ruptureChoix === "travailleur" || donnees.ruptureChoix === "commun-accord";
+  const afficheEtapeIntermediaire = afficheCoordonnees || remunerationRequise;
+  const etapeIntermediaireValide = !remunerationRequise || donnees.remunerationAnnuelle !== "";
 
   const resultat = useMemo<Resultat | null>(() => {
     if (etape !== "resultat") return null;
@@ -433,21 +459,6 @@ export default function FormulairePreavis() {
               </div>
             )}
 
-            {(donnees.statut === "employe" ||
-              (donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite")) && (
-              <div>
-                <label className={CLASSE_LABEL}>Rémunération annuelle brute (€)</label>
-                <input
-                  type="number"
-                  min={0}
-                  className={CLASSE_INPUT}
-                  value={donnees.remunerationAnnuelle}
-                  onChange={(e) => majChamp("remunerationAnnuelle", e.target.value)}
-                  placeholder="Ex : 35000"
-                />
-              </div>
-            )}
-
             {donnees.ruptureChoix === "commun-accord" ? (
               <>
                 <ChampDate
@@ -480,22 +491,28 @@ export default function FormulairePreavis() {
                 </div>
               </>
             ) : (
-              <ChampDate
-                label={
-                  donnees.ruptureChoix === "travailleur"
-                    ? "Date à laquelle vous prévoyez d'envoyer votre lettre recommandée"
-                    : "Date à laquelle votre employeur prévoit d'envoyer le recommandé (ou l'huissier)"
-                }
-                valeurIso={donnees.dateRupture}
-                onChange={(iso) => majChamp("dateRupture", iso)}
-              />
+              <div>
+                <ChampDate
+                  label={
+                    donnees.ruptureChoix === "travailleur"
+                      ? "Date à laquelle vous souhaitez démissionner (1er jour de votre préavis)"
+                      : "Date à laquelle vous pensez que votre préavis débutera"
+                  }
+                  valeurIso={donnees.dateRupture}
+                  onChange={(iso) => majChamp("dateRupture", iso)}
+                />
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Le préavis démarre toujours un lundi. Nous calculerons la date limite pour envoyer le recommandé et
+                  atteindre cette date — vous pourrez toujours ajuster la date choisie après avoir vu le résultat.
+                </p>
+              </div>
             )}
 
             <div className="flex justify-end pt-2">
               <button
                 type="button"
                 disabled={!situationValide}
-                onClick={() => setEtape(afficheCoordonnees ? "coordonnees" : "resultat")}
+                onClick={() => setEtape(afficheEtapeIntermediaire ? "coordonnees" : "resultat")}
                 className={CLASSE_BOUTON_PRIMAIRE}
               >
                 Suivant
@@ -507,65 +524,93 @@ export default function FormulairePreavis() {
 
         {etape === "coordonnees" && (
           <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
-            <p className="text-sm text-gray-600">
-              Ces informations sont facultatives. Elles servent uniquement à pré-remplir votre courrier — vous
-              pourrez toujours le compléter ou le corriger vous-même avant de l'envoyer.
-            </p>
-            <div>
-              <label className={CLASSE_LABEL}>Votre nom</label>
-              <input
-                type="text"
-                className={CLASSE_INPUT}
-                value={donnees.nomTravailleur}
-                onChange={(e) => majChamp("nomTravailleur", e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={CLASSE_LABEL}>Votre domicile</label>
-              <input
-                type="text"
-                className={CLASSE_INPUT}
-                value={donnees.domicileTravailleur}
-                onChange={(e) => majChamp("domicileTravailleur", e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={CLASSE_LABEL}>Nom de votre employeur / de la société</label>
-              <input
-                type="text"
-                className={CLASSE_INPUT}
-                value={donnees.nomEmployeur}
-                onChange={(e) => majChamp("nomEmployeur", e.target.value)}
-              />
-            </div>
-            {donnees.ruptureChoix === "commun-accord" && (
+            {remunerationRequise && (
               <div>
-                <label className={CLASSE_LABEL}>Siège de l'employeur / de la société</label>
+                <label className={CLASSE_LABEL}>Rémunération annuelle brute (€)</label>
                 <input
-                  type="text"
+                  type="number"
+                  min={0}
                   className={CLASSE_INPUT}
-                  value={donnees.siegeEmployeur}
-                  onChange={(e) => majChamp("siegeEmployeur", e.target.value)}
+                  value={donnees.remunerationAnnuelle}
+                  onChange={(e) => majChamp("remunerationAnnuelle", e.target.value)}
+                  placeholder="Ex : 35000"
                 />
+                <p className="text-xs text-gray-500 mt-1.5">
+                  {donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite"
+                    ? "Nécessaire pour estimer le montant de l'indemnité."
+                    : "Nécessaire car votre ancienneté avant 2014 dépend d'un seuil de rémunération légal."}
+                </p>
               </div>
             )}
-            <div>
-              <label className={CLASSE_LABEL}>Lieu de signature souhaité</label>
-              <input
-                type="text"
-                className={CLASSE_INPUT}
-                value={donnees.lieuSignature}
-                onChange={(e) => majChamp("lieuSignature", e.target.value)}
-                placeholder="Ex : Namur"
-              />
-            </div>
+
+            {afficheCoordonnees && (
+              <>
+                <p className="text-sm text-gray-600">
+                  Ces informations sont facultatives. Elles servent uniquement à pré-remplir votre courrier — vous
+                  pourrez toujours le compléter ou le corriger vous-même avant de l'envoyer.
+                </p>
+                <div>
+                  <label className={CLASSE_LABEL}>Votre nom</label>
+                  <input
+                    type="text"
+                    className={CLASSE_INPUT}
+                    value={donnees.nomTravailleur}
+                    onChange={(e) => majChamp("nomTravailleur", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={CLASSE_LABEL}>Votre domicile</label>
+                  <input
+                    type="text"
+                    className={CLASSE_INPUT}
+                    value={donnees.domicileTravailleur}
+                    onChange={(e) => majChamp("domicileTravailleur", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={CLASSE_LABEL}>Nom de votre employeur / de la société</label>
+                  <input
+                    type="text"
+                    className={CLASSE_INPUT}
+                    value={donnees.nomEmployeur}
+                    onChange={(e) => majChamp("nomEmployeur", e.target.value)}
+                  />
+                </div>
+                {donnees.ruptureChoix === "commun-accord" && (
+                  <div>
+                    <label className={CLASSE_LABEL}>Siège de l'employeur / de la société</label>
+                    <input
+                      type="text"
+                      className={CLASSE_INPUT}
+                      value={donnees.siegeEmployeur}
+                      onChange={(e) => majChamp("siegeEmployeur", e.target.value)}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className={CLASSE_LABEL}>Lieu de signature souhaité</label>
+                  <input
+                    type="text"
+                    className={CLASSE_INPUT}
+                    value={donnees.lieuSignature}
+                    onChange={(e) => majChamp("lieuSignature", e.target.value)}
+                    placeholder="Ex : Namur"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="flex justify-between pt-2">
               <button type="button" onClick={() => setEtape("situation")} className={CLASSE_BOUTON_SECONDAIRE}>
                 <ArrowLeft className="w-4 h-4" />
                 Retour
               </button>
-              <button type="button" onClick={() => setEtape("resultat")} className={CLASSE_BOUTON_PRIMAIRE}>
+              <button
+                type="button"
+                disabled={!etapeIntermediaireValide}
+                onClick={() => setEtape("resultat")}
+                className={CLASSE_BOUTON_PRIMAIRE}
+              >
                 Calculer
                 <ArrowRight className="w-4 h-4" />
               </button>
@@ -614,7 +659,23 @@ export default function FormulairePreavis() {
                       <p className="text-gray-500">Fin du préavis</p>
                       <p className="font-medium text-gray-900">{isoToDateFr(resultat.dateFin)}</p>
                     </div>
+                    <div className="col-span-2">
+                      <p className="text-gray-500">Date limite pour envoyer le recommandé</p>
+                      <p className="font-medium text-gray-900">{isoToDateFr(resultat.dateEnvoiLimite)}</p>
+                    </div>
                   </div>
+                  {resultat.dateEnvoiDepassee && (
+                    <div className="flex gap-2 items-start bg-amber-50 rounded-lg p-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-sm text-amber-800">
+                        Cette date de début n'est plus atteignable : il aurait fallu envoyer le recommandé avant le{" "}
+                        {isoToDateFr(resultat.dateEnvoiLimite)}. Si vous l'envoyez aujourd'hui, votre préavis
+                        commencera plutôt le{" "}
+                        {resultat.dateDebutAuPlusTot ? isoToDateFr(resultat.dateDebutAuPlusTot) : "—"}. Vous pouvez
+                        modifier la date choisie en revenant à l'étape précédente.
+                      </p>
+                    </div>
+                  )}
                   {resultat.indemniteCompensatoireJours !== null && (
                     <p className="text-sm text-gray-700 bg-red-50 rounded-lg p-3">
                       Vous avez peut-être droit à une indemnité compensatoire supplémentaire d'environ{" "}
@@ -646,7 +707,7 @@ export default function FormulairePreavis() {
             <div className="flex justify-between">
               <button
                 type="button"
-                onClick={() => setEtape(afficheCoordonnees ? "coordonnees" : "situation")}
+                onClick={() => setEtape(afficheEtapeIntermediaire ? "coordonnees" : "situation")}
                 className={CLASSE_BOUTON_SECONDAIRE}
               >
                 <ArrowLeft className="w-4 h-4" />
