@@ -1,4 +1,4 @@
-import { ArrowLeftRight, CreditCard, FileSignature, ClipboardList, FileText } from "lucide-react";
+import { ArrowLeftRight, CreditCard, FileSignature, ClipboardList, FileText, CalendarClock } from "lucide-react";
 
 export const transferJourney = {
   title: "Parcours de transfert syndical",
@@ -47,5 +47,14 @@ export const forms = [
     href: "/formulaire-c3-2",
     cta: "Remplir le formulaire",
     Icon: FileText,
+  },
+  {
+    title: "Calcul de préavis",
+    shortTitle: "Préavis",
+    category: "Préavis",
+    description: "Calculez la durée de votre préavis et générez votre courrier de démission ou de commun accord.",
+    href: "/preavis",
+    cta: "Calculer mon préavis",
+    Icon: CalendarClock,
   },
 ] as const;
