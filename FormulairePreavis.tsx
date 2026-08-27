@@ -2,9 +2,10 @@
 
 import React, { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Copy, AlertTriangle, RotateCcw, CheckCircle } from "lucide-react";
-import { isoToDateFr } from "./lib/dates";
+import { isoToDateFr, formatDateFr, dateFrToIso } from "./lib/dates";
 import type { QuiRompt, Statut } from "./lib/preavis/types";
 import { calculerPreavisOuvrier } from "./lib/preavis/calcul-preavis";
+import { calculerPreavisEmploye } from "./lib/preavis/calcul-preavis-employe";
 import { debutPreavisDepuisEnvoi, finPreavisJours } from "./lib/preavis/dates-preavis";
 import {
   genererConventionCommunAccord,
@@ -67,7 +68,6 @@ const DONNEES_INITIALES: DonneesFormulaire = {
 
 type Resultat =
   | { type: "commun-accord"; texte: string }
-  | { type: "employe-non-disponible" }
   | { type: "indemnite"; jours: number; semaines: number; montantIndemnite: number | null }
   | {
       type: "preavis";
@@ -75,12 +75,52 @@ type Resultat =
       semaines: number;
       dateDebut: string;
       dateFin: string;
-      avertissementNonSource: boolean;
+      avertissement: string | null;
       indemniteCompensatoireJours: number | null;
       courrier: string | undefined;
       contenuProcedures: ContenuInformatif;
       contenuOnem: ContenuInformatif | undefined;
     };
+
+const AVERTISSEMENT_OUVRIER_NON_SOURCE =
+  "Ce résultat est incomplet : nous n'avons pas de règle précise pour votre situation avant 2014. Contactez votre secrétariat FGTB pour vérifier votre préavis exact.";
+
+const AVERTISSEMENT_EMPLOYE_INCERTAIN =
+  "Ce calcul comporte une estimation non confirmée officiellement (démission, ancienneté avant 2014, rémunération au-dessus du seuil légal). Vérifiez ce point avec votre secrétariat FGTB avant d'envoyer votre lettre.";
+
+/** Jours de préavis + avertissement éventuel, pour le statut et le mode choisis. */
+function calculerJoursEtAvertissement(
+  d: DonneesFormulaire,
+  quiRompt: QuiRompt,
+  dateDebut: string,
+  remuneration: number,
+): { jours: number; avertissement: string | null; indemniteCompensatoireJours: number | null } {
+  if (d.statut === "ouvrier") {
+    const resultat = calculerPreavisOuvrier({
+      cp: d.cp,
+      dateEmbauche: d.dateEntreeService,
+      dateDebutPreavis: dateDebut,
+      quiRompt,
+    });
+    return {
+      jours: resultat.total.jours,
+      avertissement: resultat.avertissementNonSource ? AVERTISSEMENT_OUVRIER_NON_SOURCE : null,
+      indemniteCompensatoireJours: resultat.indemniteCompensatoire?.jours ?? null,
+    };
+  }
+
+  const resultat = calculerPreavisEmploye({
+    dateEmbauche: d.dateEntreeService,
+    dateDebutPreavis: dateDebut,
+    quiRompt,
+    remunerationAnnuelle: remuneration,
+  });
+  return {
+    jours: resultat.total.jours,
+    avertissement: resultat.part1DemissionIncertaine ? AVERTISSEMENT_EMPLOYE_INCERTAIN : null,
+    indemniteCompensatoireJours: null,
+  };
+}
 
 function calculerResultat(d: DonneesFormulaire): Resultat {
   if (d.ruptureChoix === "commun-accord") {
@@ -97,39 +137,29 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
     return { type: "commun-accord", texte };
   }
 
-  if (d.statut === "employe") {
-    return { type: "employe-non-disponible" };
-  }
-
   const quiRompt: QuiRompt = d.ruptureChoix === "employeur" ? "employeur" : "travailleur";
+  const remuneration = Number(d.remunerationAnnuelle) || 0;
+  const dateDebut = debutPreavisDepuisEnvoi(d.dateRupture);
 
   if (quiRompt === "employeur" && d.modeEmployeur === "indemnite") {
-    const dateDebut = debutPreavisDepuisEnvoi(d.dateRupture);
-    const resultat = calculerPreavisOuvrier({
-      cp: d.cp,
-      dateEmbauche: d.dateEntreeService,
-      dateDebutPreavis: dateDebut,
-      quiRompt: "employeur",
-    });
-    const remuneration = Number(d.remunerationAnnuelle);
-    const montantIndemnite =
-      Number.isFinite(remuneration) && remuneration > 0 ? (remuneration / 52) * resultat.total.semaines : null;
-    return { type: "indemnite", jours: resultat.total.jours, semaines: resultat.total.semaines, montantIndemnite };
+    const { jours } = calculerJoursEtAvertissement(d, "employeur", dateDebut, remuneration);
+    const semaines = jours / 7;
+    const montantIndemnite = remuneration > 0 ? (remuneration / 52) * semaines : null;
+    return { type: "indemnite", jours, semaines, montantIndemnite };
   }
 
-  const dateDebut = debutPreavisDepuisEnvoi(d.dateRupture);
-  const resultat = calculerPreavisOuvrier({
-    cp: d.cp,
-    dateEmbauche: d.dateEntreeService,
-    dateDebutPreavis: dateDebut,
+  const { jours, avertissement, indemniteCompensatoireJours } = calculerJoursEtAvertissement(
+    d,
     quiRompt,
-  });
-  const dateFin = finPreavisJours(dateDebut, resultat.total.jours);
+    dateDebut,
+    remuneration,
+  );
+  const dateFin = finPreavisJours(dateDebut, jours);
 
   const courrier =
     quiRompt === "travailleur"
       ? genererNotificationDemission({
-          dureeJours: resultat.total.jours,
+          dureeJours: jours,
           dateDebutPreavisIso: dateDebut,
           dateFinPreavisIso: dateFin,
           nomTravailleur: d.nomTravailleur || undefined,
@@ -141,12 +171,12 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
 
   return {
     type: "preavis",
-    jours: resultat.total.jours,
-    semaines: resultat.total.semaines,
+    jours,
+    semaines: jours / 7,
     dateDebut,
     dateFin,
-    avertissementNonSource: resultat.avertissementNonSource,
-    indemniteCompensatoireJours: resultat.indemniteCompensatoire?.jours ?? null,
+    avertissement,
+    indemniteCompensatoireJours,
     courrier,
     contenuProcedures: contenuProceduresEnvoi(quiRompt),
     contenuOnem: quiRompt === "travailleur" ? contenuOnemSanctions : undefined,
@@ -160,6 +190,44 @@ const CLASSE_BOUTON_PRIMAIRE =
   "inline-flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
 const CLASSE_BOUTON_SECONDAIRE =
   "inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors";
+
+/**
+ * Champ date au format JJ/MM/AAAA saisi au clavier (comme dans les autres
+ * formulaires de l'application). Préféré au calendrier natif du navigateur,
+ * peu pratique pour choisir une date ancienne (ex. une date d'entrée en
+ * service remontant à 20 ans).
+ */
+function ChampDate({
+  label,
+  valeurIso,
+  onChange,
+}: {
+  label: string;
+  valeurIso: string;
+  onChange: (iso: string) => void;
+}): React.ReactElement {
+  const [texte, setTexte] = useState(() => (valeurIso ? isoToDateFr(valeurIso) : ""));
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formate = formatDateFr(e.target.value);
+    setTexte(formate);
+    onChange(dateFrToIso(formate) ?? "");
+  }
+
+  return (
+    <div>
+      <label className={CLASSE_LABEL}>{label}</label>
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="JJ/MM/AAAA"
+        className={CLASSE_INPUT}
+        value={texte}
+        onChange={handleChange}
+      />
+    </div>
+  );
+}
 
 function ChampMonnaie({ montant }: { montant: number }): React.ReactElement {
   const formate = new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(montant);
@@ -244,13 +312,13 @@ export default function FormulairePreavis() {
   }
 
   const dateRuptureValide = donnees.dateRupture !== "";
+  const remunerationRequise =
+    donnees.statut === "employe" || (donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite");
   const situationValide =
     donnees.dateEntreeService !== "" &&
     dateRuptureValide &&
     (donnees.ruptureChoix !== "commun-accord" || donnees.avecPrestation !== "") &&
-    (donnees.ruptureChoix !== "employeur" ||
-      donnees.modeEmployeur !== "indemnite" ||
-      donnees.remunerationAnnuelle !== "");
+    (!remunerationRequise || donnees.remunerationAnnuelle !== "");
 
   const afficheCoordonnees = donnees.ruptureChoix === "travailleur" || donnees.ruptureChoix === "commun-accord";
 
@@ -290,27 +358,31 @@ export default function FormulairePreavis() {
               </select>
             </div>
 
-            <div>
-              <label className={CLASSE_LABEL}>Date d'entrée en service</label>
-              <input
-                type="date"
-                className={CLASSE_INPUT}
-                value={donnees.dateEntreeService}
-                onChange={(e) => majChamp("dateEntreeService", e.target.value)}
-              />
-            </div>
+            <ChampDate
+              label="Date d'entrée en service"
+              valeurIso={donnees.dateEntreeService}
+              onChange={(iso) => majChamp("dateEntreeService", iso)}
+            />
 
-            <div>
-              <label className={CLASSE_LABEL}>Commission paritaire</label>
-              <select className={CLASSE_INPUT} value={donnees.cp} onChange={(e) => majChamp("cp", e.target.value)}>
-                <option value="">Je ne sais pas / autre secteur</option>
-                {COMMISSIONS_PARITAIRES.map((cp) => (
-                  <option key={cp.code} value={cp.code}>
-                    {cp.nom}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {donnees.statut === "ouvrier" && (
+              <div>
+                <label className={CLASSE_LABEL}>Commission paritaire</label>
+                <select className={CLASSE_INPUT} value={donnees.cp} onChange={(e) => majChamp("cp", e.target.value)}>
+                  <option value="">Régime général (valable pour la grande majorité des cas)</option>
+                  <optgroup label="Secteurs avec des règles particulières avant 2014">
+                    {COMMISSIONS_PARITAIRES.map((cp) => (
+                      <option key={cp.code} value={cp.code}>
+                        {cp.nom}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Les règles sont les mêmes pour presque tout le monde. Seuls certains secteurs ont des règles
+                  particulières pour l'ancienneté acquise avant 2014. En cas de doute, laissez « Régime général ».
+                </p>
+              </div>
+            )}
 
             <div>
               <label className={CLASSE_LABEL}>Qui met fin au contrat ?</label>
@@ -361,7 +433,8 @@ export default function FormulairePreavis() {
               </div>
             )}
 
-            {donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite" && (
+            {(donnees.statut === "employe" ||
+              (donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite")) && (
               <div>
                 <label className={CLASSE_LABEL}>Rémunération annuelle brute (€)</label>
                 <input
@@ -377,15 +450,11 @@ export default function FormulairePreavis() {
 
             {donnees.ruptureChoix === "commun-accord" ? (
               <>
-                <div>
-                  <label className={CLASSE_LABEL}>Date de fin du contrat convenue</label>
-                  <input
-                    type="date"
-                    className={CLASSE_INPUT}
-                    value={donnees.dateRupture}
-                    onChange={(e) => majChamp("dateRupture", e.target.value)}
-                  />
-                </div>
+                <ChampDate
+                  label="Date de fin du contrat convenue"
+                  valeurIso={donnees.dateRupture}
+                  onChange={(iso) => majChamp("dateRupture", iso)}
+                />
                 <div>
                   <label className={CLASSE_LABEL}>Le dernier jour, travaillez-vous ou non ?</label>
                   <div className="space-y-2">
@@ -411,19 +480,15 @@ export default function FormulairePreavis() {
                 </div>
               </>
             ) : (
-              <div>
-                <label className={CLASSE_LABEL}>
-                  {donnees.ruptureChoix === "travailleur"
+              <ChampDate
+                label={
+                  donnees.ruptureChoix === "travailleur"
                     ? "Date à laquelle vous prévoyez d'envoyer votre lettre recommandée"
-                    : "Date à laquelle votre employeur prévoit d'envoyer le recommandé (ou l'huissier)"}
-                </label>
-                <input
-                  type="date"
-                  className={CLASSE_INPUT}
-                  value={donnees.dateRupture}
-                  onChange={(e) => majChamp("dateRupture", e.target.value)}
-                />
-              </div>
+                    : "Date à laquelle votre employeur prévoit d'envoyer le recommandé (ou l'huissier)"
+                }
+                valeurIso={donnees.dateRupture}
+                onChange={(iso) => majChamp("dateRupture", iso)}
+              />
             )}
 
             <div className="flex justify-end pt-2">
@@ -510,21 +575,6 @@ export default function FormulairePreavis() {
 
         {etape === "resultat" && resultat && (
           <div className="space-y-5">
-            {resultat.type === "employe-non-disponible" && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <div className="flex gap-3 items-start">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-gray-900 mb-1">Calcul non disponible pour le moment</p>
-                    <p className="text-sm text-gray-700">
-                      Le calcul automatique du préavis pour les employés n'est pas encore disponible dans cet outil.
-                      Contactez votre secrétariat FGTB pour connaître votre préavis exact.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {resultat.type === "commun-accord" && <BlocCourrier texte={resultat.texte} />}
 
             {resultat.type === "indemnite" && (
@@ -572,13 +622,10 @@ export default function FormulairePreavis() {
                       secrétariat FGTB.
                     </p>
                   )}
-                  {resultat.avertissementNonSource && (
+                  {resultat.avertissement && (
                     <div className="flex gap-2 items-start bg-amber-50 rounded-lg p-3">
                       <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="text-sm text-amber-800">
-                        Ce résultat est incomplet : nous n'avons pas de règle précise pour votre situation avant
-                        2014. Contactez votre secrétariat FGTB pour vérifier votre préavis exact.
-                      </p>
+                      <p className="text-sm text-amber-800">{resultat.avertissement}</p>
                     </div>
                   )}
                 </div>
