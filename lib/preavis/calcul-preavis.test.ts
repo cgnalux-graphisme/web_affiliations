@@ -125,3 +125,70 @@ describe("calculerPreavisOuvrier — correctif 2026 (contrat entièrement post-r
     expect(resultat.indemniteCompensatoire).toBeNull();
   });
 });
+
+describe("calculerPreavisOuvrier — CP au régime gradué par ancienneté (hors Centrale Générale)", () => {
+  it("CP 105 (métaux non-ferreux) : ancienneté de 8 ans et 11 mois au 31/12/2013 -> palier 5-10 ans (48 jours)", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "105.00",
+      dateEmbauche: "2005-01-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "employeur",
+    });
+
+    // moisEntre("2005-01-01", "2013-12-31") = 107 mois (8 ans 11 mois) -> palier "5-10 ans" -> 48 jours.
+    expect(resultat.javantPart1.jours).toBe(48);
+    expect(resultat.cpCouverte).toBe(true);
+    expect(resultat.regimeApplique).toBe("cp-specifique");
+    expect(resultat.avertissementNonSource).toBe(false);
+  });
+
+  it("CP 119 (commerce alimentaire) : démission non sourcée (ONEM \"régime légal\") -> avertissement, pas de chiffre inventé", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "119.00",
+      dateEmbauche: "2000-01-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "travailleur",
+    });
+
+    expect(resultat.javantPart1.jours).toBe(0);
+    expect(resultat.avertissementNonSource).toBe(true);
+    expect(resultat.cpCouverte).toBe(true);
+  });
+
+  it("CP 140.04 (assistance en escale) : régime dérogeant par date d'embauche, contrat débuté avant 2012 -> régime A", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "140.04",
+      dateEmbauche: "2010-01-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "employeur",
+    });
+
+    // moisEntre("2010-01-01", "2013-12-31") = 47 mois -> palier "3-5 ans" du régime A -> 60 jours.
+    expect(resultat.javantPart1.jours).toBe(60);
+  });
+
+  it("CP 140.04 : contrat débuté à partir de 2012 -> régime B (barème différent)", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "140.04",
+      dateEmbauche: "2013-01-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "employeur",
+    });
+
+    // moisEntre("2013-01-01", "2013-12-31") = 11 mois -> palier "6 mois-3 ans" du régime B -> 32 jours.
+    expect(resultat.javantPart1.jours).toBe(32);
+  });
+
+  it("CP 140.04 : ancienneté sous le premier palier documenté du régime A -> avertissement, pas de valeur devinée", () => {
+    const resultat = calculerPreavisOuvrier({
+      cp: "140.04",
+      dateEmbauche: "2011-06-01",
+      dateDebutPreavis: "2020-01-01",
+      quiRompt: "employeur",
+    });
+
+    // moisEntre("2011-06-01", "2013-12-31") = 30 mois, sous le premier palier documenté (36 mois / 3 ans) du régime A.
+    expect(resultat.javantPart1.jours).toBe(0);
+    expect(resultat.avertissementNonSource).toBe(true);
+  });
+});

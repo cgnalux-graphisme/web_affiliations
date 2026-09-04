@@ -1,7 +1,14 @@
 import { moisEntre } from "./anciennete";
 import { preavisGeneralEmployeur, preavisGeneralDemission } from "./baremes/general-2014";
 import { appliquerReforme2026 } from "./baremes/reforme-2026";
-import { tableCP, joursParEraDate, preavisCct75Employeur } from "./baremes/ouvrier-pre-2014";
+import {
+  tableCP,
+  joursParEraDate,
+  tableCPAnciennete,
+  regimeParDateEmbauche,
+  joursParPalierAnciennete,
+  preavisCct75Employeur,
+} from "./baremes/ouvrier-pre-2014";
 import type { DateISO, DureePreavis, QuiRompt, ResultatPreavisOuvrier } from "./types";
 
 const DATE_PIVOT = "2014-01-01";
@@ -27,7 +34,10 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
 
   const anciennePost2014 = dateEmbauche >= DATE_PIVOT;
   const table = tableCP(cp);
-  const cpCouverte = table !== null;
+  // Deux mécanismes mutuellement exclusifs pour la Partie 1 (voir types.ts) : `table`
+  // (jours fixes par date d'embauche) ou `tableAnc` (barème gradué par ancienneté).
+  const tableAnc = table === null ? tableCPAnciennete(cp) : null;
+  const cpCouverte = table !== null || tableAnc !== null;
 
   // Partie 1 : gelée au 31/12/2013. Le correctif 2026 ne s'applique jamais ici :
   // un contrat concerné par la réforme (embauche >= 2026) n'a par construction pas
@@ -41,6 +51,20 @@ export function calculerPreavisOuvrier(params: ParamsCalculOuvrier): ResultatPre
       const eras = quiRompt === "employeur" ? table.employeur : table.demission;
       joursPart1 = joursParEraDate(eras, dateEmbauche);
       // regimeApplique reste "cp-specifique" (déjà positionné ci-dessus).
+    } else if (tableAnc) {
+      const regime = regimeParDateEmbauche(tableAnc.regimes, dateEmbauche);
+      const paliers = quiRompt === "employeur" ? regime.paliersEmployeur : regime.paliersDemission;
+      const moisAu20131231 = moisEntre(dateEmbauche, DATE_FIN_2013);
+      const jours = joursParPalierAnciennete(paliers, moisAu20131231);
+      if (jours !== null) {
+        joursPart1 = jours;
+        // regimeApplique reste "cp-specifique" (déjà positionné ci-dessus).
+      } else {
+        // Palier démission non sourcé (mention ONEM "régime légal" sans détail
+        // fiable) ou ancienneté sous le premier palier documenté — voir
+        // joursParPalierAnciennete.
+        avertissementNonSource = true;
+      }
     } else if (quiRompt === "employeur") {
       const moisAu20131231 = moisEntre(dateEmbauche, DATE_FIN_2013);
       const joursCct75 = preavisCct75Employeur(moisAu20131231);

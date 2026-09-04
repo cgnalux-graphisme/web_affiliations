@@ -1,4 +1,4 @@
-import type { TableCP } from "./types";
+import type { TableCP, TableCPAnciennete } from "./types";
 import { cp124Construction } from "./cp-124-construction";
 import { cp126Ameublement } from "./cp-126-ameublement";
 import { cp14202RecuperationMetaux } from "./cp-142-02-recuperation-metaux";
@@ -54,6 +54,26 @@ import { cp14805TanneriesDePeaux } from "./cp-148-05-tanneries-de-peaux";
 import { cp15200InstitutionsSubsidieesDeL } from "./cp-152-00-institutions-subsidiees-de-l-enseignement-libre";
 import { cp30303ExploitationDeSallesDe } from "./cp-303-03-exploitation-de-salles-de-cinema";
 import { cp31100GrandesEntreprisesDeVente } from "./cp-311-00-grandes-entreprises-de-vente-au-detail";
+
+// CP hors Centrale Générale (et compléments CG manquants) — régime gradué par
+// ancienneté au 31/12/2013 (`TableCPAnciennete`), mécanisme distinct des CP
+// ci-dessus. Voir commentaire sur `RegimeParDateEmbauche` dans types.ts.
+import { cp10400IndustrieSiderurgique } from "./cp-104-00-industrie-siderurgique";
+import { cp10500MetauxNonFerreux } from "./cp-105-00-metaux-non-ferreux";
+import { cp11100ConstructionsMetalliqueMecaniqueEtElectrique } from "./cp-111-00-constructions-metallique-mecanique-et-electrique";
+import { cp11200EntreprisesDeGarage } from "./cp-112-00-entreprises-de-garage";
+import { cp11800IndustrieAlimentaire } from "./cp-118-00-industrie-alimentaire";
+import { cp11900CommerceAlimentaire } from "./cp-119-00-commerce-alimentaire";
+import { cp14004AssistanceEnEscaleAeroports } from "./cp-140-04-assistance-en-escale-aeroports";
+import { cp14201RecuperationDeMetaux } from "./cp-142-01-recuperation-de-metaux";
+import { cp14901ElectriciensInstallationEtDistribution } from "./cp-149-01-electriciens-installation-et-distribution";
+import { cp14902Carrosserie } from "./cp-149-02-carrosserie";
+import { cp14903MetauxPrecieux } from "./cp-149-03-metaux-precieux";
+import { cp14904CommerceDuMetal } from "./cp-149-04-commerce-du-metal";
+import { cp30101PortDAnvers } from "./cp-301-01-port-d-anvers";
+import { cp30200IndustrieHoteliereHoreca } from "./cp-302-00-industrie-hoteliere-horeca";
+import { cp31700ServicesDeGardiennageEtOuDeSurveillance } from "./cp-317-00-services-de-gardiennage-et-ou-de-surveillance";
+import { cp32400IndustrieEtCommerceDuDiamant } from "./cp-324-00-industrie-et-commerce-du-diamant";
 
 /** Exporté (en plus de `tableCP`) pour permettre les tests d'intégrité sur l'ensemble du registre. */
 export const REGISTRE: Record<string, TableCP> = {
@@ -118,6 +138,41 @@ export function tableCP(cp: string): TableCP | null {
   return REGISTRE[cp] ?? null;
 }
 
+/**
+ * Registre des CP au régime gradué par ancienneté (`TableCPAnciennete`) —
+ * mutuellement exclusif de `REGISTRE` ci-dessus : une CP donnée ne peut
+ * relever que d'un seul des deux mécanismes.
+ */
+export const REGISTRE_ANCIENNETE: Record<string, TableCPAnciennete> = {
+  "104.00": cp10400IndustrieSiderurgique,
+  "105.00": cp10500MetauxNonFerreux,
+  "111.00": cp11100ConstructionsMetalliqueMecaniqueEtElectrique,
+  "112.00": cp11200EntreprisesDeGarage,
+  "118.00": cp11800IndustrieAlimentaire,
+  "119.00": cp11900CommerceAlimentaire,
+  "140.04": cp14004AssistanceEnEscaleAeroports,
+  "142.01": cp14201RecuperationDeMetaux,
+  "149.01": cp14901ElectriciensInstallationEtDistribution,
+  "149.02": cp14902Carrosserie,
+  "149.03": cp14903MetauxPrecieux,
+  "149.04": cp14904CommerceDuMetal,
+  "301.01": cp30101PortDAnvers,
+  "302.00": cp30200IndustrieHoteliereHoreca,
+  "317.00": cp31700ServicesDeGardiennageEtOuDeSurveillance,
+  "324.00": cp32400IndustrieEtCommerceDuDiamant,
+};
+
+export function tableCPAnciennete(cp: string): TableCPAnciennete | null {
+  return REGISTRE_ANCIENNETE[cp] ?? null;
+}
+
+/** Liste triée (par code CP) des commissions paritaires couvertes par une table dédiée (l'un ou l'autre régime). */
+export function listeCPCouvertes(): { code: string; nom: string }[] {
+  return [...Object.values(REGISTRE), ...Object.values(REGISTRE_ANCIENNETE)]
+    .map((table) => ({ code: table.cp, nom: table.nom }))
+    .sort((a, b) => a.code.localeCompare(b.code));
+}
+
 /** Recherche par correspondance approximative : dernière entrée dont `depuis` <= dateEmbauche. */
 export function joursParEraDate(eras: { depuis: string; jours: number }[], dateEmbauche: string): number {
   let jours = eras[0].jours;
@@ -132,3 +187,4 @@ export function joursParEraDate(eras: { depuis: string; jours: number }[], dateE
 }
 
 export { preavisCct75Employeur } from "./cct-75-supletif";
+export { regimeParDateEmbauche, joursParPalierAnciennete } from "./bareme-anciennete";
