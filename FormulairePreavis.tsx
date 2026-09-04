@@ -6,6 +6,8 @@ import { pdf } from "@react-pdf/renderer";
 import { isoToDateFr, formatDateFr, dateFrToIso } from "./lib/dates";
 import type { QuiRompt, Statut } from "./lib/preavis/types";
 import { calculerPreavisOuvrier } from "./lib/preavis/calcul-preavis";
+import { tableCP } from "./lib/preavis/baremes/ouvrier-pre-2014";
+import { TOUTES_COMMISSIONS_PARITAIRES } from "./lib/preavis/commissions-paritaires-toutes";
 import { calculerPreavisEmploye } from "./lib/preavis/calcul-preavis-employe";
 import { debutPreavisDepuisEnvoi, finPreavisJours, dateLimiteEnvoiRecommande } from "./lib/preavis/dates-preavis";
 import { premierLundiApres } from "./lib/preavis/jours-ouvrables";
@@ -21,20 +23,6 @@ import { contenuProceduresEnvoi } from "./lib/preavis/contenu-procedures-envoi";
 import { LettrePDF, ADRESSE_VIDE, adresseVide, adresseComplete, type Adresse } from "./lib/preavis/courriers/LettrePDF";
 import type { ContenuInformatif } from "./lib/preavis/types";
 
-/**
- * Les 6 commissions paritaires couvertes par le moteur de calcul (voir
- * lib/preavis/baremes/ouvrier-pre-2014/index.ts). Cette liste doit rester
- * synchronisée avec le registre du moteur.
- */
-const COMMISSIONS_PARITAIRES: { code: string; nom: string }[] = [
-  { code: "124.00", nom: "Construction (CP 124)" },
-  { code: "126.00", nom: "Ameublement et bois (CP 126)" },
-  { code: "142.02", nom: "Récupération de métaux (CP 142.02)" },
-  { code: "109.00", nom: "Confection et habillement (CP 109)" },
-  { code: "128.01", nom: "Tanneries (CP 128.01)" },
-  { code: "128.02", nom: "Commerce et industrie du cuir (CP 128.02)" },
-];
-
 type RuptureChoix = QuiRompt | "commun-accord";
 type ModeEmployeur = "preavis" | "indemnite";
 type Etape = "situation" | "complement" | "resultat";
@@ -45,7 +33,7 @@ interface DonneesFormulaire {
   typeContrat: TypeContrat;
   statut: Statut;
   dateEntreeService: string; // ISO (AAAA-MM-JJ) — aussi utilisée comme date de début du CDD si typeContrat === "cdd"
-  cp: string; // "" = inconnu / régime général
+  cp: string; // "" = "je ne sais pas" — le calcul utilise alors le régime légal général, à titre informatif
   ruptureChoix: RuptureChoix;
   modeEmployeur: ModeEmployeur;
   remunerationAnnuelle: string;
@@ -93,7 +81,12 @@ type Resultat =
       source: SourceCalcul;
       contenuProcedures: ContenuInformatif;
       contenuOnem: ContenuInformatif | undefined;
+      /** true si le statut est "ouvrier" et qu'aucune CP n'a été sélectionnée ("je ne sais pas") : le résultat utilise le régime légal général à titre purement informatif. */
+      cpNonSelectionnee: boolean;
     };
+
+const AVERTISSEMENT_CP_NON_SELECTIONNEE =
+  "Vous n'avez pas indiqué votre commission paritaire : ce résultat se base sur le régime légal général, à titre informatif. Sélectionnez votre CP à l'étape précédente pour un calcul plus précis si votre secteur a des règles particulières.";
 
 const AVERTISSEMENT_OUVRIER_NON_SOURCE =
   "Ce résultat est incomplet : nous n'avons pas de règle précise pour votre situation avant 2014. Contactez votre secrétariat FGTB pour vérifier votre préavis exact.";
@@ -109,6 +102,7 @@ const LIEN_SPF_EMPLOYE_PRE2014 =
   "https://emploi.belgique.be/fr/themes/contrats-de-travail/fin-du-contrat-de-travail/fin-du-contrat-duree-indeterminee-10";
 const LIEN_CCT75 = "https://cnt-nar.be/sites/default/files/documents/CCT-COORD/cct-075.pdf";
 const LIEN_ACCG = "https://www.accg.be/fr/secteur/construction/outils/outils-de-calcul/preavis-employeur";
+const LIEN_ONEM = "https://www.onem.be/employeurs/delais-de-preavis-et-chomage-temporaire/regles-derogatoires";
 
 /** Explication courte + lien source, selon le régime effectivement appliqué (design spec §12). */
 function determinerSource(
@@ -125,10 +119,21 @@ function determinerSource(
     };
   }
   if (regimeApplique === "cp-specifique") {
+    // Deux mécanismes/source possibles pour une CP "spécifique" (voir
+    // lib/preavis/baremes/ouvrier-pre-2014/types.ts) : les CP historiquement
+    // couvertes par la Centrale Générale FGTB (classeur ACCG), ou les CP
+    // d'autres secteurs sourcées indépendamment via SPF Emploi/ONEM.
+    if (tableCP(d.cp)) {
+      return {
+        methode:
+          "Barème légal général et régime spécifique de votre commission paritaire pour l'ancienneté avant 2014 (source : Centrale Générale FGTB).",
+        lien: LIEN_ACCG,
+      };
+    }
     return {
       methode:
-        "Barème légal général et régime spécifique de votre commission paritaire pour l'ancienneté avant 2014 (source : Centrale Générale FGTB).",
-      lien: LIEN_ACCG,
+        "Barème légal général et régime spécifique de votre commission paritaire pour l'ancienneté avant 2014 (source : SPF Emploi / ONEM).",
+      lien: LIEN_ONEM,
     };
   }
   if (regimeApplique === "cct75-supletif") {
@@ -253,6 +258,7 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
     source: determinerSource(d, quiRompt, regimeApplique),
     contenuProcedures: contenuProceduresEnvoi(quiRompt),
     contenuOnem: quiRompt === "travailleur" ? contenuOnemSanctions : undefined,
+    cpNonSelectionnee: d.statut === "ouvrier" && d.cp === "",
   };
 }
 
@@ -298,6 +304,118 @@ function ChampDate({
         value={texte}
         onChange={handleChange}
       />
+    </div>
+  );
+}
+
+const OPTION_CP_INCONNUE = "Je ne sais pas";
+
+/** Normalise pour une recherche insensible à la casse et aux accents. */
+const REGEX_DIACRITIQUES = new RegExp("[\\u0300-\\u036f]", "g");
+
+function normaliserRecherche(texte: string): string {
+  return texte.normalize("NFD").replace(REGEX_DIACRITIQUES, "").toLowerCase().trim();
+}
+
+function libelleCp(code: string, nom: string): string {
+  return `${code} — ${nom}`;
+}
+
+/**
+ * Sélecteur de commission paritaire : recherche dynamique par numéro ou par
+ * nom sur l'ensemble des CP belges (TOUTES_COMMISSIONS_PARITAIRES), plus une
+ * option "Je ne sais pas" (valeur ""). Pas de distinction visuelle
+ * régime général / régime particulier dans la liste — l'utilisateur choisit
+ * juste sa CP, le moteur de calcul applique automatiquement le régime
+ * spécifique s'il en existe un pour ce code, sinon le régime légal général.
+ */
+function ChampCommissionParitaire({
+  valeur,
+  onChange,
+}: {
+  valeur: string;
+  onChange: (code: string) => void;
+}): React.ReactElement {
+  const selectionnee = TOUTES_COMMISSIONS_PARITAIRES.find((cp) => cp.code === valeur) ?? null;
+  const [texte, setTexte] = useState(() => (selectionnee ? libelleCp(selectionnee.code, selectionnee.nom) : ""));
+  const [ouvert, setOuvert] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const s = TOUTES_COMMISSIONS_PARITAIRES.find((cp) => cp.code === valeur) ?? null;
+    setTexte(s ? libelleCp(s.code, s.nom) : "");
+  }, [valeur]);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOuvert(false);
+        const s = TOUTES_COMMISSIONS_PARITAIRES.find((cp) => cp.code === valeur) ?? null;
+        setTexte(s ? libelleCp(s.code, s.nom) : "");
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [valeur]);
+
+  function handleSelect(code: string) {
+    onChange(code);
+    setOuvert(false);
+  }
+
+  const requete = normaliserRecherche(texte);
+  const resultats =
+    requete.length === 0
+      ? TOUTES_COMMISSIONS_PARITAIRES
+      : TOUTES_COMMISSIONS_PARITAIRES.filter(
+          (cp) => normaliserRecherche(cp.code).includes(requete) || normaliserRecherche(cp.nom).includes(requete),
+        );
+  const resultatsAffiches = resultats.slice(0, 40);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label className={CLASSE_LABEL}>Commission paritaire</label>
+      <input
+        type="text"
+        className={CLASSE_INPUT}
+        value={texte}
+        onChange={(e) => {
+          setTexte(e.target.value);
+          setOuvert(true);
+        }}
+        onFocus={() => setOuvert(true)}
+        placeholder="Cherchez par numéro ou par nom (ex. 124 ou construction)"
+        autoComplete="off"
+      />
+      {ouvert && (
+        <ul className="absolute z-50 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg text-sm">
+          <li
+            onMouseDown={() => handleSelect("")}
+            className="px-3 py-2 cursor-pointer hover:bg-red-50 border-b border-gray-100 italic text-gray-600"
+          >
+            {OPTION_CP_INCONNUE}
+          </li>
+          {resultatsAffiches.map((cp) => (
+            <li
+              key={cp.code}
+              onMouseDown={() => handleSelect(cp.code)}
+              className="px-3 py-2 cursor-pointer hover:bg-red-50 border-b border-gray-100 last:border-0"
+            >
+              {libelleCp(cp.code, cp.nom)}
+            </li>
+          ))}
+          {resultats.length === 0 && <li className="px-3 py-2 text-gray-400">Aucune commission paritaire trouvée</li>}
+          {resultats.length > resultatsAffiches.length && (
+            <li className="px-3 py-2 text-xs text-gray-400">
+              {resultats.length - resultatsAffiches.length} résultat(s) supplémentaire(s) — affinez votre recherche
+            </li>
+          )}
+        </ul>
+      )}
+      <p className="text-xs text-gray-500 mt-1.5">
+        Recherchez par numéro ou par nom. Si vous ne connaissez pas votre commission paritaire, choisissez «{" "}
+        {OPTION_CP_INCONNUE} » — le calcul utilisera alors le régime légal général, à titre informatif.
+      </p>
     </div>
   );
 }
@@ -963,24 +1081,8 @@ export default function FormulairePreavis() {
                 />
 
                 {donnees.statut === "ouvrier" && (
-              <div>
-                <label className={CLASSE_LABEL}>Commission paritaire</label>
-                <select className={CLASSE_INPUT} value={donnees.cp} onChange={(e) => majChamp("cp", e.target.value)}>
-                  <option value="">Régime général (valable pour la grande majorité des cas)</option>
-                  <optgroup label="Secteurs avec des règles particulières avant 2014">
-                    {COMMISSIONS_PARITAIRES.map((cp) => (
-                      <option key={cp.code} value={cp.code}>
-                        {cp.nom}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-                <p className="text-xs text-gray-500 mt-1.5">
-                  Les règles sont les mêmes pour presque tout le monde. Seuls certains secteurs ont des règles
-                  particulières pour l'ancienneté acquise avant 2014. En cas de doute, laissez « Régime général ».
-                </p>
-              </div>
-            )}
+                  <ChampCommissionParitaire valeur={donnees.cp} onChange={(code) => majChamp("cp", code)} />
+                )}
 
             <div>
               <label className={CLASSE_LABEL}>Qui met fin au contrat ?</label>
@@ -1241,6 +1343,12 @@ export default function FormulairePreavis() {
                     <div className="flex gap-2 items-start bg-amber-50 rounded-lg p-3">
                       <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                       <p className="text-sm text-amber-800">{resultat.avertissement}</p>
+                    </div>
+                  )}
+                  {resultat.cpNonSelectionnee && (
+                    <div className="flex gap-2 items-start bg-amber-50 rounded-lg p-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-sm text-amber-800">{AVERTISSEMENT_CP_NON_SELECTIONNEE}</p>
                     </div>
                   )}
                   <p className="text-xs text-gray-400 pt-1">
