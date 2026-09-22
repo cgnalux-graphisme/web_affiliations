@@ -14,6 +14,7 @@ import {
 import FormulaireWebIndependant from "./FormulaireWebIndependant";
 import FormulaireC1 from "./FormulaireC1";
 import FormulaireC32 from "./FormulaireC32";
+import LivraisonFormulaires from "./LivraisonFormulaires";
 import {
   affiliationToProfile,
   profileToC1,
@@ -23,7 +24,6 @@ import {
 import {
   clearTransferJourney,
   createInitialJourneyState,
-  downloadPdfFromBase64,
   loadTransferJourney,
   saveTransferJourney,
   type JourneyPhase,
@@ -35,7 +35,7 @@ const STEPS = [
   { key: "affiliation" as const, label: "Affiliation", Icon: FileSignature },
   { key: "c1" as const, label: "Formulaire C1", Icon: ClipboardList },
   { key: "c32" as const, label: "Formulaire C3.2", Icon: FileText },
-  { key: "complete" as const, label: "Téléchargements", Icon: FileDown },
+  { key: "complete" as const, label: "Envoi", Icon: FileDown },
 ];
 
 function JourneyStepper({ phase }: { phase: JourneyPhase }) {
@@ -148,48 +148,37 @@ function IntroScreen({ onStart, onResume }: { onStart: () => void; onResume: () 
 function CompleteScreen({
   state,
   onRestart,
+  onEnvoyerServiceChomage,
 }: {
   state: TransferJourneyState;
   onRestart: () => void;
+  onEnvoyerServiceChomage: () => Promise<void>;
 }) {
   const { profile, pdfs } = state;
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="rounded-3xl bg-white p-8 text-center shadow-lg">
-        <CheckCircle className="mx-auto mb-4 text-green-500" size={56} />
-        <h2 className="mb-2 text-2xl font-bold text-gray-900">Parcours terminé !</h2>
-        <p className="mb-2 text-sm text-gray-600">
-          {profile
-            ? `Bravo ${profile.prenom}, vos 3 formulaires sont prêts.`
-            : "Vos 3 formulaires sont prêts."}
-        </p>
-        <p className="mb-8 text-sm text-gray-500">
-          Téléchargez chaque document séparément, imprimez-les, signez-les si nécessaire et
-          remettez-les à votre organisme de paiement.
-        </p>
-
-        <div className="space-y-3 text-left">
-          {pdfs.map((pdf) => (
-            <button
-              key={pdf.key}
-              type="button"
-              onClick={() => downloadPdfFromBase64(pdf.pdfBase64, pdf.fileName)}
-              className="flex w-full items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition hover:border-red-200 hover:bg-red-50"
-            >
-              <div>
-                <p className="font-semibold text-gray-900">{pdf.label}</p>
-                <p className="text-xs text-gray-500">{pdf.fileName}</p>
-              </div>
-              <FileDown className="h-5 w-5 shrink-0 text-red-900" />
-            </button>
-          ))}
-        </div>
-
+    <div>
+      <LivraisonFormulaires
+        accent="red"
+        titre="Parcours terminé"
+        description={
+          profile
+            ? `${profile.prenom}, vos formulaires sont prêts. Choisissez ce que vous voulez en faire.`
+            : "Vos formulaires sont prêts. Choisissez ce que vous voulez en faire."
+        }
+        nom={profile?.nom ?? ""}
+        prenom={profile?.prenom ?? ""}
+        emailDeclarant={profile?.email ?? ""}
+        texteServiceChomage="Le service chômage reçoit le formulaire C1 et le formulaire C3.2, comme jusqu'ici."
+        documents={pdfs}
+        serviceChomageDejaEnvoye={Boolean(state.onemEmailSent)}
+        onEnvoyerServiceChomage={onEnvoyerServiceChomage}
+      />
+      <div className="mx-auto mt-6 max-w-2xl text-center">
         <button
           type="button"
           onClick={onRestart}
-          className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-gray-700"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-gray-700"
         >
           <RotateCcw className="h-4 w-4" />
           Recommencer un nouveau parcours
@@ -295,6 +284,29 @@ export default function ParcoursTransfert() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function envoyerAuServiceChomage() {
+    if (state.onemEmailSent) return;
+    const c1Pdf = state.pdfs.find((p) => p.key === "c1");
+    const c32Pdf = state.pdfs.find((p) => p.key === "c32");
+    if (!c1Pdf || !c32Pdf || !state.profile) {
+      throw new Error("Les formulaires C1 et C3.2 sont introuvables.");
+    }
+
+    await postJson("/api/send-onem-bundle", {
+      nom: state.profile.nom.trim(),
+      prenom: state.profile.prenom.trim(),
+      email: state.profile.email.trim().toLowerCase(),
+      c1: { pdfBase64: c1Pdf.pdfBase64, fileName: c1Pdf.fileName },
+      c32: { pdfBase64: c32Pdf.pdfBase64, fileName: c32Pdf.fileName },
+    });
+
+    persist({
+      ...state,
+      onemEmailSent: true,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
   async function handleC32Complete(result: {
     form: { nom: string; prenom: string; email: string };
     pdfBase64: string;
@@ -302,23 +314,12 @@ export default function ParcoursTransfert() {
   }) {
     const c1Pdf = state.pdfs.find((p) => p.key === "c1");
     if (!c1Pdf) {
-      throw new Error("PDF C1 introuvable — impossible d'envoyer l'e-mail groupé.");
-    }
-
-    if (!state.onemEmailSent) {
-      await postJson("/api/send-onem-bundle", {
-        nom: result.form.nom.trim(),
-        prenom: result.form.prenom.trim(),
-        email: result.form.email.trim().toLowerCase(),
-        c1: { pdfBase64: c1Pdf.pdfBase64, fileName: c1Pdf.fileName },
-        c32: { pdfBase64: result.pdfBase64, fileName: result.fileName },
-      });
+      throw new Error("PDF C1 introuvable — impossible de terminer le parcours.");
     }
 
     const next: TransferJourneyState = {
       ...state,
       phase: "complete",
-      onemEmailSent: true,
       pdfs: [
         ...state.pdfs.filter((p) => p.key !== "c32"),
         {
@@ -406,7 +407,11 @@ export default function ParcoursTransfert() {
         )}
 
         {state.phase === "complete" && (
-          <CompleteScreen state={state} onRestart={handleRestart} />
+          <CompleteScreen
+            state={state}
+            onRestart={handleRestart}
+            onEnvoyerServiceChomage={envoyerAuServiceChomage}
+          />
         )}
       </div>
     </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { CheckCircle, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileDown } from "lucide-react";
+import LivraisonFormulaires from "./LivraisonFormulaires";
 import type { C32Data } from "./app/api/fill-c3-2/route";
 import { getSupabase } from "./lib/supabase";
 import { postJson } from "./lib/post-json";
@@ -209,7 +210,7 @@ const TOTAL_STEPS = STEP_LABELS.length;
 export interface C32FormProps {
   journeyMode?: boolean;
   initialData?: Partial<C32Data>;
-  /** En parcours guidé : le parent envoie l'e-mail groupé C1+C3.2 (une seule fois). */
+  /** En parcours guidé : le choix d'envoi se fait à la fin du parcours. */
   onComplete?: (result: {
     form: C32Data;
     pdfBase64: string;
@@ -303,16 +304,6 @@ export default function FormulaireC32({
         return;
       }
 
-      if (!journeyMode) {
-        await postJson("/api/send-c3-2", {
-          nom: form.nom.trim(),
-          prenom: form.prenom.trim(),
-          email: form.email.trim().toLowerCase(),
-          pdfBase64: b64,
-          fileName,
-        });
-      }
-
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -323,32 +314,28 @@ export default function FormulaireC32({
     }
   }
 
-  function downloadPdf() {
-    if (!pdfBase64) return;
-    const bytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
-    const blob = new Blob([bytes], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `formulaire-c3-2-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  if (submitted) {
+  if (submitted && pdfBase64) {
+    const fileName = `formulaire-c3-2-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
     return (
-      <div className="max-w-lg mx-auto mt-12 bg-white rounded-2xl shadow-lg p-8 text-center">
-        <CheckCircle className="mx-auto text-green-500 mb-4" size={52} />
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Formulaire prêt</h2>
-        <p className="text-gray-600 text-sm mb-6">
-          Votre formulaire C3.2 a été complété. Téléchargez-le et remettez-le le plus rapidement possible à votre organisme de paiement.
-        </p>
-        <button
-          onClick={downloadPdf}
-          className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-xl text-sm"
-        >
-          <FileDown size={18} /> Télécharger le formulaire C3.2 (PDF)
-        </button>
+      <div className="py-8 px-4">
+        <LivraisonFormulaires
+          titre="Formulaire C3.2 prêt"
+          description="Votre formulaire C3.2 est complété. Choisissez ce que vous voulez en faire."
+          nom={form.nom.trim()}
+          prenom={form.prenom.trim()}
+          emailDeclarant={form.email.trim().toLowerCase()}
+          texteServiceChomage="Le service chômage reçoit ce formulaire, comme jusqu'ici."
+          documents={[{ label: "Formulaire C3.2", fileName, pdfBase64 }]}
+          onEnvoyerServiceChomage={() =>
+            postJson("/api/send-c3-2", {
+              nom: form.nom.trim(),
+              prenom: form.prenom.trim(),
+              email: form.email.trim().toLowerCase(),
+              pdfBase64,
+              fileName,
+            })
+          }
+        />
       </div>
     );
   }

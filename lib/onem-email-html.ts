@@ -133,3 +133,47 @@ export function buildOnemBundleHtml(p: {
 
   return emailShell("Formulaires C1 et C3.2 — FGTB", body, p.adminEmail);
 }
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Message envoyé uniquement à l'adresse saisie par la personne. */
+export function buildLivraisonPersonnelleHtml(p: {
+  nom: string;
+  prenom: string;
+  emailDeclarant: string;
+  documents: string[];
+  adminEmail: string;
+}): string {
+  const prenom = escapeHtml(p.prenom);
+  const nom = escapeHtml(p.nom);
+  const email = escapeHtml(p.emailDeclarant);
+  const liste = p.documents
+    .map((doc) => `<li style="margin:0 0 6px;">${escapeHtml(doc)}</li>`)
+    .join("");
+
+  const body = `
+      <tr>
+        <td style="padding:28px 32px 0;">
+          <p style="margin:0 0 18px;font-size:15px;color:#111;">
+            Formulaires remplis de <strong>${prenom} ${nom}</strong>
+          </p>
+          <p style="margin:0 0 14px;font-size:13px;color:#374151;line-height:1.65;">
+            La personne vous envoie les formulaires qu'elle a complétés en ligne.
+            Les documents sont joints à ce message.
+          </p>
+          ${liste ? `<ul style="margin:0 0 16px;padding-left:18px;font-size:13px;color:#374151;">${liste}</ul>` : ""}
+          ${email ? `<p style="margin:0 0 20px;font-size:13px;color:#374151;line-height:1.65;">
+            Adresse e-mail de la personne : <a href="mailto:${email}" style="color:#b91c1c;">${email}</a>
+          </p>` : ""}
+        </td>
+      </tr>
+      ${signatureBlock()}`;
+
+  return emailShell("Formulaires remplis — FGTB", body, p.adminEmail);
+}

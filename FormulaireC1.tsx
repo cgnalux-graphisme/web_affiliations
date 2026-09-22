@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { CheckCircle, FileDown, ChevronRight, ChevronLeft } from "lucide-react";
+import { FileDown, ChevronRight, ChevronLeft } from "lucide-react";
 import type { C1Data, CohabitantRow } from "./app/api/fill-c1/route";
+import LivraisonFormulaires from "./LivraisonFormulaires";
 import { getSupabase } from "./lib/supabase";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
@@ -518,17 +519,7 @@ export default function FormulaireC1({
 
       const fileName = `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
 
-      // En parcours guidé, l'e-mail C1+C3.2 est envoyé à la fin du C3.2
-      if (!journeyMode) {
-        await postJson("/api/send-c1", {
-          nom: form.nom.trim(),
-          prenom: form.prenom.trim(),
-          email: form.email.trim().toLowerCase(),
-          pdfBase64: b64,
-          fileName,
-        });
-      }
-
+      // En parcours guidé, le choix d'envoi se fait à la toute fin.
       if (journeyMode && onComplete) {
         onComplete({ form, pdfBase64: b64, fileName });
         return;
@@ -543,31 +534,29 @@ export default function FormulaireC1({
     }
   }
 
-  function downloadPdf() {
-    if (!pdfBase64) return;
-    const bytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
-    const blob = new Blob([bytes], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // ── Succès ────────────────────────────────────────────────────────────────
-  if (submitted) {
+  // ── Choix de livraison ────────────────────────────────────────────────────
+  if (submitted && pdfBase64) {
+    const fileName = `formulaire-c1-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
     return (
-      <div className="max-w-lg mx-auto mt-12 bg-white rounded-2xl shadow-lg p-8 text-center">
-        <CheckCircle className="mx-auto text-green-500 mb-4" size={52} />
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Formulaire prêt</h2>
-        <p className="text-gray-600 text-sm mb-6">
-          Votre formulaire C1 a été complété. Téléchargez-le, imprimez-le, signez-le et remettez-le à votre organisme de paiement.
-        </p>
-        <button onClick={downloadPdf}
-          className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-xl text-sm">
-          <FileDown size={18} /> Télécharger le formulaire C1 (PDF)
-        </button>
+      <div className="py-8 px-4">
+        <LivraisonFormulaires
+          titre="Formulaire C1 prêt"
+          description="Votre formulaire C1 est complété. Choisissez ce que vous voulez en faire."
+          nom={form.nom.trim()}
+          prenom={form.prenom.trim()}
+          emailDeclarant={form.email.trim().toLowerCase()}
+          texteServiceChomage="Le service chômage reçoit ce formulaire, comme jusqu'ici."
+          documents={[{ label: "Formulaire C1", fileName, pdfBase64 }]}
+          onEnvoyerServiceChomage={() =>
+            postJson("/api/send-c1", {
+              nom: form.nom.trim(),
+              prenom: form.prenom.trim(),
+              email: form.email.trim().toLowerCase(),
+              pdfBase64,
+              fileName,
+            })
+          }
+        />
       </div>
     );
   }
@@ -1097,7 +1086,10 @@ export default function FormulaireC1({
             </Field>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mt-4">
-              <strong>Important :</strong> Après avoir téléchargé le PDF, imprimez-le et remettez-le à votre organisme de paiement (Centrale Générale FGTB).
+              <strong>Important :</strong>{" "}
+              {journeyMode
+                ? "À la fin du parcours, vous pourrez télécharger les formulaires, les envoyer au service chômage (Namur et Luxembourg) ou les envoyer à une adresse e-mail."
+                : "À l'étape suivante, vous choisissez : télécharger le PDF, l'envoyer au service chômage (Namur et Luxembourg), ou l'envoyer à une adresse e-mail."}
             </div>
           </>
         )}
