@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle, Globe, ImageIcon, Lock, Pencil, Plus } from "lucide-react";
+import { CheckCircle, Globe, ImageIcon, Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { titreAction } from "../../lib/actions";
 import { isoToDateFr } from "../../lib/dates";
 import { getSuperAdmin, getSupabaseServer } from "../../lib/supabase-server";
@@ -23,10 +23,10 @@ function libelleType(a: LigneAction): string {
 export default async function ListeActionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ modifiee?: string }>;
+  searchParams: Promise<{ modifiee?: string; supprimee?: string }>;
 }) {
   if (!(await getSuperAdmin())) redirect("/login?next=/suivi-actions");
-  const { modifiee } = await searchParams;
+  const { modifiee, supprimee } = await searchParams;
 
   const supabase = await getSupabaseServer();
   const { data, error } = await supabase
@@ -64,6 +64,15 @@ export default async function ListeActionsPage({
           <CheckCircle size={20} className="shrink-0 text-militant-rouge" aria-hidden />
           <p>
             Modifications enregistrées : <span className="font-bold">{titreAction(actionModifiee)}</span>
+          </p>
+        </div>
+      )}
+
+      {supprimee && (
+        <div role="status" className="mt-6 flex items-center gap-3 rounded-xl bg-militant-charbon px-4 py-3 text-white">
+          <Trash2 size={20} className="shrink-0 text-militant-rouge" aria-hidden />
+          <p>
+            Action supprimée : <span className="font-bold">{supprimee}</span>
           </p>
         </div>
       )}

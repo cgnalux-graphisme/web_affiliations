@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import FormulaireAction, { type ActionEnregistree } from "../../../../FormulaireAction";
+import SuppressionAction from "../../../../SuppressionAction";
+import { titreAction } from "../../../../lib/actions";
 import { trierPhotos } from "../../../../lib/photos";
 import { getSuperAdmin, getSupabaseServer } from "../../../../lib/supabase-server";
 
@@ -30,9 +32,19 @@ export default async function ModifierActionPage({ params }: { params: Promise<{
     (a, b) => a.created_at.localeCompare(b.created_at)
   );
   return (
-    <FormulaireAction
-      key={action.id}
-      action={{ ...action, photos: trierPhotos(action.photos ?? []), videos }}
-    />
+    <>
+      <FormulaireAction
+        key={action.id}
+        action={{ ...action, photos: trierPhotos(action.photos ?? []), videos }}
+      />
+      <div className="mt-12">
+        <SuppressionAction
+          actionId={action.id}
+          titre={titreAction(action)}
+          urlsPhotos={(action.photos ?? []).map((p) => p.url)}
+          nbVideos={videos.length}
+        />
+      </div>
+    </>
   );
 }

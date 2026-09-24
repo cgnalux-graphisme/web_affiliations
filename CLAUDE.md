@@ -114,6 +114,10 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       liens validés et normalisés (`lib/youtube.ts`), gérés en création et en
       édition (`lib/videos-sync.ts`), lecteur youtube-nocookie chargé au clic sur
       la vitrine.
+- [x] Suppression d'une action (écran de modification, avec confirmation) :
+      fichiers photo du bucket d'abord, puis la ligne `site_actions` (photos et
+      vidéos suivent en cascade). Bloquée pour une action avec photos tant que la
+      policy ci-dessous manque.
 - [ ] **Policy Storage à ajouter** : supprimer (`remove`) et réordonner (`move`) une
       photo exigent aussi le droit `SELECT` sur `storage.objects` pour le bucket
       `action-photos` (absent au 24/09/2026 → suppression et changement de photo
