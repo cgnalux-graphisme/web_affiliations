@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const LIENS = [
   { href: "/suivi-actions", label: "Toutes les actions" },
   { href: "/suivi-actions/nouvelle", label: "Nouvelle action" },
+  { href: "/suivi-actions/rapport", label: "Rapport d'activité" },
 ];
 
 export default function LiensAdmin() {

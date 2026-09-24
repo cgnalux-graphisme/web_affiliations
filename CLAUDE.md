@@ -126,7 +126,11 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       (`app/actions/FriseActions.tsx`) : une ligne = une année (mois 01 à 12),
       curseurs pour changer d'année, un jalon par action placé selon sa date (empilés
       si trop proches), nom au survol, clic = défilement vers la une (`#une-<id>`).
-- [ ] Générateur du rapport d'activité pour le congrès (tous les 4 ans)
+- [x] Rapport d'activité (congrès) en PDF : `/suivi-actions/rapport` (super admin).
+      Période au choix, toutes les actions (publiées ou non). Généré dans le
+      navigateur avec `@react-pdf/renderer` (comme les autres documents de l'app) :
+      `lib/rapport/bilan.ts` (chiffres, testés) et `lib/rapport/RapportPDF.tsx`
+      (mise en page A4). Polices Barlow en `.woff` dans `public/fonts/`.
 
 ### Phase 2 — Veille + blog
 - Veille quotidienne sur des sources belges fiables → recoupement → résumé + liens

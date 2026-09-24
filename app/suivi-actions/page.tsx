@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle, Globe, ImageIcon, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckCircle, FileText, Globe, ImageIcon, Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { titreAction } from "../../lib/actions";
 import { isoToDateFr } from "../../lib/dates";
 import { getSuperAdmin, getSupabaseServer } from "../../lib/supabase-server";
@@ -51,12 +51,20 @@ export default async function ListeActionsPage({
             </p>
           )}
         </div>
+        <div className="flex flex-wrap gap-2">
+        <Link
+          href="/suivi-actions/rapport"
+          className="inline-flex items-center gap-2 rounded-xl border-2 border-militant-charbon px-5 py-2.5 text-[15px] font-bold transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2"
+        >
+          <FileText size={18} aria-hidden /> Rapport d&apos;activité
+        </Link>
         <Link
           href="/suivi-actions/nouvelle"
           className="inline-flex items-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-3 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2"
         >
           <Plus size={18} aria-hidden /> Encoder une nouvelle action
         </Link>
+        </div>
       </div>
 
       {actionModifiee && (
