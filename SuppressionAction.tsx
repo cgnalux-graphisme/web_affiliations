@@ -32,8 +32,8 @@ export default function SuppressionAction({
     setErreur("");
     const supabase = getSupabaseAuth();
 
-    // 1) Fichiers photo : si on ne peut pas les effacer, on n'efface pas l'action
-    //    (sinon les photos resteraient en ligne sans plus rien pour les retrouver).
+    // 1) Fichiers photo. En cas d'échec réel (réseau, session expirée), on n'efface pas
+    //    l'action : sinon ses photos resteraient en ligne sans plus rien pour les retrouver.
     const chemins = urlsPhotos.flatMap((u) => cheminDepuisUrl(u) ?? []);
     if (chemins.length) {
       const { data, error } = await supabase.storage.from(BUCKET_PHOTOS).remove(chemins);
@@ -41,8 +41,8 @@ export default function SuppressionAction({
         console.error("remove", error, data);
         setEnCours(false);
         setErreur(
-          "Les photos de cette action n'ont pas pu être effacées du stockage : l'action n'a pas été supprimée. " +
-            "Il manque probablement le droit de lecture (SELECT) sur le bucket action-photos ; contactez l'administrateur."
+          "Les photos de cette action n'ont pas pu être effacées du stockage, l'action n'a donc pas été supprimée. " +
+            "Vérifiez votre connexion ou reconnectez-vous, puis réessayez."
         );
         return;
       }

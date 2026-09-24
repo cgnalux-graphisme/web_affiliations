@@ -79,6 +79,10 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
   abusive est bloquée. **Ne pas re-signaler comme faille ouverte.**
 - **Vue `site_actions_public`** : lecture seule pour `anon` et `authenticated`
   (droits d'écriture révoqués, seul `SELECT` reste accordé).
+- **Bucket `action-photos`** : la policy `site_actions_photos_select` (SELECT réservé
+  aux super admins) **existe déjà** côté base, en plus d'INSERT / UPDATE / DELETE.
+  Elle permet `remove` et `move` (suppression et réordonnancement des photos).
+  **Ne plus la redemander.**
 - **Reste à faire** (non critique, à planifier) : resserrer les politiques
   d'écriture globales sur `profiles`. Un utilisateur connecté peut encore modifier
   ou supprimer d'autres fiches que la sienne.
@@ -116,12 +120,8 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       la vitrine.
 - [x] Suppression d'une action (écran de modification, avec confirmation) :
       fichiers photo du bucket d'abord, puis la ligne `site_actions` (photos et
-      vidéos suivent en cascade). Bloquée pour une action avec photos tant que la
-      policy ci-dessous manque.
-- [ ] **Policy Storage à ajouter** : supprimer (`remove`) et réordonner (`move`) une
-      photo exigent aussi le droit `SELECT` sur `storage.objects` pour le bucket
-      `action-photos` (absent au 24/09/2026 → suppression et changement de photo
-      principale échouent, l'erreur est affichée).
+      vidéos suivent en cascade). Si l'effacement des fichiers échoue réellement,
+      l'action est conservée pour ne pas laisser de photos orphelines en ligne.
 - [ ] Générateur du rapport d'activité pour le congrès (tous les 4 ans)
 
 ### Phase 2 — Veille + blog
