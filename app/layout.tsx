@@ -27,6 +27,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Accueil
               </Link>
               <Link
+                href="/actions"
+                className="text-red-200 hover:text-white hover:bg-white/20 text-[13px] font-medium px-4 py-2 rounded-md transition-colors"
+              >
+                Nos actions
+              </Link>
+              <Link
                 href={transferJourney.href}
                 className="text-red-100 hover:text-white hover:bg-white/20 text-[13px] font-semibold px-4 py-2 rounded-md transition-colors ring-1 ring-white/30"
               >
