@@ -9,6 +9,8 @@ import { useOnceSubmit } from "./lib/use-once-submit";
 import { titreAction } from "./lib/actions";
 import { synchroniserPhotos, type BilanPhotos, type PhotoEdition, type PhotoEnregistree } from "./lib/photos-sync";
 import ChoixPhotos, { libererApercu } from "./ChoixPhotos";
+import ChoixVideos, { MESSAGE_LIEN_INVALIDE, videoDepuisLien } from "./ChoixVideos";
+import { synchroniserVideos, type VideoEdition, type VideoEnregistree } from "./lib/videos-sync";
 import {
   AlertCircle,
   AlertTriangle,
@@ -57,7 +59,7 @@ type FormData = {
   visiblePublic: boolean;
 };
 
-type Errors = Partial<Record<keyof FormData | "nouveauSecteur", string>>;
+type Errors = Partial<Record<keyof FormData | "nouveauSecteur" | "videos", string>>;
 
 const initialForm: FormData = {
   nomAction: "",
@@ -100,6 +102,7 @@ export type ActionEnregistree = {
   info_web: string | null;
   visible_public: boolean;
   photos: PhotoEnregistree[];
+  videos: VideoEnregistree[];
 };
 
 function formDepuisAction(a: ActionEnregistree): FormData {
@@ -126,6 +129,10 @@ function formDepuisAction(a: ActionEnregistree): FormData {
     infoWeb: a.info_web ?? "",
     visiblePublic: a.visible_public,
   };
+}
+
+function videosDepuisAction(a: ActionEnregistree): VideoEdition[] {
+  return a.videos.map((v) => ({ cle: v.id, id: v.id, url: v.url, titre: v.titre ?? "" }));
 }
 
 function photosDepuisAction(a: ActionEnregistree): PhotoEdition[] {
@@ -169,6 +176,9 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
   const [photos, setPhotos] = useState<PhotoEdition[]>(() => (action ? photosDepuisAction(action) : []));
   const [progression, setProgression] = useState("");
   const [bilanPhotos, setBilanPhotos] = useState<BilanPhotos>({ ajoutees: 0, erreurs: [] });
+  const [videos, setVideos] = useState<VideoEdition[]>(() => (action ? videosDepuisAction(action) : []));
+  const [saisieVideo, setSaisieVideo] = useState({ lien: "", titre: "" });
+  const [videosAjoutees, setVideosAjoutees] = useState(0);
 
   useEffect(() => {
     loadSecteurs();
@@ -249,6 +259,8 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
 
   function validate(): boolean {
     const e: Errors = {};
+    // Lien collé sans cliquer sur "Ajouter la vidéo" : accepté s'il est valide (voir handleSubmit).
+    if (saisieVideo.lien.trim() && !videoDepuisLien(saisieVideo.lien)) e.videos = MESSAGE_LIEN_INVALIDE;
     if (!form.dateAction) e.dateAction = "Requis";
     else if (!dateFrToIso(form.dateAction)) e.dateAction = "Date invalide (format jj/mm/aaaa)";
     if (!form.typeAction) e.typeAction = "Choisissez un type d'action";
@@ -336,6 +348,14 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
       );
       photos.forEach(libererApercu);
 
+      // 3) Et les vidéos (y compris un lien collé mais pas encore ajouté à la liste).
+      const enAttente = saisieVideo.lien.trim() ? videoDepuisLien(saisieVideo.lien, saisieVideo.titre) : null;
+      const listeVideos =
+        enAttente && !videos.some((v) => v.url === enAttente.url) ? [...videos, enAttente] : videos;
+      const bilanVideos = await synchroniserVideos(supabase, ligne.id, listeVideos, action?.videos ?? []);
+      bilan.erreurs.push(...bilanVideos.erreurs);
+      setVideosAjoutees(bilanVideos.ajoutees);
+
       if (action && bilan.erreurs.length === 0) {
         router.push(`/suivi-actions?modifiee=${ligne.id}`);
         router.refresh();
@@ -357,6 +377,9 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
 
   function nouvelleAction() {
     setPhotos([]);
+    setVideos([]);
+    setSaisieVideo({ lien: "", titre: "" });
+    setVideosAjoutees(0);
     setBilanPhotos({ ajoutees: 0, erreurs: [] });
     setForm(initialForm);
     setErrors({});
@@ -403,6 +426,12 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
               label="Site public"
               value={form.visiblePublic ? "Publiée" : "Non publiée (suivi interne)"}
             />
+            {videosAjoutees > 0 && (
+              <Recap
+                label="Vidéos"
+                value={`${videosAjoutees} vidéo${videosAjoutees > 1 ? "s" : ""} ajoutée${videosAjoutees > 1 ? "s" : ""}`}
+              />
+            )}
             {bilanPhotos.ajoutees > 0 && (
               <Recap
                 label="Photos"
@@ -418,7 +447,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
               <AlertTriangle size={18} className="mt-0.5 shrink-0 text-militant-bordeaux" />
               <div>
                 <p className="font-bold text-militant-bordeaux">
-                  L&apos;action est enregistrée, mais certaines opérations sur les photos ont échoué :
+                  L&apos;action est enregistrée, mais certaines opérations sur les photos ou les vidéos ont échoué :
                 </p>
                 <ul className="mt-1.5 list-disc pl-5">
                   {bilanPhotos.erreurs.map((m) => (
@@ -713,8 +742,27 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
             </Field>
           </div>
 
+          {/* ── VIDÉOS ── */}
+          <SectionTitle>5. Vidéos</SectionTitle>
+          <div className="px-6 py-6">
+            <Field
+              label="Vidéos YouTube"
+              hint="Collez le lien d'une vidéo YouTube. Elle sera intégrée à la page de l'action sur le site public."
+            >
+              <ChoixVideos
+                videos={videos}
+                onChange={setVideos}
+                saisie={saisieVideo}
+                onSaisie={setSaisieVideo}
+                erreur={err.videos}
+                onErreur={(message) => setErrors((prev) => ({ ...prev, videos: message }))}
+                disabled={loading}
+              />
+            </Field>
+          </div>
+
           {/* ── SITE PUBLIC ── */}
-          <SectionTitle>5. Site public</SectionTitle>
+          <SectionTitle>6. Site public</SectionTitle>
           <div className="px-6 py-6 space-y-5">
             <Field
               label="Info web"

@@ -110,6 +110,10 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       édition (même formulaire `FormulaireAction`, photos comprises : ajout,
       suppression, légendes, photo principale). Synchronisation des photos :
       `lib/photos-sync.ts`.
+- [x] Vidéos YouTube par action (table `site_videos`, vue `site_videos_public`) :
+      liens validés et normalisés (`lib/youtube.ts`), gérés en création et en
+      édition (`lib/videos-sync.ts`), lecteur youtube-nocookie chargé au clic sur
+      la vitrine.
 - [ ] **Policy Storage à ajouter** : supprimer (`remove`) et réordonner (`move`) une
       photo exigent aussi le droit `SELECT` sur `storage.objects` pour le bucket
       `action-photos` (absent au 24/09/2026 → suppression et changement de photo

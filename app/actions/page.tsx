@@ -3,6 +3,8 @@ import Link from "next/link";
 import { isoToDateFr } from "../../lib/dates";
 import { trierPhotos } from "../../lib/photos";
 import { getSupabase } from "../../lib/supabase";
+import { idYoutube } from "../../lib/youtube";
+import LecteurYoutube from "./LecteurYoutube";
 import PhotosUne, { type Photo } from "./PhotosUne";
 
 export const metadata: Metadata = {
@@ -14,7 +16,7 @@ export const metadata: Metadata = {
 // Une action publiée depuis l'espace admin apparaît ici en moins d'une minute.
 export const revalidate = 60;
 
-// Colonnes exposées par les vues publiques (jamais les tables site_actions / site_photos).
+// Colonnes exposées par les vues publiques (jamais les tables site_actions / site_photos / site_videos).
 type ActionPublique = {
   id: string;
   nom: string | null;
@@ -31,6 +33,8 @@ type ActionPublique = {
 };
 
 type PhotoPublique = Photo & { action_id: string };
+type Video = { id: string; url: string; titre: string | null };
+type VideoPublique = Video & { action_id: string };
 
 const COLONNES =
   "id, nom, date_action, ville, type_action, type_action_autre, entreprise, front_commun, front_commun_csc, front_commun_synova, participants_total, info_web";
@@ -71,30 +75,38 @@ async function chargerDonnees() {
     .order("date_action", { ascending: false });
   if (error) {
     console.error("site_actions_public:", error.message);
-    return { actions: [] as ActionPublique[], photos: new Map<string, Photo[]>(), erreur: true };
+    return {
+      actions: [] as ActionPublique[],
+      photos: new Map<string, Photo[]>(),
+      videos: new Map<string, Video[]>(),
+      erreur: true,
+    };
   }
   const actions = (data ?? []) as ActionPublique[];
 
   const photos = new Map<string, Photo[]>();
+  const videos = new Map<string, Video[]>();
   if (actions.length) {
-    const { data: lignes, error: errPhotos } = await supabase
-      .from("site_photos_public")
-      .select("id, action_id, url, legende")
-      .in(
-        "action_id",
-        actions.map((a) => a.id)
-      );
-    // Sans photos, la page reste lisible : on n'affiche pas d'erreur pour ça.
-    if (errPhotos) console.error("site_photos_public:", errPhotos.message);
-    for (const p of trierPhotos((lignes ?? []) as PhotoPublique[])) {
+    const ids = actions.map((a) => a.id);
+    const [resPhotos, resVideos] = await Promise.all([
+      supabase.from("site_photos_public").select("id, action_id, url, legende").in("action_id", ids),
+      supabase.from("site_videos_public").select("id, action_id, url, titre").in("action_id", ids),
+    ]);
+    // Sans photos ni vidéos, la page reste lisible : on n'affiche pas d'erreur pour ça.
+    if (resPhotos.error) console.error("site_photos_public:", resPhotos.error.message);
+    if (resVideos.error) console.error("site_videos_public:", resVideos.error.message);
+    for (const p of trierPhotos((resPhotos.data ?? []) as PhotoPublique[])) {
       photos.set(p.action_id, [...(photos.get(p.action_id) ?? []), p]);
     }
+    for (const v of (resVideos.data ?? []) as VideoPublique[]) {
+      videos.set(v.action_id, [...(videos.get(v.action_id) ?? []), v]);
+    }
   }
-  return { actions, photos, erreur: false };
+  return { actions, photos, videos, erreur: false };
 }
 
 export default async function ActionsPage() {
-  const { actions, photos, erreur } = await chargerDonnees();
+  const { actions, photos, videos, erreur } = await chargerDonnees();
 
   // Regroupement par année (l'ordre décroissant de la requête est conservé).
   const parAnnee = new Map<string, ActionPublique[]>();
@@ -154,6 +166,7 @@ export default async function ActionsPage() {
                     key={a.id}
                     action={a}
                     photos={photos.get(a.id) ?? []}
+                    videos={videos.get(a.id) ?? []}
                     prioritaire={iAnnee === 0 && i === 0}
                   />
                 ))}
@@ -169,10 +182,12 @@ export default async function ActionsPage() {
 function Une({
   action: a,
   photos,
+  videos,
   prioritaire,
 }: {
   action: ActionPublique;
   photos: Photo[];
+  videos: Video[];
   prioritaire: boolean;
 }) {
   const type = typeAction(a);
@@ -213,6 +228,14 @@ function Une({
       <div className="mt-8 grid gap-8 lg:grid-cols-12 lg:gap-10">
         <div className="space-y-8 lg:col-span-8">
           {photos.length > 0 && <PhotosUne photos={photos} titre={titre} prioritaire={prioritaire} />}
+
+          {videos.map((v, i) => {
+            const id = idYoutube(v.url);
+            if (!id) return null;
+            const titreVideo =
+              v.titre?.trim() || (videos.length > 1 ? `Vidéo ${i + 1} : ${titre}` : `Vidéo : ${titre}`);
+            return <LecteurYoutube key={v.id} id={id} titre={titreVideo} />;
+          })}
 
           {textes.length > 0 && (
             <div className="max-w-[68ch] space-y-5 text-[17px] leading-[1.75] sm:text-lg">

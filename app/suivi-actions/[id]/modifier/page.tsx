@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const COLONNES =
-  "id, nom, date_action, ville, type_action, type_action_autre, secteur_id, front_commun, front_commun_csc, front_commun_synova, entreprise, deplacement_bus, deplacement_train, description, participants_total, participants_centrale, info_web, visible_public, photos:site_photos(id, url, legende)";
+  "id, nom, date_action, ville, type_action, type_action_autre, secteur_id, front_commun, front_commun_csc, front_commun_synova, entreprise, deplacement_bus, deplacement_train, description, participants_total, participants_centrale, info_web, visible_public, photos:site_photos(id, url, legende), videos:site_videos(id, url, titre, created_at)";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -25,6 +25,14 @@ export default async function ModifierActionPage({ params }: { params: Promise<{
   if (!data) notFound();
 
   const action = data as unknown as ActionEnregistree;
-  // Les photos suivent l'ordre porté par leur nom de fichier (rang 00 = principale).
-  return <FormulaireAction key={action.id} action={{ ...action, photos: trierPhotos(action.photos ?? []) }} />;
+  // Vidéos dans l'ordre d'ajout ; photos dans l'ordre porté par leur nom de fichier (rang 00 = principale).
+  const videos = [...((action.videos ?? []) as (ActionEnregistree["videos"][number] & { created_at: string })[])].sort(
+    (a, b) => a.created_at.localeCompare(b.created_at)
+  );
+  return (
+    <FormulaireAction
+      key={action.id}
+      action={{ ...action, photos: trierPhotos(action.photos ?? []), videos }}
+    />
+  );
 }
