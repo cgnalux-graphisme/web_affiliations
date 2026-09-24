@@ -69,6 +69,22 @@ Créées le **24/09/2026** dans la base CG Link :
 
 ---
 
+## Sécurité base de données — correctifs déjà appliqués côté Supabase (invisibles depuis le code)
+
+Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
+
+- **Rôles dans `profiles`** : le trigger `trg_site_protect_profiles_role` (fonction
+  `site_protect_profiles_role`) empêche tout utilisateur connecté qui n'est pas
+  `SUPER_ADMIN` de changer un rôle dans `profiles`. Vérifié par test : la promotion
+  abusive est bloquée. **Ne pas re-signaler comme faille ouverte.**
+- **Vue `site_actions_public`** : lecture seule pour `anon` et `authenticated`
+  (droits d'écriture révoqués, seul `SELECT` reste accordé).
+- **Reste à faire** (non critique, à planifier) : resserrer les politiques
+  d'écriture globales sur `profiles`. Un utilisateur connecté peut encore modifier
+  ou supprimer d'autres fiches que la sienne.
+
+---
+
 ## Les phases
 
 ### Phase 0 — Fondations
