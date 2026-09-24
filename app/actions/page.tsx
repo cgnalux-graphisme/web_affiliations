@@ -129,18 +129,19 @@ export default async function ActionsPage() {
             Grèves, manifestations, piquets : la Centrale Générale FGTB Namur – Luxembourg sur le
             terrain, aux côtés des travailleurs.
           </p>
-          {!erreur && actions.length > 0 && (
-            <FriseActions
-              jalons={actions.map((a) => ({
-                id: a.id,
-                date: a.date_action,
-                titre: a.nom?.trim() || typeAction(a),
-                type: typeAction(a),
-              }))}
-            />
-          )}
         </div>
       </header>
+
+      {!erreur && actions.length > 0 && (
+        <FriseActions
+          jalons={actions.map((a) => ({
+            id: a.id,
+            date: a.date_action,
+            titre: a.nom?.trim() || typeAction(a),
+            type: typeAction(a),
+          }))}
+        />
+      )}
 
       <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
         {erreur ? (
