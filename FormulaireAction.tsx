@@ -1,12 +1,26 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getSupabaseAuth } from "./lib/supabase";
-import { dateFrToIso, formatDateFr } from "./lib/dates";
+import { dateFrToIso, formatDateFr, isoToDateFr } from "./lib/dates";
 import { useOnceSubmit } from "./lib/use-once-submit";
-import { BUCKET_PHOTOS, cheminPhoto, preparerPhoto } from "./lib/photos";
-import ChoixPhotos, { type PhotoLocale } from "./ChoixPhotos";
-import { AlertCircle, AlertTriangle, Bus, CheckCircle, Globe, Loader2, Plus, Train } from "lucide-react";
+import { titreAction } from "./lib/actions";
+import { synchroniserPhotos, type BilanPhotos, type PhotoEdition, type PhotoEnregistree } from "./lib/photos-sync";
+import ChoixPhotos, { libererApercu } from "./ChoixPhotos";
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowLeft,
+  Bus,
+  CheckCircle,
+  Globe,
+  List,
+  Loader2,
+  Plus,
+  Train,
+} from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Secteur = { id: string; nom: string };
@@ -65,6 +79,64 @@ const initialForm: FormData = {
   visiblePublic: false,
 };
 
+/** Action déjà enregistrée (ligne de site_actions + ses photos), pour le mode édition. */
+export type ActionEnregistree = {
+  id: string;
+  nom: string | null;
+  date_action: string;
+  ville: string | null;
+  type_action: string;
+  type_action_autre: string | null;
+  secteur_id: string | null;
+  front_commun: boolean;
+  front_commun_csc: boolean;
+  front_commun_synova: boolean;
+  entreprise: string | null;
+  deplacement_bus: boolean;
+  deplacement_train: boolean;
+  description: string | null;
+  participants_total: number | null;
+  participants_centrale: number | null;
+  info_web: string | null;
+  visible_public: boolean;
+  photos: PhotoEnregistree[];
+};
+
+function formDepuisAction(a: ActionEnregistree): FormData {
+  const type = (TYPES_ACTION as readonly string[]).includes(a.type_action)
+    ? (a.type_action as TypeAction)
+    : "autre";
+  return {
+    nomAction: a.nom ?? "",
+    dateAction: isoToDateFr(a.date_action),
+    ville: a.ville ?? "",
+    typeAction: type,
+    // Type inconnu de la liste : on le garde comme détail de "autre".
+    typeAutre: a.type_action_autre ?? (type === "autre" && a.type_action !== "autre" ? a.type_action : ""),
+    secteurId: a.secteur_id ?? "",
+    frontCommun: a.front_commun,
+    frontCommunCsc: a.front_commun_csc,
+    frontCommunSynova: a.front_commun_synova,
+    entreprise: a.entreprise ?? "",
+    deplacementBus: a.deplacement_bus,
+    deplacementTrain: a.deplacement_train,
+    description: a.description ?? "",
+    participantsTotal: a.participants_total?.toString() ?? "",
+    participantsCentrale: a.participants_centrale?.toString() ?? "",
+    infoWeb: a.info_web ?? "",
+    visiblePublic: a.visible_public,
+  };
+}
+
+function photosDepuisAction(a: ActionEnregistree): PhotoEdition[] {
+  return a.photos.map((p) => ({ cle: p.id, id: p.id, url: p.url, legende: p.legende ?? "" }));
+}
+
+const BOUTON_PRINCIPAL =
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50";
+const BOUTON_SECONDAIRE =
+  "inline-flex items-center justify-center gap-2 rounded-xl border-2 border-militant-charbon bg-white px-5 py-2 text-sm font-bold text-militant-charbon transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2";
+
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -78,8 +150,10 @@ function toIntOrNull(v: string): number | null {
 // RLS : l'écriture est réservée aux super admins → "permission refusée" si la session a expiré.
 const CODE_ACCES_REFUSE = "42501";
 
-export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.ReactNode }) {
-  const [form, setForm] = useState<FormData>(initialForm);
+/** Formulaire d'action : création (sans `action`) ou modification (avec `action`). */
+export default function FormulaireAction({ action }: { action?: ActionEnregistree }) {
+  const router = useRouter();
+  const [form, setForm] = useState<FormData>(() => (action ? formDepuisAction(action) : initialForm));
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -92,12 +166,9 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
   const [nouveauSecteur, setNouveauSecteur] = useState("");
   const [ajoutSecteurLoading, setAjoutSecteurLoading] = useState(false);
 
-  const [photos, setPhotos] = useState<PhotoLocale[]>([]);
+  const [photos, setPhotos] = useState<PhotoEdition[]>(() => (action ? photosDepuisAction(action) : []));
   const [progression, setProgression] = useState("");
-  const [bilanPhotos, setBilanPhotos] = useState<{ envoyees: number; echecs: string[] }>({
-    envoyees: 0,
-    echecs: [],
-  });
+  const [bilanPhotos, setBilanPhotos] = useState<BilanPhotos>({ ajoutees: 0, erreurs: [] });
 
   useEffect(() => {
     loadSecteurs();
@@ -214,32 +285,38 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
     setLoading(true);
     setSubmitError("");
 
+    const donnees = {
+      nom: form.nomAction.trim() || null,
+      date_action: dateFrToIso(form.dateAction),
+      ville: form.ville.trim() || null,
+      type_action: form.typeAction,
+      type_action_autre: form.typeAction === "autre" ? form.typeAutre.trim() : null,
+      secteur_id: form.secteurId || null,
+      front_commun: form.frontCommun === true,
+      front_commun_csc: form.frontCommun === true && form.frontCommunCsc,
+      front_commun_synova: form.frontCommun === true && form.frontCommunSynova,
+      entreprise: form.entreprise.trim() || null,
+      deplacement_bus: form.deplacementBus,
+      deplacement_train: form.deplacementTrain,
+      description: form.description.trim() || null,
+      participants_total: toIntOrNull(form.participantsTotal),
+      participants_centrale: toIntOrNull(form.participantsCentrale),
+      info_web: form.infoWeb.trim() || null,
+      visible_public: form.visiblePublic,
+    };
+
     try {
       const supabase = getSupabaseAuth();
-      setProgression("Enregistrement de l'action…");
+      setProgression(action ? "Enregistrement des modifications…" : "Enregistrement de l'action…");
+
       // 1) L'action d'abord : les photos ont besoin de son id.
-      const { data: action, error: dbError } = await supabase.from("site_actions").insert({
-        nom: form.nomAction.trim() || null,
-        date_action: dateFrToIso(form.dateAction),
-        ville: form.ville.trim() || null,
-        type_action: form.typeAction,
-        type_action_autre: form.typeAction === "autre" ? form.typeAutre.trim() : null,
-        secteur_id: form.secteurId || null,
-        front_commun: form.frontCommun === true,
-        front_commun_csc: form.frontCommun === true && form.frontCommunCsc,
-        front_commun_synova: form.frontCommun === true && form.frontCommunSynova,
-        entreprise: form.entreprise.trim() || null,
-        deplacement_bus: form.deplacementBus,
-        deplacement_train: form.deplacementTrain,
-        description: form.description.trim() || null,
-        participants_total: toIntOrNull(form.participantsTotal),
-        participants_centrale: toIntOrNull(form.participantsCentrale),
-        info_web: form.infoWeb.trim() || null,
-        visible_public: form.visiblePublic,
-      }).select("id").single();
+      const { data: ligne, error: dbError } = action
+        ? await supabase.from("site_actions").update(donnees).eq("id", action.id).select("id").single()
+        : await supabase.from("site_actions").insert(donnees).select("id").single();
 
       if (dbError) {
-        if (dbError.code === CODE_ACCES_REFUSE) {
+        // 42501 = refus RLS ; PGRST116 = aucune ligne modifiée (session expirée ou droits insuffisants).
+        if (dbError.code === CODE_ACCES_REFUSE || dbError.code === "PGRST116") {
           release();
           setSubmitError(
             "Votre session a expiré ou ne permet pas l'enregistrement. Reconnectez-vous puis réessayez."
@@ -249,14 +326,28 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
         throw new Error(`Supabase: ${dbError.message}`);
       }
 
-      // 2) Puis les photos, rattachées à l'action. Un échec ici n'annule pas l'action.
-      setBilanPhotos(photos.length ? await envoyerPhotos(action.id) : { envoyees: 0, echecs: [] });
+      // 2) Puis les photos. Un échec ici n'annule pas l'enregistrement de l'action.
+      const bilan = await synchroniserPhotos(
+        supabase,
+        ligne.id,
+        photos,
+        action?.photos ?? [],
+        setProgression
+      );
+      photos.forEach(libererApercu);
+
+      if (action && bilan.erreurs.length === 0) {
+        router.push(`/suivi-actions?modifiee=${ligne.id}`);
+        router.refresh();
+        return;
+      }
+      setBilanPhotos(bilan);
       setSubmitted(true);
     } catch (err) {
       console.error(err);
       release();
       setSubmitError(
-        "L'action n'a pas pu être enregistrée. Vérifiez votre connexion et réessayez. Si le problème persiste, contactez l'administrateur."
+        `L'action n'a pas pu être ${action ? "modifiée" : "enregistrée"}. Vérifiez votre connexion et réessayez. Si le problème persiste, contactez l'administrateur.`
       );
     } finally {
       setLoading(false);
@@ -264,52 +355,9 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
     }
   }
 
-  async function envoyerPhotos(actionId: string): Promise<{ envoyees: number; echecs: string[] }> {
-    const supabase = getSupabaseAuth();
-    const stockage = supabase.storage.from(BUCKET_PHOTOS);
-    const lignes: { action_id: string; url: string; legende: string | null }[] = [];
-    const chemins: string[] = [];
-    const echecs: string[] = [];
-
-    for (const [rang, p] of photos.entries()) {
-      setProgression(`Envoi des photos ${rang + 1}/${photos.length}…`);
-      try {
-        const jpeg = await preparerPhoto(p.file);
-        const chemin = cheminPhoto(actionId, rang, crypto.randomUUID());
-        const { error } = await stockage.upload(chemin, jpeg, {
-          contentType: "image/jpeg",
-          cacheControl: "31536000",
-          upsert: false,
-        });
-        if (error) throw error;
-        chemins.push(chemin);
-        lignes.push({
-          action_id: actionId,
-          url: stockage.getPublicUrl(chemin).data.publicUrl,
-          legende: p.legende.trim() || null,
-        });
-      } catch (err) {
-        console.error(err);
-        echecs.push(p.file.name);
-      }
-    }
-
-    if (lignes.length) {
-      const { error } = await supabase.from("site_photos").insert(lignes);
-      if (error) {
-        console.error(error);
-        // Fichiers envoyés mais non référencés : on les retire du bucket.
-        await stockage.remove(chemins);
-        return { envoyees: 0, echecs: photos.map((p) => p.file.name) };
-      }
-    }
-    return { envoyees: lignes.length, echecs };
-  }
-
   function nouvelleAction() {
-    photos.forEach((p) => URL.revokeObjectURL(p.apercu));
     setPhotos([]);
-    setBilanPhotos({ envoyees: 0, echecs: [] });
+    setBilanPhotos({ ajoutees: 0, erreurs: [] });
     setForm(initialForm);
     setErrors({});
     setSubmitError("");
@@ -319,69 +367,79 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
 
   const secteurNom = secteurs.find((s) => s.id === form.secteurId)?.nom;
 
-  // ── Écran succès ─────────────────────────────────────────────────────────
+  // ── Écran de résultat ────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
-        <div className="max-w-2xl mx-auto space-y-5">
-        {barreAdmin}
-          <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
-            <div className="flex items-center gap-4">
-              <div className="bg-white/10 rounded-xl p-2.5 shrink-0">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
+      <div className="max-w-2xl mx-auto space-y-5">
+        <header className="rounded-2xl bg-militant-charbon px-6 py-5 text-white">
+          <div className="flex items-center gap-4">
+            <CheckCircle className="h-8 w-8 shrink-0 text-militant-rouge" />
+            <div>
+              <p className="text-lg font-bold leading-snug">
+                {action ? "Modifications enregistrées" : "Action enregistrée"}
+              </p>
+              <p className="mt-1 text-sm">
+                {action ? "L'action a bien été mise à jour." : "L'action a bien été ajoutée au suivi."}
+              </p>
+            </div>
+          </div>
+        </header>
+
+        <div className="rounded-2xl border border-militant-ardoise bg-white p-6">
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+            {form.nomAction.trim() && <Recap label="Nom" value={form.nomAction.trim()} />}
+            <Recap label="Date" value={form.dateAction} />
+            <Recap
+              label="Type"
+              value={capitalize(form.typeAction === "autre" ? form.typeAutre.trim() : form.typeAction)}
+            />
+            {form.ville.trim() && <Recap label="Ville" value={form.ville.trim()} />}
+            {secteurNom && <Recap label="Secteur" value={secteurNom} />}
+            {form.entreprise.trim() && <Recap label="Entreprise" value={form.entreprise.trim()} />}
+            {form.participantsTotal.trim() && (
+              <Recap label="Participants" value={form.participantsTotal.trim()} />
+            )}
+            <Recap
+              label="Site public"
+              value={form.visiblePublic ? "Publiée" : "Non publiée (suivi interne)"}
+            />
+            {bilanPhotos.ajoutees > 0 && (
+              <Recap
+                label="Photos"
+                value={`${bilanPhotos.ajoutees} photo${bilanPhotos.ajoutees > 1 ? "s" : ""} ajoutée${bilanPhotos.ajoutees > 1 ? "s" : ""}`}
+              />
+            )}
+          </dl>
+          {bilanPhotos.erreurs.length > 0 && (
+            <div
+              role="alert"
+              className="mt-5 flex items-start gap-2.5 rounded-xl border-2 border-militant-bordeaux bg-white px-4 py-3 text-sm text-militant-charbon"
+            >
+              <AlertTriangle size={18} className="mt-0.5 shrink-0 text-militant-bordeaux" />
               <div>
-                <p className="text-white text-lg font-semibold leading-snug">Action enregistrée</p>
-                <p className="text-red-100 text-sm mt-1">
-                  L&apos;action a bien été ajoutée au suivi.
+                <p className="font-bold text-militant-bordeaux">
+                  L&apos;action est enregistrée, mais certaines opérations sur les photos ont échoué :
+                </p>
+                <ul className="mt-1.5 list-disc pl-5">
+                  {bilanPhotos.erreurs.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+                <p className="mt-1.5">
+                  Vous pouvez réessayer depuis l&apos;écran de modification de l&apos;action.
                 </p>
               </div>
             </div>
-          </header>
-
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              {form.nomAction.trim() && <Recap label="Nom" value={form.nomAction.trim()} />}
-              <Recap label="Date" value={form.dateAction} />
-              <Recap
-                label="Type"
-                value={capitalize(form.typeAction === "autre" ? form.typeAutre.trim() : form.typeAction)}
-              />
-              {form.ville.trim() && <Recap label="Ville" value={form.ville.trim()} />}
-              {secteurNom && <Recap label="Secteur" value={secteurNom} />}
-              {form.entreprise.trim() && <Recap label="Entreprise" value={form.entreprise.trim()} />}
-              {form.participantsTotal.trim() && (
-                <Recap label="Participants" value={form.participantsTotal.trim()} />
-              )}
-              <Recap
-                label="Site public"
-                value={form.visiblePublic ? "Publiée" : "Non publiée (suivi interne)"}
-              />
-              {bilanPhotos.envoyees > 0 && (
-                <Recap
-                  label="Photos"
-                  value={`${bilanPhotos.envoyees} photo${bilanPhotos.envoyees > 1 ? "s" : ""} ajoutée${bilanPhotos.envoyees > 1 ? "s" : ""}`}
-                />
-              )}
-            </dl>
-            {bilanPhotos.echecs.length > 0 && (
-              <div role="alert" className="mt-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-                <p>
-                  L&apos;action est enregistrée, mais {bilanPhotos.echecs.length > 1 ? "ces photos n'ont" : "cette photo n'a"} pas
-                  pu être envoyée{bilanPhotos.echecs.length > 1 ? "s" : ""} : {bilanPhotos.echecs.join(", ")}. Vérifiez votre
-                  connexion. L&apos;ajout de photos à une action existante n&apos;est pas encore disponible.
-                </p>
-              </div>
-            )}
-            <div className="mt-6 text-center">
-              <button
-                onClick={nouvelleAction}
-                className="inline-flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors"
-              >
+          )}
+          <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+            {!action && (
+              <button type="button" onClick={nouvelleAction} className={BOUTON_PRINCIPAL}>
                 <Plus size={16} /> Encoder une autre action
               </button>
-            </div>
+            )}
+            <Link href="/suivi-actions" className={BOUTON_SECONDAIRE}>
+              <List size={16} /> Retour à la liste
+            </Link>
           </div>
         </div>
       </div>
@@ -392,15 +450,21 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
   const err = errors;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-5">
-        {barreAdmin}
-        <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
-          <h1 className="text-xl font-semibold leading-snug">Suivi des actions — Encoder une action</h1>
-          <p className="text-red-100 text-sm mt-1.5">Centrale Générale FGTB Namur – Luxembourg</p>
-        </header>
+    <div className="max-w-2xl mx-auto space-y-5">
+      <header className="rounded-2xl bg-militant-charbon px-6 py-5 text-white">
+        <Link
+          href="/suivi-actions"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-white underline decoration-militant-rouge decoration-2 underline-offset-4 hover:decoration-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          <ArrowLeft size={15} /> Toutes les actions
+        </Link>
+        <h1 className="mt-3 text-2xl font-bold leading-snug">
+          {action ? "Modifier l'action" : "Encoder une action"}
+        </h1>
+        {action && <p className="mt-1 text-sm">{titreAction(action)}</p>}
+      </header>
 
-        <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl border border-militant-ardoise overflow-hidden">
 
           {/* ── L'ACTION ── */}
           <SectionTitle>1. L&apos;action</SectionTitle>
@@ -491,11 +555,11 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
                 ))}
                 <option value={NOUVEAU_SECTEUR}>+ Ajouter un secteur</option>
               </select>
-              {secteursError && <p className="text-red-600 text-xs mt-1">{secteursError}</p>}
+              {secteursError && <p className="text-militant-bordeaux font-semibold text-xs mt-1">{secteursError}</p>}
             </Field>
 
             {form.secteurId === NOUVEAU_SECTEUR && (
-              <div className="rounded-xl border border-red-100 bg-red-50/50 p-4">
+              <div className="rounded-xl border border-militant-ardoise bg-white p-4">
                 <Field
                   label="Nouveau secteur"
                   error={err.nouveauSecteur}
@@ -522,7 +586,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
                       type="button"
                       onClick={ajouterSecteur}
                       disabled={ajoutSecteurLoading}
-                      className="inline-flex items-center justify-center gap-1.5 shrink-0 bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors"
+                      className="inline-flex items-center justify-center gap-1.5 shrink-0 bg-militant-bordeaux hover:bg-militant-charbon disabled:opacity-50 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors"
                     >
                       {ajoutSecteurLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                       Ajouter
@@ -674,28 +738,27 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
 
           <div className="px-6 pb-6 space-y-3">
             {submitError && (
-              <div role="alert" className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 text-sm">
+              <div role="alert" className="flex items-start gap-2.5 bg-white border-2 border-militant-bordeaux text-militant-charbon rounded-xl px-4 py-3 text-sm">
                 <AlertCircle size={18} className="shrink-0 mt-0.5" />
                 <p>{submitError}</p>
               </div>
             )}
             {Object.values(errors).some(Boolean) && !submitError && (
-              <p className="text-red-600 text-sm text-center">
+              <p className="text-militant-bordeaux font-semibold text-sm text-center">
                 Certains champs doivent être corrigés avant l&apos;enregistrement.
               </p>
             )}
             <button
               type="submit"
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 bg-militant-bordeaux hover:bg-militant-charbon disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
             >
               {loading && <Loader2 size={16} className="animate-spin" />}
-              {loading ? progression || "Enregistrement…" : "Enregistrer l'action"}
+              {loading ? progression || "Enregistrement…" : action ? "Enregistrer les modifications" : "Enregistrer l'action"}
             </button>
-            <p className="text-xs text-gray-400 text-center">* Champs obligatoires</p>
+            <p className="text-xs text-militant-charbon text-center">* Champs obligatoires</p>
           </div>
         </form>
-      </div>
     </div>
   );
 }
@@ -703,7 +766,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
 // ── Sous-composants ──────────────────────────────────────────────────────────
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-red-700 text-white px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em]">
+    <div className="bg-militant-charbon text-white px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em]">
       {children}
     </div>
   );
@@ -717,10 +780,10 @@ function Field({ label, error, hint, children }: {
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
-      {hint && <p className="text-xs text-gray-400 mb-1.5">{hint}</p>}
+      <label className="block text-sm font-semibold text-militant-charbon mb-1.5">{label}</label>
+      {hint && <p className="text-xs text-militant-charbon mb-1.5">{hint}</p>}
       {children}
-      {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+      {error && <p className="text-militant-bordeaux font-semibold text-xs mt-1">{error}</p>}
     </div>
   );
 }
@@ -737,8 +800,8 @@ function ChoiceCard({ type, name, checked, onChange, label, icon }: {
     <label
       className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 cursor-pointer transition-colors text-sm ${
         checked
-          ? "border-red-400 bg-red-50 text-gray-900"
-          : "border-gray-200 text-gray-700 hover:border-red-200"
+          ? "border-militant-rouge bg-white text-militant-charbon ring-1 ring-militant-rouge"
+          : "border-militant-ardoise text-militant-charbon hover:border-militant-charbon"
       }`}
     >
       <input
@@ -746,9 +809,9 @@ function ChoiceCard({ type, name, checked, onChange, label, icon }: {
         name={name}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="accent-red-700"
+        className="accent-militant-rouge"
       />
-      {icon && <span className={checked ? "text-red-700" : "text-gray-400"}>{icon}</span>}
+      {icon && <span className={checked ? "text-militant-rouge" : "text-militant-charbon"}>{icon}</span>}
       <span className="font-medium">{label}</span>
     </label>
   );
@@ -761,21 +824,21 @@ function PublicationToggle({ checked, onChange }: {
   return (
     <label
       className={`flex items-start gap-3 rounded-xl border px-4 py-3.5 cursor-pointer transition-colors ${
-        checked ? "border-red-400 bg-red-50" : "border-gray-200 hover:border-red-200"
+        checked ? "border-militant-rouge bg-white ring-1 ring-militant-rouge" : "border-militant-ardoise hover:border-militant-charbon"
       }`}
     >
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="accent-red-700 mt-0.5 h-4 w-4 shrink-0"
+        className="accent-militant-rouge mt-0.5 h-4 w-4 shrink-0"
       />
       <span className="min-w-0">
-        <span className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-          <Globe size={16} className={checked ? "text-red-700" : "text-gray-400"} />
+        <span className="flex items-center gap-2 text-sm font-semibold text-militant-charbon">
+          <Globe size={16} className={checked ? "text-militant-rouge" : "text-militant-charbon"} />
           Publier sur le site public
         </span>
-        <span className="block text-xs text-gray-500 mt-1">
+        <span className="block text-xs text-militant-charbon mt-1">
           {checked
             ? "Seront visibles : date, type, ville, front commun, nombre de participants et info web (l'entreprise uniquement pour un piquet)."
             : "L'action reste dans le suivi interne."}
@@ -788,8 +851,8 @@ function PublicationToggle({ checked, onChange }: {
 function Recap({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</dt>
-      <dd className="text-gray-800 mt-0.5">{value}</dd>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-militant-charbon">{label}</dt>
+      <dd className="text-militant-charbon mt-0.5">{value}</dd>
     </div>
   );
 }
@@ -797,7 +860,7 @@ function Recap({ label, value }: { label: string; value: string }) {
 function input(error?: string) {
   return `w-full border rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 transition-colors ${
     error
-      ? "border-red-400 focus:ring-red-300 bg-red-50"
-      : "border-gray-300 focus:ring-red-200"
+      ? "border-militant-bordeaux border-2 focus:ring-militant-rouge bg-white"
+      : "border-militant-ardoise focus:border-militant-charbon focus:ring-militant-rouge"
   }`;
 }

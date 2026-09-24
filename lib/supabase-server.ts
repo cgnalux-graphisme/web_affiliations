@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { isSuperAdmin } from "./admin";
@@ -26,12 +27,15 @@ export async function getSupabaseServer() {
   );
 }
 
-/** Retourne l'utilisateur connecté s'il est SUPER_ADMIN, sinon null. */
-export async function getSuperAdmin() {
+/**
+ * Retourne l'utilisateur connecté s'il est SUPER_ADMIN, sinon null.
+ * Mis en cache pour la durée d'une requête (layout + page ne vérifient qu'une fois).
+ */
+export const getSuperAdmin = cache(async () => {
   const supabase = await getSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
   return (await isSuperAdmin(supabase, user.id)) ? user : null;
-}
+});

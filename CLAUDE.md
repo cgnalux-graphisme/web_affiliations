@@ -105,8 +105,15 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - [x] Vitrine publique `/actions` (style éditorial militant, palette stricte
       `#E32119` `#AA0F33` `#222222` `#FFFFFF` `#7C90A0`, polices Barlow
       auto-hébergées via `@fontsource`)
-- [ ] Ajouter / retirer des photos sur une action existante
-- [ ] Vue liste / tableau de bord des actions
+- [x] Espace admin : `/suivi-actions` = liste de toutes les actions (publiées ou
+      non), `/suivi-actions/nouvelle` = création, `/suivi-actions/<id>/modifier` =
+      édition (même formulaire `FormulaireAction`, photos comprises : ajout,
+      suppression, légendes, photo principale). Synchronisation des photos :
+      `lib/photos-sync.ts`.
+- [ ] **Policy Storage à ajouter** : supprimer (`remove`) et réordonner (`move`) une
+      photo exigent aussi le droit `SELECT` sur `storage.objects` pour le bucket
+      `action-photos` (absent au 24/09/2026 → suppression et changement de photo
+      principale échouent, l'erreur est affichée).
 - [ ] Générateur du rapport d'activité pour le congrès (tous les 4 ans)
 
 ### Phase 2 — Veille + blog

@@ -9,6 +9,25 @@ export function cheminPhoto(actionId: string, rang: number, id: string): string 
   return `${actionId}/${String(rang).padStart(2, "0")}-${id}.jpg`;
 }
 
+/**
+ * Retrouve le chemin du fichier dans le bucket à partir de l'URL publique stockée
+ * dans site_photos (".../storage/v1/object/public/action-photos/<chemin>").
+ * Retourne null si l'URL ne pointe pas vers le bucket.
+ */
+export function cheminDepuisUrl(url: string): string | null {
+  const marqueur = `/storage/v1/object/public/${BUCKET_PHOTOS}/`;
+  const i = url.indexOf(marqueur);
+  if (i === -1) return null;
+  const chemin = url.slice(i + marqueur.length).split(/[?#]/)[0];
+  return chemin ? decodeURIComponent(chemin) : null;
+}
+
+/** Rang d'une photo lu dans son chemin ("<action_id>/07-….jpg" → 7), ou null. */
+export function rangDepuisChemin(chemin: string): number | null {
+  const m = chemin.match(/^[^/]+\/(\d{2})-[^/]+$/);
+  return m ? Number(m[1]) : null;
+}
+
 export function trierPhotos<T extends { url: string }>(photos: T[]): T[] {
   return [...photos].sort((a, b) => a.url.localeCompare(b.url));
 }
