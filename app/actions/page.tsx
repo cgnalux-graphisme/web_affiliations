@@ -4,6 +4,8 @@ import { isoToDateFr } from "../../lib/dates";
 import { trierPhotos } from "../../lib/photos";
 import { getSupabase } from "../../lib/supabase";
 import { idYoutube } from "../../lib/youtube";
+import { ancreUne } from "../../lib/actions";
+import FriseActions from "./FriseActions";
 import LecteurYoutube from "./LecteurYoutube";
 import PhotosUne, { type Photo } from "./PhotosUne";
 
@@ -127,6 +129,16 @@ export default async function ActionsPage() {
             Grèves, manifestations, piquets : la Centrale Générale FGTB Namur – Luxembourg sur le
             terrain, aux côtés des travailleurs.
           </p>
+          {!erreur && actions.length > 0 && (
+            <FriseActions
+              jalons={actions.map((a) => ({
+                id: a.id,
+                date: a.date_action,
+                titre: a.nom?.trim() || typeAction(a),
+                type: typeAction(a),
+              }))}
+            />
+          )}
         </div>
       </header>
 
@@ -200,7 +212,10 @@ function Une({
   const aDesFaits = Boolean(participants || a.ville || a.entreprise || frontCommun);
 
   return (
-    <article className="border-t-[6px] border-militant-charbon pt-6 first:border-t-0 first:pt-0">
+    <article
+      id={ancreUne(a.id)}
+      className="scroll-mt-6 border-t-[6px] border-militant-charbon pt-6 first:border-t-0 first:pt-0"
+    >
       <p className="flex flex-wrap items-center gap-x-3 font-condensed text-2xl font-bold">
         <time dateTime={a.date_action} className="tabular-nums text-militant-rouge">
           {isoToDateFr(a.date_action)}

@@ -122,6 +122,9 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       fichiers photo du bucket d'abord, puis la ligne `site_actions` (photos et
       vidéos suivent en cascade). Si l'effacement des fichiers échoue réellement,
       l'action est conservée pour ne pas laisser de photos orphelines en ligne.
+- [x] Frise chronologique animée en tête de `/actions` (`app/actions/FriseActions.tsx`) :
+      un jalon par action placé selon sa date, nom au survol, clic = défilement vers
+      la une (`#une-<id>`) mise en avant ; défilement horizontal tactile.
 - [ ] Générateur du rapport d'activité pour le congrès (tous les 4 ans)
 
 ### Phase 2 — Veille + blog

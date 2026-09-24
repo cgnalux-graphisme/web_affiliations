@@ -12,3 +12,8 @@ export function titreAction(a: {
   if (a.type_action === "autre") return capitalize(a.type_action_autre?.trim() || "autre action");
   return capitalize(a.type_action);
 }
+
+/** Identifiant d'ancre de la une d'une action sur la vitrine (/actions#une-…). */
+export function ancreUne(id: string): string {
+  return `une-${id}`;
+}

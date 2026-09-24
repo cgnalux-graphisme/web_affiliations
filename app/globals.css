@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Vitrine /actions : frise chronologique et mise en avant d'une une ── */
+@keyframes frise-trace {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes frise-jalon {
+  from { opacity: 0; scale: 0.3; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes une-en-avant {
+  0%, 45% { outline-color: #E32119; }
+  100% { outline-color: rgb(227 33 25 / 0); }
+}
+.une-en-avant {
+  outline: 4px solid rgb(227 33 25 / 0);
+  outline-offset: 12px;
+  animation: une-en-avant 2.2s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .frise-anim { animation: none !important; }
+  /* Pas de fondu : le contour s'affiche 2 s puis disparaît d'un coup. */
+  .une-en-avant { animation-timing-function: steps(1, end); }
+}
