@@ -477,7 +477,6 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
 }) {
   const now = new Date();
   const dateDoc = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const dateSignLong = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "long", year: "numeric" });
 
   const titreDemande =
     data.typeDemande === "nouveau_mandat"
@@ -658,7 +657,7 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
                 </Text>
               )}
               <Text style={[pdfStyles.signatureDate, { textAlign: "center" }]}>
-                Signé électroniquement le {dateSignLong}
+                Signé électroniquement le {dateDoc}
               </Text>
               <Text style={pdfStyles.luApprouve}>
                 Lu et approuvé. Mandat complété en ligne le {dateHeure} via accg-nalux.be.{"\n"}

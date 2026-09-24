@@ -34,10 +34,3 @@ export function isoToDateFr(iso: string): string {
   if (!m) return "";
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
-
-/** Format d'affichage de référence du projet : AAAA-MM-JJ → JJ/MM/AA. Chaîne vide si invalide. */
-export function isoToDateCourte(iso: string): string {
-  const m = iso.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return "";
-  return `${m[3]}/${m[2]}/${m[1].slice(2)}`;
-}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertCircle, Building2, Handshake, MapPin, Megaphone, Users } from "lucide-react";
-import { isoToDateCourte } from "../../lib/dates";
+import { isoToDateFr } from "../../lib/dates";
 import { getSupabase } from "../../lib/supabase";
 
 export const metadata: Metadata = {
@@ -140,7 +140,7 @@ function CarteAction({ action: a }: { action: ActionPublique }) {
             dateTime={a.date_action}
             className="inline-flex shrink-0 rounded-lg bg-red-700 px-2.5 py-1 text-sm font-bold tabular-nums text-white"
           >
-            {isoToDateCourte(a.date_action)}
+            {isoToDateFr(a.date_action)}
           </time>
           <h3 className="text-lg font-semibold leading-snug text-gray-900">{libelleType(a)}</h3>
         </div>

@@ -1732,7 +1732,6 @@ function AffiliationDocument({
   const now          = new Date();
   const dateDoc      = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit", year: "numeric" });
   const heureDoc     = now.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
-  const dateSignLong = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "long", year: "numeric" });
 
   const cotisation     = calculerCotisation(data);
   const montantMensuel = cotisation ? cotisation.montant.toFixed(2) : null;
@@ -2115,7 +2114,7 @@ function AffiliationDocument({
                 </PDFText>
               )}
               <PDFText style={[pdfStyles.signatureDate, { textAlign: "center" }]}>
-                Signé électroniquement le {dateSignLong}
+                Signé électroniquement le {dateDoc}
               </PDFText>
               <PDFText style={pdfStyles.luApprouve}>
                 Lu et approuvé. Formulaire complété en ligne le {dateDoc} à {heureDoc} via accg-nalux.be.{"\n"}

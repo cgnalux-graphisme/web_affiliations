@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai) et l'assistant de Cursor.
 >
-> Dernière mise à jour : **24/09/26**
+> Dernière mise à jour : **24/09/2026**
 
 ---
 
@@ -35,14 +35,14 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
   base. Ce qui protège chaque table, c'est sa **serrure (RLS)**. Le site public ne
   doit **jamais** pouvoir lire les tables sensibles (travailleurs, etc.). Chaque
   nouvelle table = RLS activé + politiques d'accès précises.
-- Le 2ᵉ projet Supabase `accg-nalux-site` (créé le 22/09/26) s'est révélé être un
+- Le 2ᵉ projet Supabase `accg-nalux-site` (créé le 22/09/2026) s'est révélé être un
   **doublon** → à supprimer.
 
 ---
 
 ## Base de données — tables du site
 
-Créées le **24/09/26** dans la base CG Link :
+Créées le **24/09/2026** dans la base CG Link :
 
 | Table | Rôle | Accès |
 |---|---|---|
@@ -131,7 +131,7 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 
 ---
 
-## État au 24/09/26
+## État au 24/09/2026
 - Base + tables du suivi des actions : **prêtes** dans CG Link.
 - À faire par Fred : **supprimer** le projet Supabase `accg-nalux-site` (dashboard).
 - Prochaine étape ensemble : **construire le formulaire d'encodage** des actions
@@ -140,9 +140,11 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 ---
 
 ## Conventions
-- **Format de date : toujours `jj/mm/aa`** (ex. `24/09/26`), dans l'interface, les
-  e-mails, les documents et ce fichier. Côté code : `isoToDateCourte()` dans
-  `lib/dates.ts`. En base, les dates restent au format ISO (`aaaa-mm-jj`).
+- **Format de date : toujours `jj/mm/aaaa`** (ex. `24/09/2026`), partout : interface,
+  saisie, e-mails, PDF, courriers et ce fichier. Pas de mois en toutes lettres, pas
+  d'année sur 2 chiffres. Côté code : `formatDateFr()`, `isoToDateFr()` et
+  `dateFrToIso()` dans `lib/dates.ts`. En base, les dates restent au format ISO
+  (`aaaa-mm-jj`).
 
 ## Rappels techniques
 - Stack : Next.js (Node 24), Supabase, Vercel, Resend (envoi d'e-mails).

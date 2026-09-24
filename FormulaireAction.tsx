@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getSupabaseAuth } from "./lib/supabase";
-import { isoToDateCourte } from "./lib/dates";
+import { isoToDateFr } from "./lib/dates";
 import { useOnceSubmit } from "./lib/use-once-submit";
 import { AlertCircle, Bus, CheckCircle, Globe, Loader2, Plus, Train } from "lucide-react";
 
@@ -277,7 +277,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
 
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <Recap label="Date" value={isoToDateCourte(form.dateAction)} />
+              <Recap label="Date" value={isoToDateFr(form.dateAction)} />
               <Recap
                 label="Type"
                 value={capitalize(form.typeAction === "autre" ? form.typeAutre.trim() : form.typeAction)}
