@@ -1,3 +1,4 @@
+import { createBrowserClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | undefined;
@@ -18,4 +19,20 @@ export function getSupabase(): SupabaseClient {
     );
   }
   return client;
+}
+
+let authClient: SupabaseClient | undefined;
+
+/**
+ * Client Supabase navigateur AVEC session (espace admin).
+ * La session est stockée en cookies, donc lisible aussi côté serveur et proxy.
+ */
+export function getSupabaseAuth(): SupabaseClient {
+  if (!authClient) {
+    authClient = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return authClient;
 }

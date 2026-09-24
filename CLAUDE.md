@@ -79,7 +79,10 @@ Créées le **24/09/2026** dans la base CG Link :
 
 ### Phase 1 — Suivi des actions *(en cours)*
 - [x] Tables créées
-- [ ] **Formulaire d'encodage des actions (+ photos) ← PROCHAINE ÉTAPE**
+- [x] Connexion `/login` (Supabase Auth, identifiants CG Link) + verrou
+      `SUPER_ADMIN` sur `/suivi-actions` (`proxy.ts` + vérification dans la page)
+- [x] Formulaire d'encodage (champs `info_web`, `visible_public`, `type_action_autre`)
+- [ ] Photos des actions
 - [ ] Vue liste / tableau de bord des actions
 - [ ] Générateur du rapport d'activité pour le congrès (tous les 4 ans)
 
