@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertCircle, Building2, Handshake, MapPin, Megaphone, Users } from "lucide-react";
+import localFont from "next/font/local";
 import { isoToDateFr } from "../../lib/dates";
+import { trierPhotos } from "../../lib/photos";
 import { getSupabase } from "../../lib/supabase";
+import PhotosUne, { type Photo } from "./PhotosUne";
 
 export const metadata: Metadata = {
   title: "Nos actions — Centrale Générale FGTB Namur – Luxembourg",
@@ -13,7 +15,28 @@ export const metadata: Metadata = {
 // Une action publiée depuis l'espace admin apparaît ici en moins d'une minute.
 export const revalidate = 60;
 
-// Colonnes exposées par la vue publique (jamais la table site_actions).
+// Polices auto-hébergées (paquets @fontsource) : aucun appel à Google Fonts.
+const condensed = localFont({
+  src: [
+    { path: "../../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff2", weight: "600" },
+    { path: "../../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-700-normal.woff2", weight: "700" },
+    { path: "../../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-800-normal.woff2", weight: "800" },
+  ],
+  variable: "--font-condensed",
+  fallback: ["Arial Narrow", "sans-serif"],
+});
+const barlow = localFont({
+  src: [
+    { path: "../../node_modules/@fontsource/barlow/files/barlow-latin-400-normal.woff2", weight: "400" },
+    { path: "../../node_modules/@fontsource/barlow/files/barlow-latin-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "../../node_modules/@fontsource/barlow/files/barlow-latin-500-normal.woff2", weight: "500" },
+    { path: "../../node_modules/@fontsource/barlow/files/barlow-latin-600-normal.woff2", weight: "600" },
+  ],
+  variable: "--font-barlow",
+  fallback: ["Arial", "sans-serif"],
+});
+
+// Colonnes exposées par les vues publiques (jamais les tables site_actions / site_photos).
 type ActionPublique = {
   id: string;
   date_action: string;
@@ -28,6 +51,8 @@ type ActionPublique = {
   info_web: string | null;
 };
 
+type PhotoPublique = Photo & { action_id: string };
+
 const COLONNES =
   "id, date_action, ville, type_action, type_action_autre, entreprise, front_commun, front_commun_csc, front_commun_synova, participants_total, info_web";
 
@@ -37,7 +62,8 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function libelleType(a: ActionPublique): string {
+/** Le vrai type de l'action ; pour "autre", le détail saisi. */
+function titreAction(a: ActionPublique): string {
   if (a.type_action === "autre") {
     return a.type_action_autre?.trim() ? capitalize(a.type_action_autre.trim()) : "Autre action";
   }
@@ -47,23 +73,49 @@ function libelleType(a: ActionPublique): string {
 function libelleFrontCommun(a: ActionPublique): string | null {
   if (!a.front_commun) return null;
   const allies = [a.front_commun_csc && "la CSC", a.front_commun_synova && "Synova"].filter(Boolean);
-  return allies.length ? `En front commun avec ${allies.join(" et ")}` : "En front commun";
+  return allies.length ? `Avec ${allies.join(" et ")}` : "Oui";
 }
 
-async function chargerActions() {
-  const { data, error } = await getSupabase()
+/** Chaque ligne non vide de l'info web devient un paragraphe (les sauts de ligne sont respectés). */
+function paragraphes(texte: string | null): string[] {
+  return (texte ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+async function chargerDonnees() {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
     .from("site_actions_public")
     .select(COLONNES)
     .order("date_action", { ascending: false });
   if (error) {
     console.error("site_actions_public:", error.message);
-    return { actions: [] as ActionPublique[], erreur: true };
+    return { actions: [] as ActionPublique[], photos: new Map<string, Photo[]>(), erreur: true };
   }
-  return { actions: (data ?? []) as ActionPublique[], erreur: false };
+  const actions = (data ?? []) as ActionPublique[];
+
+  const photos = new Map<string, Photo[]>();
+  if (actions.length) {
+    const { data: lignes, error: errPhotos } = await supabase
+      .from("site_photos_public")
+      .select("id, action_id, url, legende")
+      .in(
+        "action_id",
+        actions.map((a) => a.id)
+      );
+    // Sans photos, la page reste lisible : on n'affiche pas d'erreur pour ça.
+    if (errPhotos) console.error("site_photos_public:", errPhotos.message);
+    for (const p of trierPhotos((lignes ?? []) as PhotoPublique[])) {
+      photos.set(p.action_id, [...(photos.get(p.action_id) ?? []), p]);
+    }
+  }
+  return { actions, photos, erreur: false };
 }
 
 export default async function ActionsPage() {
-  const { actions, erreur } = await chargerActions();
+  const { actions, photos, erreur } = await chargerDonnees();
 
   // Regroupement par année (l'ordre décroissant de la requête est conservé).
   const parAnnee = new Map<string, ActionPublique[]>();
@@ -73,54 +125,60 @@ export default async function ActionsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        <header className="rounded-3xl bg-red-700 px-6 py-8 text-white shadow-lg sm:px-8 sm:py-10">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Nos actions</h1>
-          <p className="mt-3 max-w-xl text-base leading-relaxed text-red-50 sm:text-lg">
-            Grèves, manifestations et piquets : la Centrale Générale FGTB Namur – Luxembourg
-            sur le terrain, aux côtés des travailleurs.
+    <main className={`${condensed.variable} ${barlow.variable} min-h-screen bg-white font-barlow text-militant-charbon`}>
+      <header className="bg-militant-charbon text-white">
+        <div className="mx-auto max-w-6xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16 lg:px-8">
+          <h1 className="font-condensed text-6xl font-extrabold uppercase leading-[0.85] tracking-tight sm:text-8xl">
+            Nos actions
+          </h1>
+          <div className="mt-6 h-2 w-24 bg-militant-rouge" aria-hidden />
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed sm:text-xl">
+            Grèves, manifestations, piquets : la Centrale Générale FGTB Namur – Luxembourg sur le
+            terrain, aux côtés des travailleurs.
           </p>
-        </header>
+        </div>
+      </header>
 
+      <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
         {erreur ? (
-          <div
-            role="alert"
-            className="mt-8 flex items-start gap-3 rounded-2xl border border-red-200 bg-white px-5 py-4 text-sm text-red-800"
-          >
-            <AlertCircle size={18} className="mt-0.5 shrink-0" />
-            <p>Les actions ne peuvent pas être affichées pour le moment. Réessayez dans quelques minutes.</p>
-          </div>
+          <Encart titre="Les actions ne peuvent pas être affichées pour le moment.">
+            Réessayez dans quelques minutes.
+          </Encart>
         ) : actions.length === 0 ? (
-          <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
-            <Megaphone className="mx-auto h-8 w-8 text-red-700" />
-            <p className="mt-4 font-semibold text-gray-900">Aucune action publiée pour l&apos;instant.</p>
-            <p className="mt-1 text-sm text-gray-500">Les prochaines mobilisations apparaîtront ici.</p>
+          <Encart titre="Aucune action publiée pour l'instant.">
+            Les prochaines mobilisations apparaîtront ici.{" "}
             <Link
               href="/"
-              className="mt-6 inline-flex rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800"
+              className="font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux"
             >
               Retour à l&apos;accueil
             </Link>
-          </div>
+          </Encart>
         ) : (
-          [...parAnnee].map(([annee, liste]) => (
-            <section key={annee} aria-labelledby={`annee-${annee}`} className="mt-10">
-              <div className="mb-4 flex items-baseline gap-3 border-b-2 border-red-700 pb-2">
-                <h2 id={`annee-${annee}`} className="text-2xl font-bold tracking-tight text-gray-900">
+          [...parAnnee].map(([annee, liste], iAnnee) => (
+            <section key={annee} aria-labelledby={`annee-${annee}`} className="mt-14 sm:mt-20">
+              <div className="flex items-center gap-4">
+                <h2
+                  id={`annee-${annee}`}
+                  className="font-condensed text-5xl font-extrabold leading-none text-militant-rouge sm:text-6xl"
+                >
                   {annee}
                 </h2>
-                <p className="text-sm text-gray-500">
+                <div className="h-[3px] flex-1 bg-militant-charbon" aria-hidden />
+                <p className="font-condensed text-xl font-semibold">
                   {liste.length} action{liste.length > 1 ? "s" : ""}
                 </p>
               </div>
-              <ol className="space-y-4">
-                {liste.map((a) => (
-                  <li key={a.id}>
-                    <CarteAction action={a} />
-                  </li>
+              <div className="mt-10 space-y-20">
+                {liste.map((a, i) => (
+                  <Une
+                    key={a.id}
+                    action={a}
+                    photos={photos.get(a.id) ?? []}
+                    prioritaire={iAnnee === 0 && i === 0}
+                  />
                 ))}
-              </ol>
+              </div>
             </section>
           ))
         )}
@@ -129,63 +187,95 @@ export default async function ActionsPage() {
   );
 }
 
-function CarteAction({ action: a }: { action: ActionPublique }) {
+function Une({
+  action: a,
+  photos,
+  prioritaire,
+}: {
+  action: ActionPublique;
+  photos: Photo[];
+  prioritaire: boolean;
+}) {
+  const titre = titreAction(a);
+  const textes = paragraphes(a.info_web);
   const frontCommun = libelleFrontCommun(a);
+  const participants = a.participants_total != null && a.participants_total > 0 ? a.participants_total : null;
+  const aDesFaits = Boolean(participants || a.ville || a.entreprise || frontCommun);
 
   return (
-    <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <time
-            dateTime={a.date_action}
-            className="inline-flex shrink-0 rounded-lg bg-red-700 px-2.5 py-1 text-sm font-bold tabular-nums text-white"
-          >
-            {isoToDateFr(a.date_action)}
-          </time>
-          <h3 className="text-lg font-semibold leading-snug text-gray-900">{libelleType(a)}</h3>
+    <article className="border-t-[6px] border-militant-charbon pt-6 first:border-t-0 first:pt-0">
+      <p className="flex flex-wrap items-center gap-x-3 font-condensed text-2xl font-bold">
+        <time dateTime={a.date_action} className="tabular-nums text-militant-rouge">
+          {isoToDateFr(a.date_action)}
+        </time>
+        {a.ville && (
+          <>
+            <span className="h-5 w-[3px] bg-militant-rouge" aria-hidden />
+            <span>{a.ville}</span>
+          </>
+        )}
+      </p>
+      <h3 className="mt-2 max-w-4xl break-words font-condensed text-5xl font-extrabold uppercase leading-[0.9] tracking-tight sm:text-6xl lg:text-7xl">
+        {titre}
+      </h3>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-12 lg:gap-10">
+        <div className="space-y-8 lg:col-span-8">
+          {photos.length > 0 && <PhotosUne photos={photos} titre={titre} prioritaire={prioritaire} />}
+
+          {textes.length > 0 && (
+            <div className="max-w-[68ch] space-y-5 text-[17px] leading-[1.75] sm:text-lg">
+              {textes.map((t, i) =>
+                i === 0 ? (
+                  <p key={i} className="text-xl font-semibold leading-snug sm:text-2xl">
+                    {t}
+                  </p>
+                ) : (
+                  <p key={i}>{t}</p>
+                )
+              )}
+            </div>
+          )}
         </div>
 
-        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-gray-600">
-          {a.ville && (
-            <Info icon={<MapPin size={15} />} label="Lieu">
-              {a.ville}
-            </Info>
-          )}
-          {a.entreprise && (
-            <Info icon={<Building2 size={15} />} label="Entreprise">
-              {a.entreprise}
-            </Info>
-          )}
-          {a.participants_total != null && a.participants_total > 0 && (
-            <Info icon={<Users size={15} />} label="Participants">
-              {nombre.format(a.participants_total)} participant{a.participants_total > 1 ? "s" : ""}
-            </Info>
-          )}
-          {frontCommun && (
-            <Info icon={<Handshake size={15} />} label="Front commun">
-              {frontCommun}
-            </Info>
-          )}
-        </ul>
-
-        {a.info_web?.trim() && (
-          <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-gray-700">
-            {a.info_web.trim()}
-          </p>
+        {aDesFaits && (
+          <aside className="order-first self-start bg-militant-charbon p-6 text-white lg:order-none lg:sticky lg:top-6 lg:col-span-4">
+            <dl className="space-y-5">
+              {participants && (
+                <div className="flex flex-col-reverse">
+                  <dt className="mt-1 font-condensed text-xl font-semibold">
+                    participant{participants > 1 ? "s" : ""}
+                  </dt>
+                  <dd className="font-condensed text-6xl font-extrabold leading-none tabular-nums text-militant-rouge">
+                    {nombre.format(participants)}
+                  </dd>
+                </div>
+              )}
+              {a.ville && <Fait label="Lieu" valeur={a.ville} />}
+              {a.entreprise && <Fait label="Entreprise" valeur={a.entreprise} />}
+              {frontCommun && <Fait label="Front commun" valeur={frontCommun} />}
+            </dl>
+          </aside>
         )}
       </div>
     </article>
   );
 }
 
-function Info({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+function Fait({ label, valeur }: { label: string; valeur: string }) {
   return (
-    <li className="inline-flex min-w-0 items-center gap-1.5">
-      <span className="shrink-0 text-red-700" aria-hidden>
-        {icon}
-      </span>
-      <span className="sr-only">{label} : </span>
-      <span className="min-w-0 break-words">{children}</span>
-    </li>
+    <div className="border-t border-militant-ardoise pt-4">
+      <dt className="text-sm font-medium text-militant-ardoise">{label}</dt>
+      <dd className="mt-0.5 break-words font-condensed text-2xl font-bold leading-tight">{valeur}</dd>
+    </div>
+  );
+}
+
+function Encart({ titre, children }: { titre: string; children: React.ReactNode }) {
+  return (
+    <div role="status" className="mt-14 border-l-[6px] border-militant-rouge py-2 pl-5">
+      <p className="font-condensed text-3xl font-bold leading-tight">{titre}</p>
+      <p className="mt-2 text-lg">{children}</p>
+    </div>
   );
 }

@@ -4,7 +4,9 @@ import React, { useEffect, useState } from "react";
 import { getSupabaseAuth } from "./lib/supabase";
 import { dateFrToIso, formatDateFr } from "./lib/dates";
 import { useOnceSubmit } from "./lib/use-once-submit";
-import { AlertCircle, Bus, CheckCircle, Globe, Loader2, Plus, Train } from "lucide-react";
+import { BUCKET_PHOTOS, cheminPhoto, preparerPhoto } from "./lib/photos";
+import ChoixPhotos, { type PhotoLocale } from "./ChoixPhotos";
+import { AlertCircle, AlertTriangle, Bus, CheckCircle, Globe, Loader2, Plus, Train } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Secteur = { id: string; nom: string };
@@ -87,6 +89,13 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
   const [secteursError, setSecteursError] = useState("");
   const [nouveauSecteur, setNouveauSecteur] = useState("");
   const [ajoutSecteurLoading, setAjoutSecteurLoading] = useState(false);
+
+  const [photos, setPhotos] = useState<PhotoLocale[]>([]);
+  const [progression, setProgression] = useState("");
+  const [bilanPhotos, setBilanPhotos] = useState<{ envoyees: number; echecs: string[] }>({
+    envoyees: 0,
+    echecs: [],
+  });
 
   useEffect(() => {
     loadSecteurs();
@@ -205,7 +214,9 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
 
     try {
       const supabase = getSupabaseAuth();
-      const { error: dbError } = await supabase.from("site_actions").insert({
+      setProgression("Enregistrement de l'action…");
+      // 1) L'action d'abord : les photos ont besoin de son id.
+      const { data: action, error: dbError } = await supabase.from("site_actions").insert({
         date_action: dateFrToIso(form.dateAction),
         ville: form.ville.trim() || null,
         type_action: form.typeAction,
@@ -222,7 +233,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
         participants_centrale: toIntOrNull(form.participantsCentrale),
         info_web: form.infoWeb.trim() || null,
         visible_public: form.visiblePublic,
-      });
+      }).select("id").single();
 
       if (dbError) {
         if (dbError.code === CODE_ACCES_REFUSE) {
@@ -235,6 +246,8 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
         throw new Error(`Supabase: ${dbError.message}`);
       }
 
+      // 2) Puis les photos, rattachées à l'action. Un échec ici n'annule pas l'action.
+      setBilanPhotos(photos.length ? await envoyerPhotos(action.id) : { envoyees: 0, echecs: [] });
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -244,10 +257,56 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
       );
     } finally {
       setLoading(false);
+      setProgression("");
     }
   }
 
+  async function envoyerPhotos(actionId: string): Promise<{ envoyees: number; echecs: string[] }> {
+    const supabase = getSupabaseAuth();
+    const stockage = supabase.storage.from(BUCKET_PHOTOS);
+    const lignes: { action_id: string; url: string; legende: string | null }[] = [];
+    const chemins: string[] = [];
+    const echecs: string[] = [];
+
+    for (const [rang, p] of photos.entries()) {
+      setProgression(`Envoi des photos ${rang + 1}/${photos.length}…`);
+      try {
+        const jpeg = await preparerPhoto(p.file);
+        const chemin = cheminPhoto(actionId, rang, crypto.randomUUID());
+        const { error } = await stockage.upload(chemin, jpeg, {
+          contentType: "image/jpeg",
+          cacheControl: "31536000",
+          upsert: false,
+        });
+        if (error) throw error;
+        chemins.push(chemin);
+        lignes.push({
+          action_id: actionId,
+          url: stockage.getPublicUrl(chemin).data.publicUrl,
+          legende: p.legende.trim() || null,
+        });
+      } catch (err) {
+        console.error(err);
+        echecs.push(p.file.name);
+      }
+    }
+
+    if (lignes.length) {
+      const { error } = await supabase.from("site_photos").insert(lignes);
+      if (error) {
+        console.error(error);
+        // Fichiers envoyés mais non référencés : on les retire du bucket.
+        await stockage.remove(chemins);
+        return { envoyees: 0, echecs: photos.map((p) => p.file.name) };
+      }
+    }
+    return { envoyees: lignes.length, echecs };
+  }
+
   function nouvelleAction() {
+    photos.forEach((p) => URL.revokeObjectURL(p.apercu));
+    setPhotos([]);
+    setBilanPhotos({ envoyees: 0, echecs: [] });
     setForm(initialForm);
     setErrors({});
     setSubmitError("");
@@ -294,7 +353,23 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
                 label="Site public"
                 value={form.visiblePublic ? "Publiée" : "Non publiée (suivi interne)"}
               />
+              {bilanPhotos.envoyees > 0 && (
+                <Recap
+                  label="Photos"
+                  value={`${bilanPhotos.envoyees} photo${bilanPhotos.envoyees > 1 ? "s" : ""} ajoutée${bilanPhotos.envoyees > 1 ? "s" : ""}`}
+                />
+              )}
             </dl>
+            {bilanPhotos.echecs.length > 0 && (
+              <div role="alert" className="mt-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                <p>
+                  L&apos;action est enregistrée, mais {bilanPhotos.echecs.length > 1 ? "ces photos n'ont" : "cette photo n'a"} pas
+                  pu être envoyée{bilanPhotos.echecs.length > 1 ? "s" : ""} : {bilanPhotos.echecs.join(", ")}. Vérifiez votre
+                  connexion. L&apos;ajout de photos à une action existante n&apos;est pas encore disponible.
+                </p>
+              </div>
+            )}
             <div className="mt-6 text-center">
               <button
                 onClick={nouvelleAction}
@@ -545,8 +620,19 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
             </div>
           </div>
 
+          {/* ── PHOTOS ── */}
+          <SectionTitle>4. Photos</SectionTitle>
+          <div className="px-6 py-6">
+            <Field
+              label="Photos de l'action"
+              hint="La première photo est la photo principale sur le site public. Elles sont réduites automatiquement avant l'envoi."
+            >
+              <ChoixPhotos photos={photos} onChange={setPhotos} disabled={loading} />
+            </Field>
+          </div>
+
           {/* ── SITE PUBLIC ── */}
-          <SectionTitle>4. Site public</SectionTitle>
+          <SectionTitle>5. Site public</SectionTitle>
           <div className="px-6 py-6 space-y-5">
             <Field
               label="Info web"
@@ -586,7 +672,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
               className="w-full inline-flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
             >
               {loading && <Loader2 size={16} className="animate-spin" />}
-              {loading ? "Enregistrement…" : "Enregistrer l'action"}
+              {loading ? progression || "Enregistrement…" : "Enregistrer l'action"}
             </button>
             <p className="text-xs text-gray-400 text-center">* Champs obligatoires</p>
           </div>

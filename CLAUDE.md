@@ -98,7 +98,14 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - [x] Connexion `/login` (Supabase Auth, identifiants CG Link) + verrou
       `SUPER_ADMIN` sur `/suivi-actions` (`proxy.ts` + vérification dans la page)
 - [x] Formulaire d'encodage (champs `info_web`, `visible_public`, `type_action_autre`)
-- [ ] Photos des actions
+- [x] Photos des actions (bucket `action-photos`, table `site_photos`, vue
+      `site_photos_public`). L'ordre des photos est porté par le nom du fichier
+      (`<action_id>/<rang>-<uuid>.jpg`, rang `00` = photo principale) : la vitrine
+      trie par URL. Voir `lib/photos.ts`.
+- [x] Vitrine publique `/actions` (style éditorial militant, palette stricte
+      `#E32119` `#AA0F33` `#222222` `#FFFFFF` `#7C90A0`, polices Barlow
+      auto-hébergées via `@fontsource`)
+- [ ] Ajouter / retirer des photos sur une action existante
 - [ ] Vue liste / tableau de bord des actions
 - [ ] Générateur du rapport d'activité pour le congrès (tous les 4 ans)
 
