@@ -51,7 +51,7 @@ Créées le **24/09/2026** dans la base CG Link :
 | `site_photos` | Photos rattachées à chaque action | Verrouillée |
 
 ### Colonnes de `site_actions`
-`date_action`, `ville`, `type_action`, `secteur_id` (→ `site_secteurs`),
+`nom` (titre court de la une), `date_action`, `ville`, `type_action`, `secteur_id` (→ `site_secteurs`),
 `front_commun` + `front_commun_csc` + `front_commun_synova`, `entreprise`,
 `deplacement_bus` + `deplacement_train`, `description`, `participants_total`,
 `participants_centrale`, `created_at`.
@@ -155,6 +155,13 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - **Jamais de `<input type="date">`** : le navigateur l'affiche dans la langue de
   l'ordinateur (souvent `mm/dd/yyyy`). Utiliser un champ texte `jj/mm/aaaa` avec
   `formatDateFr()` à la frappe et `dateFrToIso()` à l'enregistrement.
+
+- **Palette du site public** (vitrine `/actions` et barre de navigation) : uniquement
+  `#E32119` (rouge), `#AA0F33` (bordeaux), `#222222` (charbon), `#FFFFFF`,
+  `#7C90A0` (ardoise), via les couleurs Tailwind `militant-*`. Lisibilité : texte
+  courant en charbon sur fond clair ; ardoise réservé aux filets et aux textes sur
+  fond sombre ; rouge `#E32119` uniquement en grand texte (dates, chiffres) ou en
+  aplat/filet ; texte blanc sur bouton → fond bordeaux.
 
 ## Rappels techniques
 - Stack : Next.js (Node 24), Supabase, Vercel, Resend (envoi d'e-mails).

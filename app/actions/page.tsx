@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import localFont from "next/font/local";
 import { isoToDateFr } from "../../lib/dates";
 import { trierPhotos } from "../../lib/photos";
 import { getSupabase } from "../../lib/supabase";
@@ -15,30 +14,10 @@ export const metadata: Metadata = {
 // Une action publiée depuis l'espace admin apparaît ici en moins d'une minute.
 export const revalidate = 60;
 
-// Polices auto-hébergées (paquets @fontsource) : aucun appel à Google Fonts.
-const condensed = localFont({
-  src: [
-    { path: "../../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff2", weight: "600" },
-    { path: "../../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-700-normal.woff2", weight: "700" },
-    { path: "../../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-800-normal.woff2", weight: "800" },
-  ],
-  variable: "--font-condensed",
-  fallback: ["Arial Narrow", "sans-serif"],
-});
-const barlow = localFont({
-  src: [
-    { path: "../../node_modules/@fontsource/barlow/files/barlow-latin-400-normal.woff2", weight: "400" },
-    { path: "../../node_modules/@fontsource/barlow/files/barlow-latin-400-italic.woff2", weight: "400", style: "italic" },
-    { path: "../../node_modules/@fontsource/barlow/files/barlow-latin-500-normal.woff2", weight: "500" },
-    { path: "../../node_modules/@fontsource/barlow/files/barlow-latin-600-normal.woff2", weight: "600" },
-  ],
-  variable: "--font-barlow",
-  fallback: ["Arial", "sans-serif"],
-});
-
 // Colonnes exposées par les vues publiques (jamais les tables site_actions / site_photos).
 type ActionPublique = {
   id: string;
+  nom: string | null;
   date_action: string;
   ville: string | null;
   type_action: string;
@@ -54,7 +33,7 @@ type ActionPublique = {
 type PhotoPublique = Photo & { action_id: string };
 
 const COLONNES =
-  "id, date_action, ville, type_action, type_action_autre, entreprise, front_commun, front_commun_csc, front_commun_synova, participants_total, info_web";
+  "id, nom, date_action, ville, type_action, type_action_autre, entreprise, front_commun, front_commun_csc, front_commun_synova, participants_total, info_web";
 
 const nombre = new Intl.NumberFormat("fr-BE");
 
@@ -63,7 +42,7 @@ function capitalize(s: string) {
 }
 
 /** Le vrai type de l'action ; pour "autre", le détail saisi. */
-function titreAction(a: ActionPublique): string {
+function typeAction(a: ActionPublique): string {
   if (a.type_action === "autre") {
     return a.type_action_autre?.trim() ? capitalize(a.type_action_autre.trim()) : "Autre action";
   }
@@ -125,7 +104,7 @@ export default async function ActionsPage() {
   }
 
   return (
-    <main className={`${condensed.variable} ${barlow.variable} min-h-screen bg-white font-barlow text-militant-charbon`}>
+    <main className="min-h-screen bg-white font-barlow text-militant-charbon">
       <header className="bg-militant-charbon text-white">
         <div className="mx-auto max-w-6xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16 lg:px-8">
           <h1 className="font-condensed text-6xl font-extrabold uppercase leading-[0.85] tracking-tight sm:text-8xl">
@@ -196,7 +175,10 @@ function Une({
   photos: Photo[];
   prioritaire: boolean;
 }) {
-  const titre = titreAction(a);
+  const type = typeAction(a);
+  const nom = a.nom?.trim() || null;
+  // Le nom est le titre de la une ; sans nom, le type prend sa place.
+  const titre = nom ?? type;
   const textes = paragraphes(a.info_web);
   const frontCommun = libelleFrontCommun(a);
   const participants = a.participants_total != null && a.participants_total > 0 ? a.participants_total : null;
@@ -215,7 +197,16 @@ function Une({
           </>
         )}
       </p>
-      <h3 className="mt-2 max-w-4xl break-words font-condensed text-5xl font-extrabold uppercase leading-[0.9] tracking-tight sm:text-6xl lg:text-7xl">
+      {nom && (
+        <p className="mt-4 inline-block bg-militant-charbon px-3 py-1 font-condensed text-lg font-bold leading-snug text-white">
+          {type}
+        </p>
+      )}
+      <h3
+        className={`max-w-4xl break-words font-condensed font-extrabold leading-[0.95] tracking-tight ${
+          nom ? "mt-3 text-4xl sm:text-5xl lg:text-6xl" : "mt-2 text-5xl sm:text-6xl lg:text-7xl"
+        }`}
+      >
         {titre}
       </h3>
 
@@ -265,7 +256,7 @@ function Une({
 function Fait({ label, valeur }: { label: string; valeur: string }) {
   return (
     <div className="border-t border-militant-ardoise pt-4">
-      <dt className="text-sm font-medium text-militant-ardoise">{label}</dt>
+      <dt className="text-[15px] font-semibold text-militant-ardoise">{label}</dt>
       <dd className="mt-0.5 break-words font-condensed text-2xl font-bold leading-tight">{valeur}</dd>
     </div>
   );

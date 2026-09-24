@@ -21,7 +21,7 @@ export default async function LoginPage({
   if (await getSuperAdmin()) redirect(next);
 
   return (
-    <main className="min-h-[calc(100vh-52px)] bg-gray-50 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+    <main className="min-h-[calc(100vh-68px)] bg-gray-50 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <section className="relative overflow-hidden bg-red-700 text-white px-6 py-10 sm:px-10 lg:px-14 lg:py-16 flex flex-col justify-between">
         {/* Filigrane : un grand cercle discret, rappel du poing levé/de la rondeur du logo */}
         <div

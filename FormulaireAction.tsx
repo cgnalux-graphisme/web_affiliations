@@ -24,6 +24,7 @@ type TypeAction = (typeof TYPES_ACTION)[number] | "";
 const NOUVEAU_SECTEUR = "__nouveau__";
 
 type FormData = {
+  nomAction: string;
   dateAction: string; // saisie jj/mm/aaaa, convertie en ISO à l'enregistrement
   ville: string;
   typeAction: TypeAction;
@@ -45,6 +46,7 @@ type FormData = {
 type Errors = Partial<Record<keyof FormData | "nouveauSecteur", string>>;
 
 const initialForm: FormData = {
+  nomAction: "",
   dateAction: "",
   ville: "",
   typeAction: "",
@@ -217,6 +219,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
       setProgression("Enregistrement de l'action…");
       // 1) L'action d'abord : les photos ont besoin de son id.
       const { data: action, error: dbError } = await supabase.from("site_actions").insert({
+        nom: form.nomAction.trim() || null,
         date_action: dateFrToIso(form.dateAction),
         ville: form.ville.trim() || null,
         type_action: form.typeAction,
@@ -338,6 +341,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
 
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              {form.nomAction.trim() && <Recap label="Nom" value={form.nomAction.trim()} />}
               <Recap label="Date" value={form.dateAction} />
               <Recap
                 label="Type"
@@ -401,6 +405,20 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
           {/* ── L'ACTION ── */}
           <SectionTitle>1. L&apos;action</SectionTitle>
           <div className="px-6 py-6 space-y-5">
+            <Field
+              label="Nom de l'action"
+              error={err.nomAction}
+              hint="Titre court affiché en grand sur le site public. Sans nom, c'est le type d'action qui sert de titre."
+            >
+              <input
+                className={input(err.nomAction)}
+                value={form.nomAction}
+                onChange={(e) => set("nomAction", e.target.value)}
+                maxLength={120}
+                placeholder="Ex. Bulletin de rentrée du gouvernement : 0/20"
+              />
+            </Field>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Date de l'action *" error={err.dateAction}>
                 <input
