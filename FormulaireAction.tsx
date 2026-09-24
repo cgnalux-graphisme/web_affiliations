@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getSupabaseAuth } from "./lib/supabase";
-import { isoToDateFr } from "./lib/dates";
+import { dateFrToIso, formatDateFr } from "./lib/dates";
 import { useOnceSubmit } from "./lib/use-once-submit";
 import { AlertCircle, Bus, CheckCircle, Globe, Loader2, Plus, Train } from "lucide-react";
 
@@ -21,7 +21,7 @@ type TypeAction = (typeof TYPES_ACTION)[number] | "";
 const NOUVEAU_SECTEUR = "__nouveau__";
 
 type FormData = {
-  dateAction: string; // ISO (aaaa-mm-jj), fourni par <input type="date">
+  dateAction: string; // saisie jj/mm/aaaa, convertie en ISO à l'enregistrement
   ville: string;
   typeAction: TypeAction;
   typeAutre: string;
@@ -167,6 +167,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
   function validate(): boolean {
     const e: Errors = {};
     if (!form.dateAction) e.dateAction = "Requis";
+    else if (!dateFrToIso(form.dateAction)) e.dateAction = "Date invalide (format jj/mm/aaaa)";
     if (!form.typeAction) e.typeAction = "Choisissez un type d'action";
     if (form.typeAction === "autre" && !form.typeAutre.trim()) {
       e.typeAutre = "Précisez le type d'action";
@@ -204,7 +205,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
     try {
       const supabase = getSupabaseAuth();
       const { error: dbError } = await supabase.from("site_actions").insert({
-        date_action: form.dateAction,
+        date_action: dateFrToIso(form.dateAction),
         ville: form.ville.trim() || null,
         type_action: form.typeAction,
         type_action_autre: form.typeAction === "autre" ? form.typeAutre.trim() : null,
@@ -277,7 +278,7 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
 
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <Recap label="Date" value={isoToDateFr(form.dateAction)} />
+              <Recap label="Date" value={form.dateAction} />
               <Recap
                 label="Type"
                 value={capitalize(form.typeAction === "autre" ? form.typeAutre.trim() : form.typeAction)}
@@ -327,10 +328,14 @@ export default function FormulaireAction({ barreAdmin }: { barreAdmin?: React.Re
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Date de l'action *" error={err.dateAction}>
                 <input
-                  type="date"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="jj/mm/aaaa"
+                  maxLength={10}
                   className={input(err.dateAction)}
                   value={form.dateAction}
-                  onChange={(e) => set("dateAction", e.target.value)}
+                  onChange={(e) => set("dateAction", formatDateFr(e.target.value))}
                 />
               </Field>
               <Field label="Ville" error={err.ville}>
