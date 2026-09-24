@@ -145,6 +145,9 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
   d'année sur 2 chiffres. Côté code : `formatDateFr()`, `isoToDateFr()` et
   `dateFrToIso()` dans `lib/dates.ts`. En base, les dates restent au format ISO
   (`aaaa-mm-jj`).
+- **Jamais de `<input type="date">`** : le navigateur l'affiche dans la langue de
+  l'ordinateur (souvent `mm/dd/yyyy`). Utiliser un champ texte `jj/mm/aaaa` avec
+  `formatDateFr()` à la frappe et `dateFrToIso()` à l'enregistrement.
 
 ## Rappels techniques
 - Stack : Next.js (Node 24), Supabase, Vercel, Resend (envoi d'e-mails).
