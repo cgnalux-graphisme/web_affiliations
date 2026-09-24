@@ -14,6 +14,7 @@ const TYPES_ACTION = [
   "manifestation nationale",
   "manifestation",
   "piquet en entreprise",
+  "action",
   "autre",
 ] as const;
 type TypeAction = (typeof TYPES_ACTION)[number] | "";

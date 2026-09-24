@@ -58,7 +58,7 @@ Créées le **24/09/2026** dans la base CG Link :
 
 ### Règles métier
 - **Type d'action** : grève générale · manifestation nationale · manifestation ·
-  piquet en entreprise · autre (à préciser).
+  piquet en entreprise · action · autre (à préciser).
 - **Secteur** : liste modifiable — Fred peut ajouter un secteur, qui devient alors
   réutilisable.
 - **Front commun** : oui / non ; si oui, cases **CSC** et **Synova** (nouveau nom
