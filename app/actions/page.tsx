@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertCircle, Building2, Handshake, MapPin, Megaphone, Users } from "lucide-react";
+import { isoToDateCourte } from "../../lib/dates";
 import { getSupabase } from "../../lib/supabase";
 
 export const metadata: Metadata = {
@@ -31,19 +32,6 @@ const COLONNES =
   "id, date_action, ville, type_action, type_action_autre, entreprise, front_commun, front_commun_csc, front_commun_synova, participants_total, info_web";
 
 const nombre = new Intl.NumberFormat("fr-BE");
-const moisCourt = new Intl.DateTimeFormat("fr-BE", { month: "short" });
-const dateLongue = new Intl.DateTimeFormat("fr-BE", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
-
-/** "aaaa-mm-jj" → Date locale (évite le décalage de fuseau d'un parse UTC). */
-function parseDate(iso: string): Date {
-  const [a, m, j] = iso.split("-").map(Number);
-  return new Date(a, m - 1, j);
-}
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -142,27 +130,20 @@ export default async function ActionsPage() {
 }
 
 function CarteAction({ action: a }: { action: ActionPublique }) {
-  const date = parseDate(a.date_action);
   const frontCommun = libelleFrontCommun(a);
 
   return (
-    <article className="flex gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:gap-5 sm:p-5">
-      {/* Tampon de date */}
-      <time
-        dateTime={a.date_action}
-        title={capitalize(dateLongue.format(date))}
-        className="flex h-[4.5rem] w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-red-700 text-white sm:h-20 sm:w-[4.5rem]"
-      >
-        <span className="text-2xl font-extrabold leading-none tabular-nums sm:text-3xl">
-          {date.getDate()}
-        </span>
-        <span className="mt-1 text-xs font-semibold text-red-100">
-          {moisCourt.format(date).replace(".", "")}
-        </span>
-      </time>
-
-      <div className="min-w-0 flex-1">
-        <h3 className="text-lg font-semibold leading-snug text-gray-900">{libelleType(a)}</h3>
+    <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <time
+            dateTime={a.date_action}
+            className="inline-flex shrink-0 rounded-lg bg-red-700 px-2.5 py-1 text-sm font-bold tabular-nums text-white"
+          >
+            {isoToDateCourte(a.date_action)}
+          </time>
+          <h3 className="text-lg font-semibold leading-snug text-gray-900">{libelleType(a)}</h3>
+        </div>
 
         <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-gray-600">
           {a.ville && (
