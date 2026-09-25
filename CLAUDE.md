@@ -187,6 +187,12 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
   courant en charbon sur fond clair ; ardoise réservé aux filets et aux textes sur
   fond sombre ; rouge `#E32119` uniquement en grand texte (dates, chiffres) ou en
   aplat/filet ; texte blanc sur bouton → fond bordeaux.
+- **Limiter les fonds noirs** : le noir est politiquement associé à l'extrême
+  droite, que la centrale combat. Le charbon `#222222` sert au texte, aux filets et
+  aux petits détails, pas aux grandes surfaces (barres, bandeaux, pieds de page,
+  grands blocs). Surfaces fortes : bordeaux `#AA0F33` (texte blanc) ; sinon fond
+  blanc et filets épais. Les écrans existants à fond charbon (bandeau et encadré de
+  `/actions`, barre de navigation, couverture du rapport PDF) sont à migrer.
 - **Graphiques** (rapport PDF…) : couleurs libres, à valider (daltonisme, contraste),
   hors vert et bleu réservés à la CSC et à Synova. Camembert des types :
   `#222222` `#E32119` `#7C90A0` `#B8720F` `#AA0F33` `#9C6FB3`.
