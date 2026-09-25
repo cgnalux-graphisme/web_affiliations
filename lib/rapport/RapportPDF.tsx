@@ -11,8 +11,14 @@ const C = {
   blanc: "#FFFFFF",
   ardoise: "#7C90A0",
 };
-/** Ordre fixe des parts du camembert (validé : séparation daltonisme et contraste OK). */
-const COULEURS_PARTS = [C.charbon, C.rouge, C.ardoise, C.bordeaux];
+/**
+ * Graphiques : couleurs libres, validées (séparation daltonisme, vision normale,
+ * contraste sur fond blanc). Jamais de vert ni de bleu pour les types : ces
+ * couleurs sont réservées aux syndicats du front commun.
+ */
+const COULEURS_PARTS = [C.charbon, C.rouge, C.ardoise, "#B8720F", C.bordeaux, "#9C6FB3"];
+/** Couleurs des syndicats : CSC = vert, Synova = bleu. */
+const SYNDICATS = { csc: "#1E8C45", synova: "#1F5FAD" };
 
 let policesEnregistrees = false;
 /** Barlow / Barlow Condensed servies depuis /public/fonts (licence OFL). */
@@ -194,20 +200,20 @@ export default function RapportPDF({
         </Text>
 
         <Text style={s.h2}>Front commun</Text>
-        <Tableau
-          colonnes={["Actions en front commun", "Nombre", "Part des actions"]}
+        <BarresFrontCommun
+          total={bilan.total}
           lignes={[
-            ["Au total", nombre(bilan.frontCommun.total), pct(bilan.frontCommun.total, bilan.total)],
-            ["Avec la CSC", nombre(bilan.frontCommun.csc), pct(bilan.frontCommun.csc, bilan.total)],
-            ["Avec Synova", nombre(bilan.frontCommun.synova), pct(bilan.frontCommun.synova, bilan.total)],
-            ["Avec la CSC et Synova", nombre(bilan.frontCommun.lesDeux), pct(bilan.frontCommun.lesDeux, bilan.total)],
+            { libelle: "En front commun", nombre: bilan.frontCommun.total, couleurs: [C.charbon] },
+            { libelle: "Avec la CSC", nombre: bilan.frontCommun.csc, couleurs: [SYNDICATS.csc] },
+            { libelle: "Avec Synova", nombre: bilan.frontCommun.synova, couleurs: [SYNDICATS.synova] },
+            { libelle: "Avec la CSC et Synova", nombre: bilan.frontCommun.lesDeux, couleurs: [SYNDICATS.csc, SYNDICATS.synova] },
           ]}
         />
 
         <View wrap={false}>
           <Text style={s.h2}>Répartition par type d&apos;action</Text>
           <View style={{ flexDirection: "row", gap: 24, alignItems: "flex-start" }}>
-            <Camembert parts={partsCamembert(bilan.parType)} total={bilan.total} />
+            <Camembert parts={partsCamembert(bilan.parType, COULEURS_PARTS.length)} total={bilan.total} />
             <View style={{ flex: 1 }}>
               <Tableau
                 colonnes={["Type", "Actions", "Part"]}
@@ -336,6 +342,35 @@ function Camembert({ parts, total }: { parts: { libelle: string; nombre: number 
           </View>
         ))}
       </View>
+    </View>
+  );
+}
+
+/** Front commun : part des actions, barres aux couleurs des syndicats (les deux = bicolore). */
+function BarresFrontCommun({
+  lignes,
+  total,
+}: {
+  lignes: { libelle: string; nombre: number; couleurs: string[] }[];
+  total: number;
+}) {
+  return (
+    <View style={{ gap: 6 }}>
+      {lignes.map((l) => (
+        <View key={l.libelle} style={{ flexDirection: "row", alignItems: "center", gap: 8 }} wrap={false}>
+          <Text style={{ width: 130, fontSize: 9.5 }}>{l.libelle}</Text>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={{ width: `${total ? (l.nombre / total) * 80 : 0}%`, height: 13, flexDirection: "row" }}>
+              {l.couleurs.map((c) => (
+                <View key={c} style={{ flex: 1, backgroundColor: c }} />
+              ))}
+            </View>
+            <Text style={{ fontSize: 9.5, fontWeight: 600 }}>
+              {nombre(l.nombre)} ({pct(l.nombre, total)} des actions)
+            </Text>
+          </View>
+        </View>
+      ))}
     </View>
   );
 }

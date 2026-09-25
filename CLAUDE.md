@@ -62,7 +62,9 @@ Créées le **24/09/2026** dans la base CG Link :
 - **Secteur** : liste modifiable — Fred peut ajouter un secteur, qui devient alors
   réutilisable.
 - **Front commun** : oui / non ; si oui, cases **CSC** et **Synova** (nouveau nom
-  de la CGSLB).
+  de la CGSLB). Couleurs d'identité : **CSC = vert** (`#1E8C45`), **Synova = bleu**
+  (`#1F5FAD`). Ne jamais utiliser de vert ni de bleu pour autre chose dans les
+  graphiques (types, secteurs…), pour éviter toute confusion.
 - **Déplacement organisé** : bus et/ou train.
 - **Participants** : on stocke des **nombres** uniquement, pas de noms (plus simple
   côté RGPD).
@@ -185,6 +187,9 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
   courant en charbon sur fond clair ; ardoise réservé aux filets et aux textes sur
   fond sombre ; rouge `#E32119` uniquement en grand texte (dates, chiffres) ou en
   aplat/filet ; texte blanc sur bouton → fond bordeaux.
+- **Graphiques** (rapport PDF…) : couleurs libres, à valider (daltonisme, contraste),
+  hors vert et bleu réservés à la CSC et à Synova. Camembert des types :
+  `#222222` `#E32119` `#7C90A0` `#B8720F` `#AA0F33` `#9C6FB3`.
 
 ## Rappels techniques
 - Stack : Next.js (Node 24), Supabase, Vercel, Resend (envoi d'e-mails).
