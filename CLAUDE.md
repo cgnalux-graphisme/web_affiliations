@@ -48,7 +48,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 |---|---|---|
 | `/` | public | Accueil : ouverture, dernière action publiée, démarches, nos actions |
 | `/actions` | public | Vitrine des actions publiées (frise + « unes ») |
-| `/demarches` | public | Toutes les démarches en ligne (tuiles) |
+| `/demarches` | public | Toutes les démarches en ligne (tuiles, l'affiliation en tête) |
+| `/contact` | public | Nos 4 bureaux : adresses, téléphones, horaires (été en juillet-août), statut « ouvert maintenant » |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
 | `/login` | public | Connexion (identifiants CG Link) |
 | `/suivi-actions` | SUPER_ADMIN | Liste de toutes les actions (publiées ou non) |
@@ -56,9 +57,15 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/<id>/modifier` | SUPER_ADMIN | Modifier / supprimer une action |
 | `/suivi-actions/rapport` | SUPER_ADMIN | Rapport d'activité PDF (congrès) |
 
-Navigation publique : Accueil · Nos actions · Démarches en ligne + bouton
-« S'affilier ». Les formulaires sont **regroupés** sous « Démarches en ligne »
-(pas un onglet par formulaire). Rubriques à venir : Actualités (blog), Contact.
+Navigation publique : Accueil · Nos actions · Démarches en ligne · Contact +
+bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
+ligne » (pas un onglet par formulaire). Rubriques à venir : Actualités (blog),
+« Trouver votre contact » (permanent et juriste par secteur / commission
+paritaire).
+
+**L'affiliation est la démarche la plus importante** : grande tuile bordeaux en
+tête de la grille des démarches (`app/TuilesDemarches.tsx`) et bouton
+« S'affilier » dans la barre de navigation.
 
 ---
 
@@ -142,9 +149,11 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 ### Phase 0 — Fondations
 - [x] Base de données prête (tables `site_*` dans CG Link)
 - [ ] Supprimer le projet Supabase doublon `accg-nalux-site`
-- [~] Partie publique du site : accueil, `/demarches`, `/actions` faits ;
-      **manquent** présentation, coordonnées / permanences (données réelles à
-      fournir par Fred), mentions légales, vie privée
+- [~] Partie publique du site : accueil, `/demarches`, `/actions`, `/contact`
+      faits ; **manquent** présentation, mentions légales, vie privée
+- [ ] « Trouver votre contact » : recherche du permanent et du service juridique
+      par province et commission paritaire (données de l'ancien site à migrer en
+      base, voir les idées du 25/09/2026)
 - [x] Refonte graphique « direction D » (éditorial + modulaire, sans fond noir) —
       voir Conventions > Design
 - [ ] Rebrancher le domaine `accg-nalux.com` (quitter e-monsite) — plus tard
@@ -198,12 +207,19 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - Tout le travail est sur la branche **`suivi-actions`** : rien sur `main`, rien
   déployé. À relire puis fusionner quand Fred valide.
 - À faire par Fred : **supprimer** le projet Supabase `accg-nalux-site`
-  (dashboard) ; fournir les coordonnées / permanences pour la page Contact.
+  (dashboard).
+- Bureaux (`lib/bureaux.ts`) repris de l'ancien site le 25/09/2026 : Libramont
+  (siège), Namur, Arlon, Marche-en-Famenne. À tenir à jour à chaque changement
+  d'horaire ; le statut « ouvert » est calculé à l'heure de Bruxelles.
 - Reste de la migration graphique : les **PDF générés** par les anciens formulaires
   (mandat SEPA, indépendants, préavis) gardent leurs couleurs d'origine, et
   `FormulaireWebIndependant` / `FormulaireChangementCompte` utilisent encore
   l'ancien logo `Logo CG Blanc.png`.
-- Pistes suivantes : page Contact, rubrique Actualités (phase 2), mentions légales.
+- En cours : propositions graphiques pour les PDF **Affiliation** et **Mandat
+  SEPA** (à uniformiser avec le site). Les PDF **C1, C3.2 et Calcul de préavis ne
+  doivent pas être modifiés**.
+- Pistes suivantes : « Trouver votre contact », rubrique Actualités (phase 2),
+  mentions légales.
 
 ---
 

@@ -16,6 +16,7 @@ const liens = [
   { href: "/actions", label: "Nos actions" },
   // Les formulaires sont regroupés dans une seule rubrique.
   { href: "/demarches", label: "Démarches en ligne", aussi: [transferJourney.href, ...forms.map((f) => f.href)] },
+  { href: "/contact", label: "Contact" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

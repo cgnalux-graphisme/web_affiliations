@@ -16,6 +16,9 @@ export default function PiedDePage() {
               <Link href="/demarches" className="hover:text-militant-bordeaux">Démarches en ligne</Link>
             </li>
             <li>
+              <Link href="/contact" className="hover:text-militant-bordeaux">Contact</Link>
+            </li>
+            <li>
               <Link href="/login" className="hover:text-militant-bordeaux">Espace admin</Link>
             </li>
           </ul>
