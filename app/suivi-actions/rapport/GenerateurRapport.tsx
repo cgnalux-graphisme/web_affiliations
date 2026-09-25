@@ -204,9 +204,9 @@ export default function GenerateurRapport() {
       </form>
 
       {resultat && (
-        <div role="status" className="mt-6 rounded-2xl bg-militant-charbon p-5 text-white">
+        <div role="status" className="mt-6 rounded-2xl bg-militant-bordeaux p-5 text-white">
           <p className="flex items-center gap-2 font-bold">
-            <CheckCircle size={20} className="text-militant-rouge" aria-hidden />
+            <CheckCircle size={20} aria-hidden />
             Rapport généré : {resultat.actions} action{resultat.actions > 1 ? "s" : ""}.
           </p>
           <p className="mt-1 text-sm">

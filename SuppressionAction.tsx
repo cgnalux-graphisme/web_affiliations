@@ -93,7 +93,7 @@ export default function SuppressionAction({
           <Trash2 size={16} aria-hidden /> Supprimer cette action
         </button>
       ) : (
-        <div role="alertdialog" aria-labelledby="question-suppression" className="mt-4 rounded-xl bg-militant-charbon p-4 text-white">
+        <div role="alertdialog" aria-labelledby="question-suppression" className="mt-4 rounded-xl border-2 border-militant-bordeaux p-4">
           <p id="question-suppression" className="font-bold">
             Supprimer définitivement « {titre} » ?
           </p>
@@ -103,7 +103,7 @@ export default function SuppressionAction({
               onClick={supprimer}
               disabled={enCours}
               autoFocus
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-4 py-2.5 text-sm font-bold text-white ring-2 ring-transparent transition-shadow hover:ring-white focus:outline-none focus-visible:ring-white disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
             >
               {enCours ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} aria-hidden />}
               {enCours ? "Suppression…" : "Oui, supprimer définitivement"}
@@ -115,7 +115,7 @@ export default function SuppressionAction({
                 setErreur("");
               }}
               disabled={enCours}
-              className="inline-flex items-center justify-center rounded-xl border-2 border-white px-4 py-2 text-sm font-bold text-white hover:bg-white hover:text-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
+              className="inline-flex items-center justify-center rounded-xl border-2 border-militant-charbon px-4 py-2 text-sm font-bold hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
             >
               Annuler
             </button>

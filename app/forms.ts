@@ -5,7 +5,7 @@ export const transferJourney = {
   shortTitle: "Transfert",
   category: "Parcours guidé",
   description:
-    "Rejoignez la FGTB en complétant les 3 formulaires dans l'ordre : affiliation, C1 et C3.2.",
+    "Vous venez d'un autre syndicat ? Un parcours guidé en trois étapes, dans l'ordre.",
   href: "/parcours-transfert",
   cta: "Démarrer le parcours",
   Icon: ArrowLeftRight,
@@ -15,7 +15,7 @@ export const forms = [
   {
     title: "Affiliation",
     shortTitle: "Affiliation",
-    category: "Adhesion",
+    category: "Adhésion",
     description: "Nouvelle demande d'affiliation.",
     href: "/affiliation",
     cta: "Remplir le formulaire",
@@ -25,7 +25,7 @@ export const forms = [
     title: "Mandat SEPA (nouveau ou changement de compte)",
     shortTitle: "Mandat SEPA",
     category: "Paiement",
-    description: "Creer un nouveau mandat ou signaler un changement de compte bancaire.",
+    description: "Créer un nouveau mandat ou signaler un changement de compte bancaire.",
     href: "/mandat-sepa",
     cta: "Remplir le formulaire",
     Icon: CreditCard,

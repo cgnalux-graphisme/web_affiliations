@@ -40,7 +40,7 @@ export default function PhotosUne({
         <button
           type="button"
           onClick={() => setOuverte(0)}
-          className="group relative block aspect-[3/2] w-full overflow-hidden bg-militant-charbon focus:outline-none focus-visible:ring-4 focus-visible:ring-militant-rouge"
+          className="group relative block aspect-[3/2] w-full overflow-hidden bg-militant-ardoise focus:outline-none focus-visible:ring-4 focus-visible:ring-militant-rouge"
           aria-label={`Agrandir : ${alt(hero, 0)}`}
         >
           <Image
@@ -66,7 +66,7 @@ export default function PhotosUne({
               <button
                 type="button"
                 onClick={() => setOuverte(i + 1)}
-                className="relative block aspect-square w-full overflow-hidden bg-militant-charbon focus:outline-none focus-visible:ring-4 focus-visible:ring-militant-rouge"
+                className="relative block aspect-square w-full overflow-hidden bg-militant-ardoise focus:outline-none focus-visible:ring-4 focus-visible:ring-militant-rouge"
                 aria-label={`Agrandir : ${alt(p, i + 1)}`}
               >
                 <Image
@@ -90,13 +90,13 @@ export default function PhotosUne({
           if (e.key === "ArrowLeft") naviguer(-1);
           if (e.key === "ArrowRight") naviguer(1);
         }}
-        className="m-auto h-full max-h-none w-full max-w-none bg-militant-charbon/95 p-0 text-white backdrop:bg-militant-charbon/80"
+        className="m-auto h-full max-h-none w-full max-w-none bg-white p-0 text-militant-charbon backdrop:bg-white"
         aria-label={titre}
       >
         {courante && ouverte !== null && (
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between px-4 py-3 font-condensed text-lg font-bold">
-              <span className="tabular-nums text-militant-ardoise">
+              <span className="tabular-nums">
                 {ouverte + 1} / {photos.length}
               </span>
               <button
@@ -134,7 +134,7 @@ function FlecheGalerie({ sens, onClick }: { sens: "precedente" | "suivante"; onC
       type="button"
       onClick={onClick}
       aria-label={gauche ? "Photo précédente" : "Photo suivante"}
-      className={`absolute top-1/2 -translate-y-1/2 ${gauche ? "left-2" : "right-2"} bg-militant-charbon p-2 text-white hover:bg-militant-rouge focus:outline-none focus-visible:ring-2 focus-visible:ring-white`}
+      className={`absolute top-1/2 -translate-y-1/2 ${gauche ? "left-2" : "right-2"} bg-militant-bordeaux p-2 text-white hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2`}
     >
       {gauche ? <ChevronLeft size={28} /> : <ChevronRight size={28} />}
     </button>

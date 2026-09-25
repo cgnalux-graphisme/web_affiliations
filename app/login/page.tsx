@@ -21,26 +21,18 @@ export default async function LoginPage({
   if (await getSuperAdmin()) redirect(next);
 
   return (
-    <main className="min-h-[calc(100vh-68px)] bg-gray-50 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <section className="relative overflow-hidden bg-red-700 text-white px-6 py-10 sm:px-10 lg:px-14 lg:py-16 flex flex-col justify-between">
-        {/* Filigrane : un grand cercle discret, rappel du poing levé/de la rondeur du logo */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -bottom-24 h-80 w-80 rounded-full border-[40px] border-white/[0.06] lg:h-[28rem] lg:w-[28rem]"
-        />
-        <img src="/Logo CG Blanc.png" alt="Centrale Générale FGTB" className="h-6 w-auto self-start" />
-        <div className="relative mt-10 lg:mt-0 max-w-sm">
-          <h1 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
-            Espace admin
-          </h1>
-          <p className="mt-4 text-red-100 text-[15px] leading-relaxed">
-            Encodage et suivi des actions syndicales de la Centrale Générale FGTB
-            Namur – Luxembourg.
+    <main className="flex-1 bg-white font-barlow text-militant-charbon lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <section className="flex flex-col justify-between gap-10 bg-militant-bordeaux px-6 py-10 text-white sm:px-10 lg:px-14 lg:py-16">
+        {/* eslint-disable-next-line @next/next/no-img-element -- logo PNG statique */}
+        <img src="/logo-cg-blanc.png" width={1772} height={490} alt="Centrale Générale FGTB Namur-Luxembourg" className="h-14 w-auto self-start" />
+        <div className="max-w-sm">
+          <h1 className="font-condensed text-5xl font-extrabold uppercase leading-[0.9] sm:text-6xl">Espace admin</h1>
+          <div className="my-5 h-1.5 w-16 bg-white" aria-hidden />
+          <p className="text-[17px] leading-relaxed">
+            Encodage et suivi des actions syndicales de la Centrale Générale FGTB Namur-Luxembourg.
           </p>
         </div>
-        <p className="relative hidden lg:block text-xs text-red-200/80">
-          Accès réservé aux super administrateurs.
-        </p>
+        <p className="hidden text-sm lg:block">Accès réservé aux super administrateurs.</p>
       </section>
 
       <section className="flex items-start lg:items-center justify-center px-4 py-10 sm:px-8">

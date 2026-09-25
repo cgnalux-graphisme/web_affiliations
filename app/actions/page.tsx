@@ -119,7 +119,7 @@ export default async function ActionsPage() {
 
   return (
     <main className="min-h-screen bg-white font-barlow text-militant-charbon">
-      <header className="bg-militant-charbon text-white">
+      <header className="bg-white">
         <div className="mx-auto max-w-6xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16 lg:px-8">
           <h1 className="font-condensed text-6xl font-extrabold uppercase leading-[0.85] tracking-tight sm:text-8xl">
             Nos actions
@@ -229,7 +229,7 @@ function Une({
         )}
       </p>
       {nom && (
-        <p className="mt-4 inline-block bg-militant-charbon px-3 py-1 font-condensed text-lg font-bold leading-snug text-white">
+        <p className="mt-4 inline-block rounded-full border-2 border-militant-charbon px-3 py-0.5 font-condensed text-lg font-bold leading-snug">
           {type}
         </p>
       )}
@@ -269,7 +269,7 @@ function Une({
         </div>
 
         {aDesFaits && (
-          <aside className="order-first self-start bg-militant-charbon p-6 text-white lg:order-none lg:sticky lg:top-6 lg:col-span-4">
+          <aside className="order-first self-start rounded-2xl border border-t-[6px] border-militant-ardoise border-t-militant-rouge bg-white p-6 lg:order-none lg:sticky lg:top-6 lg:col-span-4">
             <dl className="space-y-5">
               {participants && (
                 <div className="flex flex-col-reverse">
@@ -295,7 +295,7 @@ function Une({
 function Fait({ label, valeur }: { label: string; valeur: string }) {
   return (
     <div className="border-t border-militant-ardoise pt-4">
-      <dt className="text-[15px] font-semibold text-militant-ardoise">{label}</dt>
+      <dt className="text-[15px] font-semibold">{label}</dt>
       <dd className="mt-0.5 break-words font-condensed text-2xl font-bold leading-tight">{valeur}</dd>
     </div>
   );

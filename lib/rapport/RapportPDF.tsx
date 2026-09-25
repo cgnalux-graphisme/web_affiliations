@@ -156,23 +156,23 @@ export default function RapportPDF({
       language="fr-BE"
     >
       {/* ── Page de garde ── */}
-      <Page size="A4" style={{ backgroundColor: C.charbon, color: C.blanc, fontFamily: "Barlow", padding: 0 }}>
+      <Page size="A4" style={{ backgroundColor: C.bordeaux, color: C.blanc, fontFamily: "Barlow", padding: 0 }}>
         <View style={{ height: 14, backgroundColor: C.rouge }} />
         <View style={{ flexGrow: 1, paddingHorizontal: 56, paddingTop: 64, paddingBottom: 56, justifyContent: "space-between" }}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- composant PDF, pas d'attribut alt */}
-          <Image src={`${p.origine}/Logo%20CG%20Blanc.png`} style={{ width: 170 }} />
+          <Image src={`${p.origine}/logo-cg-blanc.png`} style={{ width: 230 }} />
           <View>
             <Text style={{ fontFamily: "Barlow Condensed", fontWeight: 800, fontSize: 64, lineHeight: 0.95 }}>
               Rapport{"\n"}d&apos;activité
             </Text>
-            <View style={{ width: 70, height: 7, backgroundColor: C.rouge, marginTop: 22, marginBottom: 22 }} />
+            <View style={{ width: 70, height: 7, backgroundColor: C.blanc, marginTop: 22, marginBottom: 22 }} />
             <Text style={{ fontFamily: "Barlow Condensed", fontWeight: 600, fontSize: 22 }}>
               Actions syndicales {periode}
             </Text>
           </View>
-          <View style={{ borderTopWidth: 1, borderTopColor: C.ardoise, paddingTop: 14 }}>
+          <View style={{ borderTopWidth: 1, borderTopColor: C.blanc, paddingTop: 14 }}>
             <Text style={{ fontSize: 13, fontWeight: 600 }}>Centrale Générale FGTB Namur-Luxembourg</Text>
-            <Text style={{ fontSize: 9.5, color: C.ardoise, marginTop: 4 }}>
+            <Text style={{ fontSize: 9.5, color: C.blanc, marginTop: 4 }}>
               Rapport de congrès. Document généré le {p.genereLe}.
             </Text>
           </View>
@@ -271,9 +271,9 @@ export default function RapportPDF({
 // ── Composants ───────────────────────────────────────────────────────────────
 function Chiffre({ valeur, libelle }: { valeur: string; libelle: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: C.charbon, color: C.blanc, padding: 10, paddingBottom: 12 }}>
+    <View style={{ flex: 1, backgroundColor: C.bordeaux, color: C.blanc, padding: 10, paddingBottom: 12 }}>
       <Text style={{ fontFamily: "Barlow Condensed", fontWeight: 800, fontSize: 28, lineHeight: 1 }}>{valeur}</Text>
-      <View style={{ width: 22, height: 3, backgroundColor: C.rouge, marginTop: 6, marginBottom: 5 }} />
+      <View style={{ width: 22, height: 3, backgroundColor: C.blanc, marginTop: 6, marginBottom: 5 }} />
       <Text style={{ fontSize: 8.5, lineHeight: 1.3 }}>{libelle}</Text>
     </View>
   );
@@ -282,7 +282,7 @@ function Chiffre({ valeur, libelle }: { valeur: string; libelle: string }) {
 function Tableau({ colonnes, lignes }: { colonnes: string[]; lignes: string[][] }) {
   return (
     <View style={{ borderTopWidth: 2, borderTopColor: C.charbon }}>
-      <View style={{ flexDirection: "row", backgroundColor: C.charbon, color: C.blanc }}>
+      <View style={{ flexDirection: "row", backgroundColor: C.bordeaux, color: C.blanc }}>
         {colonnes.map((c, i) => (
           <Text
             key={c}
@@ -448,7 +448,7 @@ function FicheAction({ a }: { a: ActionRapport }) {
           </Text>
           {/* Badge du type seulement si l'action a un nom (sinon le titre est déjà le type). */}
           {a.nom?.trim() ? (
-            <Text style={{ backgroundColor: C.charbon, color: C.blanc, fontSize: 8, fontWeight: 600, paddingHorizontal: 5, paddingVertical: 1.5 }}>
+            <Text style={{ borderWidth: 1, borderColor: C.charbon, fontSize: 8, fontWeight: 600, paddingHorizontal: 5, paddingVertical: 1.5 }}>
               {typeLisible(a)}
             </Text>
           ) : null}

@@ -3,27 +3,28 @@ import "./globals.css";
 import { barlow, condensed } from "./fonts";
 import { forms, transferJourney } from "./forms";
 import NavigationSite from "./NavigationSite";
+import PiedDePage from "./PiedDePage";
 
 export const metadata: Metadata = {
-  title: "FGTB — Formulaires en ligne",
-  description: "Formulaires en ligne — Centrale Générale FGTB Namur Luxembourg",
+  title: "Centrale Générale FGTB Namur-Luxembourg",
+  description:
+    "Actions syndicales et démarches en ligne de la Centrale Générale FGTB Namur-Luxembourg : affiliation, formulaires ONEM, mandat SEPA, calcul de préavis.",
 };
 
 const liens = [
   { href: "/", label: "Accueil" },
   { href: "/actions", label: "Nos actions" },
-  ...forms.map((f) => ({ href: f.href, label: f.shortTitle })),
+  // Les formulaires sont regroupés dans une seule rubrique.
+  { href: "/demarches", label: "Démarches en ligne", aussi: [transferJourney.href, ...forms.map((f) => f.href)] },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${condensed.variable} ${barlow.variable}`}>
-      <body>
-        <NavigationSite
-          liens={liens}
-          cta={{ href: transferJourney.href, label: transferJourney.shortTitle }}
-        />
-        {children}
+      <body className="flex min-h-screen flex-col">
+        <NavigationSite liens={liens} cta={{ href: "/affiliation", label: "S'affilier" }} />
+        <div className="flex flex-1 flex-col">{children}</div>
+        <PiedDePage />
       </body>
     </html>
   );

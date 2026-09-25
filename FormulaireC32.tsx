@@ -342,7 +342,7 @@ export default function FormulaireC32({
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
-      <div className="bg-gray-800 text-white rounded-t-2xl px-6 py-4">
+      <div className="bg-militant-bordeaux text-white rounded-t-2xl px-6 py-4">
         <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Office National de l&apos;Emploi</p>
         <h1 className="text-base font-bold">Formulaire C3.2 — Demande d&apos;allocations de chômage temporaire</h1>
         <p className="text-xs text-gray-400 mt-1">Étape {step}/{TOTAL_STEPS} : {STEP_LABELS[step - 1]}</p>

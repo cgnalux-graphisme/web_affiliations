@@ -70,7 +70,7 @@ export default function ChoixVideos({
                   <img
                     src={miniature(id)}
                     alt=""
-                    className="aspect-video w-28 shrink-0 rounded-lg bg-militant-charbon object-cover sm:w-36"
+                    className="aspect-video w-28 shrink-0 rounded-lg bg-militant-ardoise object-cover sm:w-36"
                   />
                 )}
                 <div className="min-w-0 flex-1 space-y-2">

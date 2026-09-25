@@ -117,8 +117,8 @@ export default function FriseActions({ jalons }: { jalons: JalonFrise[] }) {
                     aria-pressed={a === annee}
                     className={`rounded-lg px-3 py-1 font-condensed text-xl font-bold tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge ${
                       a === annee
-                        ? "bg-militant-charbon text-white"
-                        : "text-militant-charbon hover:bg-militant-charbon hover:text-white"
+                        ? "bg-militant-bordeaux text-white"
+                        : "text-militant-charbon hover:bg-militant-bordeaux hover:text-white"
                     }`}
                   >
                     {a}
@@ -183,11 +183,11 @@ export default function FriseActions({ jalons }: { jalons: JalonFrise[] }) {
                     <span className="block h-3.5 w-3.5 rounded-full bg-militant-rouge ring-[3px] ring-white transition-transform duration-200 group-hover:scale-150 group-focus-visible:scale-150 group-focus-visible:ring-militant-charbon motion-reduce:transition-none" />
                     <span
                       role="tooltip"
-                      className={`pointer-events-none absolute bottom-full mb-2 w-max max-w-[16rem] bg-militant-charbon px-3 py-2 text-left text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 ${
+                      className={`pointer-events-none absolute bottom-full mb-2 w-max max-w-[16rem] bg-militant-bordeaux px-3 py-2 text-left text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 ${
                         bord === "gauche" ? "left-0" : bord === "droite" ? "right-0" : "left-1/2 -translate-x-1/2"
                       }`}
                     >
-                      <span className="block font-condensed text-base font-bold tabular-nums text-militant-ardoise">
+                      <span className="block font-condensed text-base font-bold tabular-nums">
                         {isoToDateFr(p.date)}
                       </span>
                       <span className="block whitespace-normal text-sm font-semibold leading-snug">{p.titre}</span>
@@ -221,7 +221,7 @@ function BoutonAnnee({
       disabled={desactive}
       aria-label={libelle}
       title={libelle}
-      className="shrink-0 rounded-lg p-1.5 text-militant-charbon transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge disabled:pointer-events-none disabled:text-militant-ardoise"
+      className="shrink-0 rounded-lg p-1.5 text-militant-charbon transition-colors hover:bg-militant-bordeaux hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge disabled:pointer-events-none disabled:text-militant-ardoise"
     >
       {sens === -1 ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
     </button>

@@ -14,7 +14,7 @@ export default function LecteurYoutube({ id, titre }: { id: string; titre: strin
 
   return (
     <figure>
-      <div className="relative aspect-video w-full overflow-hidden bg-militant-charbon">
+      <div className="relative aspect-video w-full overflow-hidden bg-militant-ardoise">
         {lance ? (
           <iframe
             src={lienIntegre(id)}

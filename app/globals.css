@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Base du site : Barlow partout, texte charbon sur fond blanc ── */
+@layer base {
+  body {
+    font-family: var(--font-barlow), Arial, sans-serif;
+    color: #222222;
+    background: #ffffff;
+  }
+  /* Texte d'exemple des champs : ardoise, distinct d'une valeur saisie (charbon). */
+  input::placeholder,
+  textarea::placeholder {
+    color: #7c90a0;
+    opacity: 1;
+  }
+}
+
 /* ── Vitrine /actions : frise chronologique et mise en avant d'une une ── */
 @keyframes frise-trace {
   from { transform: scaleX(0); }

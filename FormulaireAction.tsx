@@ -394,9 +394,9 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
   if (submitted) {
     return (
       <div className="max-w-2xl mx-auto space-y-5">
-        <header className="rounded-2xl bg-militant-charbon px-6 py-5 text-white">
+        <header className="rounded-2xl bg-militant-bordeaux px-6 py-5 text-white">
           <div className="flex items-center gap-4">
-            <CheckCircle className="h-8 w-8 shrink-0 text-militant-rouge" />
+            <CheckCircle className="h-8 w-8 shrink-0" />
             <div>
               <p className="text-lg font-bold leading-snug">
                 {action ? "Modifications enregistrées" : "Action enregistrée"}
@@ -480,17 +480,17 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      <header className="rounded-2xl bg-militant-charbon px-6 py-5 text-white">
+      <header className="border-b-[6px] border-militant-charbon pb-4">
         <Link
           href="/suivi-actions"
-          className="inline-flex items-center gap-1 text-sm font-semibold text-white underline decoration-militant-rouge decoration-2 underline-offset-4 hover:decoration-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="inline-flex items-center gap-1 text-sm font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
         >
           <ArrowLeft size={15} /> Toutes les actions
         </Link>
-        <h1 className="mt-3 text-2xl font-bold leading-snug">
+        <h1 className="mt-3 font-condensed text-5xl font-extrabold uppercase leading-[0.9]">
           {action ? "Modifier l'action" : "Encoder une action"}
         </h1>
-        {action && <p className="mt-1 text-sm">{titreAction(action)}</p>}
+        {action && <p className="mt-2 text-lg font-semibold">{titreAction(action)}</p>}
       </header>
 
         <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl border border-militant-ardoise overflow-hidden">
@@ -814,7 +814,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
 // ── Sous-composants ──────────────────────────────────────────────────────────
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-militant-charbon text-white px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em]">
+    <div className="border-y-2 border-militant-charbon bg-white px-6 py-2.5 font-condensed text-xl font-extrabold">
       {children}
     </div>
   );

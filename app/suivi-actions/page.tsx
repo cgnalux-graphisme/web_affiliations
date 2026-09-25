@@ -68,8 +68,8 @@ export default async function ListeActionsPage({
       </div>
 
       {actionModifiee && (
-        <div role="status" className="mt-6 flex items-center gap-3 rounded-xl bg-militant-charbon px-4 py-3 text-white">
-          <CheckCircle size={20} className="shrink-0 text-militant-rouge" aria-hidden />
+        <div role="status" className="mt-6 flex items-center gap-3 rounded-xl bg-militant-bordeaux px-4 py-3 text-white">
+          <CheckCircle size={20} className="shrink-0" aria-hidden />
           <p>
             Modifications enregistrées : <span className="font-bold">{titreAction(actionModifiee)}</span>
           </p>
@@ -77,8 +77,8 @@ export default async function ListeActionsPage({
       )}
 
       {supprimee && (
-        <div role="status" className="mt-6 flex items-center gap-3 rounded-xl bg-militant-charbon px-4 py-3 text-white">
-          <Trash2 size={20} className="shrink-0 text-militant-rouge" aria-hidden />
+        <div role="status" className="mt-6 flex items-center gap-3 rounded-xl bg-militant-bordeaux px-4 py-3 text-white">
+          <Trash2 size={20} className="shrink-0" aria-hidden />
           <p>
             Action supprimée : <span className="font-bold">{supprimee}</span>
           </p>
@@ -136,8 +136,8 @@ export default async function ListeActionsPage({
                   </p>
                   <p>
                     {a.visible_public ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-militant-charbon px-3 py-1 text-sm font-bold text-white">
-                        <Globe size={14} className="text-militant-rouge" aria-hidden /> Publiée
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-militant-bordeaux px-3 py-1 text-sm font-bold text-white">
+                        <Globe size={14} aria-hidden /> Publiée
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-militant-ardoise px-3 py-0.5 text-sm font-bold">
