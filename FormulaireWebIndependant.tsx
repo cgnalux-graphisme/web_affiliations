@@ -13,6 +13,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { getSupabase } from "./lib/supabase";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
+import { enregistrerPolicesPdf } from "./lib/pdf/charte";
 import {
   User,
   MapPin,
@@ -1239,28 +1240,25 @@ function SignatureCanvas({
 
 const pdfStyles = PDFStyleSheet.create({
   page: {
-    fontFamily: "Helvetica",
+    fontFamily: "Barlow",
     fontSize: 9,
-    // Marges "impression normales" pour une page A4
-    // (~1,5–2 cm tout autour)
-    paddingTop: 40,
-    paddingBottom: 40,
+    paddingTop: 36,
+    paddingBottom: 52,
     paddingLeft: 40,
     paddingRight: 40,
-    backgroundColor: "#ffffff",
-    color: "#111827",
+    backgroundColor: "#FFFFFF",
+    color: "#222222",
   },
 
   // ── Bandeau rouge FGTB ───────────────────────────────────────────────────
   header: {
-    backgroundColor: "#b91c1c",
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingLeft: 10,
-    paddingRight: 10,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     justifyContent: "space-between",
+    borderBottomWidth: 4,
+    borderBottomColor: "#222222",
+    borderBottomStyle: "solid",
+    paddingBottom: 8,
   },
   headerLeft: {
     flexDirection: "row",
@@ -1269,14 +1267,16 @@ const pdfStyles = PDFStyleSheet.create({
   },
   // Largeur seule → ratio préservé automatiquement par react-pdf
   logoImage: {
-    width: 96,
-    marginRight: 12,
+    width: 150,
   },
   headerTitle: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontFamily: "Helvetica-Bold",
-    textAlign: "center",
+    fontFamily: "Barlow Condensed",
+    fontWeight: 800,
+    fontSize: 19,
+    lineHeight: 1,
+    textTransform: "uppercase",
+    color: "#222222",
+    textAlign: "right",
   },
   headerSubtitle: {
     color: "#fca5a5",
@@ -1287,19 +1287,18 @@ const pdfStyles = PDFStyleSheet.create({
     alignItems: "flex-end",
   },
   headerDateLabel: {
-    color: "#fecaca",
-    fontSize: 6.5,
+    fontSize: 8,
+    color: "#222222",
+    marginTop: 4,
+    textAlign: "right",
   },
   headerDateValue: {
-    color: "#ffffff",
-    fontSize: 7.5,
-    fontFamily: "Helvetica-Bold",
-    marginTop: 1,
+    fontWeight: 600,
   },
   headerMember: {
-    color: "#fecaca",
-    fontSize: 7,
-    marginTop: 3,
+    fontSize: 8,
+    color: "#222222",
+    marginTop: 1,
     textAlign: "right",
   },
 
@@ -1313,17 +1312,17 @@ const pdfStyles = PDFStyleSheet.create({
 
   // ── Titre de section ─────────────────────────────────────────────────────
   sectionTitle: {
-    backgroundColor: "#b91c1c",
-    color: "#ffffff",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 8,
-    paddingTop: 3,
-    paddingBottom: 3,
-    paddingLeft: 7,
-    paddingRight: 7,
+    fontFamily: "Barlow Condensed",
+    fontWeight: 800,
+    fontSize: 11.5,
+    textTransform: "uppercase",
+    color: "#222222",
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#222222",
+    borderBottomStyle: "solid",
+    paddingBottom: 2,
     marginBottom: 5,
-    marginTop: 7,
-    borderRadius: 2,
+    marginTop: 9,
   },
   section: { marginBottom: 3 },
 
@@ -1335,24 +1334,28 @@ const pdfStyles = PDFStyleSheet.create({
   // ── Ligne label / valeur ─────────────────────────────────────────────────
   row: {
     flexDirection: "row",
-    marginBottom: 3.5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#7C90A0",
+    borderBottomStyle: "solid",
+    paddingBottom: 2,
+    marginBottom: 2.5,
   },
   label: {
     width: "42%",
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Barlow", fontWeight: 600,
     fontSize: 7.5,
-    color: "#6b7280",
+    color: "#222222",
   },
   value: {
     width: "58%",
     fontSize: 7.5,
-    color: "#111827",
+    color: "#222222",
   },
 
   // ── Section 0 — Réservé administration ───────────────────────────────────
   adminBox: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#7C90A0",
     borderStyle: "dashed",
     borderRadius: 3,
     paddingTop: 6,
@@ -1371,53 +1374,52 @@ const pdfStyles = PDFStyleSheet.create({
   },
   adminFieldLabel: {
     fontSize: 7.5,
-    fontFamily: "Helvetica-Bold",
-    color: "#374151",
+    fontFamily: "Barlow", fontWeight: 600,
+    color: "#222222",
     marginRight: 6,
     width: "52%",
   },
   adminFieldLine: {
     flex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     height: 12,
   },
 
   // ── Encadré cotisation (compact) ──────────────────────────────────────────
   cotisationBox: {
-    backgroundColor: "#f0fdf4",
-    borderWidth: 1,
-    borderColor: "#86efac",
+    borderWidth: 1.5,
+    borderColor: "#AA0F33",
     borderStyle: "solid",
-    borderRadius: 3,
-    paddingTop: 4,
-    paddingBottom: 4,
-    paddingLeft: 8,
-    paddingRight: 8,
-    marginTop: 3,
+    paddingTop: 5,
+    paddingBottom: 5,
+    paddingLeft: 9,
+    paddingRight: 9,
+    marginTop: 4,
     flexDirection: "row",
     alignItems: "center",
   },
   cotisationMontant: {
-    fontSize: 13,
-    fontFamily: "Helvetica-Bold",
-    color: "#15803d",
+    fontFamily: "Barlow Condensed",
+    fontWeight: 800,
+    fontSize: 17,
+    color: "#AA0F33",
     marginRight: 8,
   },
   cotisationCatLabel: {
     fontSize: 7,
-    color: "#166534",
-    fontFamily: "Helvetica-Bold",
+    color: "#222222",
+    fontFamily: "Barlow", fontWeight: 600,
   },
   cotisationCatSub: {
     fontSize: 6.5,
-    color: "#4ade80",
+    color: "#222222",
     marginTop: 1,
   },
   cotisationNote: {
     fontSize: 6.5,
-    color: "#6b7280",
+    color: "#222222",
     marginTop: 4,
     lineHeight: 1.3,
   },
@@ -1429,12 +1431,12 @@ const pdfStyles = PDFStyleSheet.create({
   },
   echeancierHeaderRow: {
     flexDirection: "row",
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: "#7C90A0",
     borderTopStyle: "solid",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     paddingTop: 2,
     paddingBottom: 2,
@@ -1442,7 +1444,7 @@ const pdfStyles = PDFStyleSheet.create({
   echeancierRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     paddingTop: 2,
     paddingBottom: 2,
@@ -1451,34 +1453,34 @@ const pdfStyles = PDFStyleSheet.create({
     width: "30%",
     fontSize: 7,
     paddingLeft: 4,
-    color: "#111827",
+    color: "#222222",
   },
   echeancierCellPeriode: {
     flex: 1,
     fontSize: 7,
     paddingLeft: 4,
-    color: "#374151",
+    color: "#222222",
   },
   echeancierCellMontant: {
     width: "18%",
     fontSize: 7,
-    fontFamily: "Helvetica-Bold",
-    color: "#111827",
+    fontFamily: "Barlow", fontWeight: 600,
+    color: "#222222",
     textAlign: "right",
     paddingRight: 4,
   },
   echeancierHeaderText: {
     fontSize: 6.5,
-    fontFamily: "Helvetica-Bold",
-    color: "#6b7280",
+    fontFamily: "Barlow", fontWeight: 600,
+    color: "#222222",
     paddingLeft: 4,
   },
 
   // ── Encadré info paiement ─────────────────────────────────────────────────
   infoBox: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#7C90A0",
     borderStyle: "solid",
     borderRadius: 3,
     paddingTop: 5,
@@ -1489,18 +1491,18 @@ const pdfStyles = PDFStyleSheet.create({
   },
   // Encadré paiement immédiat 2025 — bandeau amber à gauche
   paiement2025Box: {
-    backgroundColor: "#fffbeb",
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#fde68a",
+    borderTopColor: "#7C90A0",
     borderTopStyle: "solid",
     borderRightWidth: 1,
-    borderRightColor: "#fde68a",
+    borderRightColor: "#7C90A0",
     borderRightStyle: "solid",
     borderBottomWidth: 1,
-    borderBottomColor: "#fde68a",
+    borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     borderLeftWidth: 3,
-    borderLeftColor: "#f59e0b",
+    borderLeftColor: "#AA0F33",
     borderLeftStyle: "solid",
     borderRadius: 3,
     paddingTop: 6,
@@ -1512,18 +1514,18 @@ const pdfStyles = PDFStyleSheet.create({
   },
   // Encadré SEPA stylisé — bandeau rouge à gauche
   sepaBox: {
-    backgroundColor: "#fff8f8",
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: "#7C90A0",
     borderTopStyle: "solid",
     borderRightWidth: 1,
-    borderRightColor: "#e5e7eb",
+    borderRightColor: "#7C90A0",
     borderRightStyle: "solid",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     borderLeftWidth: 3,
-    borderLeftColor: "#b91c1c",
+    borderLeftColor: "#AA0F33",
     borderLeftStyle: "solid",
     borderRadius: 3,
     paddingTop: 6,
@@ -1534,8 +1536,8 @@ const pdfStyles = PDFStyleSheet.create({
   },
   infoBoxTitle: {
     fontSize: 7,
-    fontFamily: "Helvetica-Bold",
-    color: "#374151",
+    fontFamily: "Barlow", fontWeight: 600,
+    color: "#222222",
     marginBottom: 3,
   },
 
@@ -1546,9 +1548,9 @@ const pdfStyles = PDFStyleSheet.create({
     marginBottom: 2.5,
   },
   mentionBadgeOk: {
-    backgroundColor: "#dcfce7",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#86efac",
+    borderColor: "#AA0F33",
     borderStyle: "solid",
     borderRadius: 2,
     paddingTop: 1,
@@ -1560,18 +1562,18 @@ const pdfStyles = PDFStyleSheet.create({
   },
   mentionBadgeOkText: {
     fontSize: 6,
-    color: "#15803d",
-    fontFamily: "Helvetica-Bold",
+    color: "#AA0F33",
+    fontFamily: "Barlow", fontWeight: 600,
   },
   mentionContent: { flex: 1 },
   mentionLabel: {
     fontSize: 7.5,
-    fontFamily: "Helvetica-Bold",
-    color: "#111827",
+    fontFamily: "Barlow", fontWeight: 600,
+    color: "#222222",
   },
   mentionDesc: {
     fontSize: 6.5,
-    color: "#6b7280",
+    color: "#222222",
     marginTop: 1,
     lineHeight: 1.3,
   },
@@ -1579,7 +1581,7 @@ const pdfStyles = PDFStyleSheet.create({
   // ── Zone signature ────────────────────────────────────────────────────────
   signatureBox: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#7C90A0",
     borderStyle: "solid",
     borderRadius: 3,
     paddingTop: 8,
@@ -1587,7 +1589,7 @@ const pdfStyles = PDFStyleSheet.create({
     paddingLeft: 8,
     paddingRight: 8,
     marginTop: 3,
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
   },
   signatureImage: {
@@ -1596,17 +1598,17 @@ const pdfStyles = PDFStyleSheet.create({
   },
   signatureDate: {
     fontSize: 6.5,
-    color: "#6b7280",
+    color: "#222222",
     marginTop: 3,
-    fontFamily: "Helvetica-Oblique",
+    fontFamily: "Barlow", fontStyle: "italic",
   },
   luApprouve: {
     fontSize: 7,
-    color: "#6b7280",
+    color: "#222222",
     marginTop: 6,
     lineHeight: 1.5,
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: "#7C90A0",
     borderTopStyle: "solid",
     paddingTop: 5,
     textAlign: "center",
@@ -1614,15 +1616,16 @@ const pdfStyles = PDFStyleSheet.create({
 
   // ── Pied de page ──────────────────────────────────────────────────────────
   footer: {
+    // Positionné depuis le haut : avec react-pdf, "bottom" peut sortir de la page (A4 = 842 pt).
     position: "absolute",
-    bottom: 16,
+    top: 808,
     left: 40,
     right: 40,
     textAlign: "center",
-    fontSize: 6,
-    color: "#9ca3af",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    fontSize: 7,
+    color: "#222222",
+    borderTopWidth: 1.5,
+    borderTopColor: "#E32119",
     borderTopStyle: "solid",
     paddingTop: 4,
   },
@@ -1786,22 +1789,18 @@ function AffiliationDocument({
 
         {/* ══ BANDEAU ═══════════════════════════════════════════════════════ */}
         <View style={pdfStyles.header}>
-          <View style={pdfStyles.headerLeft}>
-            {logoBase64 ? (
-              <PDFImage src={logoBase64} style={pdfStyles.logoImage} />
-            ) : (
-              <View style={{ width: 96, marginRight: 12, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 4, alignItems: "center", justifyContent: "center", paddingTop: 8, paddingBottom: 8 }}>
-                <PDFText style={{ color: "#fff", fontSize: 10, fontFamily: "Helvetica-Bold" }}>CG</PDFText>
-              </View>
-            )}
-            <View style={{ flex: 1, alignItems: "center" }}>
-              <PDFText style={pdfStyles.headerTitle}>Formulaire d'affiliation</PDFText>
-              <PDFText style={pdfStyles.headerSubtitle}>Centrale Générale FGTB Namur-Luxembourg</PDFText>
-            </View>
-          </View>
+          {logoBase64 ? (
+            <PDFImage src={logoBase64} style={pdfStyles.logoImage} />
+          ) : (
+            <PDFText style={{ fontFamily: "Barlow Condensed", fontWeight: 800, fontSize: 13, color: "#E32119" }}>
+              Centrale Générale FGTB Namur-Luxembourg
+            </PDFText>
+          )}
           <View style={pdfStyles.headerRight}>
-            <PDFText style={pdfStyles.headerDateLabel}>Document du</PDFText>
-            <PDFText style={pdfStyles.headerDateValue}>{dateDoc}</PDFText>
+            <PDFText style={pdfStyles.headerTitle}>Formulaire d&apos;affiliation</PDFText>
+            <PDFText style={pdfStyles.headerDateLabel}>
+              Document du <PDFText style={pdfStyles.headerDateValue}>{dateDoc}</PDFText>
+            </PDFText>
             <PDFText style={pdfStyles.headerMember}>{data.prenom} {data.nom}</PDFText>
           </View>
         </View>
@@ -1810,7 +1809,7 @@ function AffiliationDocument({
 
           {/* ══ 0. RÉSERVÉ À L'ADMINISTRATION ════════════════════════════════ */}
           <View style={pdfStyles.section}>
-            <PDFText style={pdfStyles.sectionTitle}>0. Réservé à l'administration</PDFText>
+            <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>0</PDFText>  Réservé à l'administration</PDFText>
             <View style={pdfStyles.adminBox}>
               <View style={pdfStyles.adminFieldWrap}>
                 <PDFText style={pdfStyles.adminFieldLabel}>N° de Mandat :</PDFText>
@@ -1825,7 +1824,7 @@ function AffiliationDocument({
 
           {/* ══ 1. IDENTITÉ ═══════════════════════════════════════════════════ */}
           <View style={pdfStyles.section}>
-            <PDFText style={pdfStyles.sectionTitle}>1. Identité</PDFText>
+            <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>1</PDFText>  Identité</PDFText>
             <View style={pdfStyles.twoCol}>
               <View style={pdfStyles.colLeft}>
                 <PdfRow label="Nom :"               value={v(data.nom)} />
@@ -1844,7 +1843,7 @@ function AffiliationDocument({
 
           {/* ══ 2. ADRESSE ════════════════════════════════════════════════════ */}
           <View style={pdfStyles.section}>
-            <PDFText style={pdfStyles.sectionTitle}>2. Adresse</PDFText>
+            <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>2</PDFText>  Adresse</PDFText>
             <View style={pdfStyles.twoCol}>
               <View style={pdfStyles.colLeft}>
                 <PdfRow label="Rue :"         value={v(data.rue)} />
@@ -1860,7 +1859,7 @@ function AffiliationDocument({
 
           {/* ══ 3. SITUATION PROFESSIONNELLE ══════════════════════════════════ */}
           <View style={pdfStyles.section}>
-            <PDFText style={pdfStyles.sectionTitle}>3. Situation professionnelle</PDFText>
+            <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>3</PDFText>  Situation professionnelle</PDFText>
             {data.situationPro === "actif" && (
               <View style={pdfStyles.twoCol}>
                 <View style={pdfStyles.colLeft}>
@@ -1901,7 +1900,7 @@ function AffiliationDocument({
           {/* ══ 4. TRANSFERT SYNDICAL (conditionnel) ══════════════════════════ */}
           {(data.autresCentraleFGTB || data.affilieAutreSyndicat || data.dossierJuridique) && (
             <View style={pdfStyles.section}>
-              <PDFText style={pdfStyles.sectionTitle}>4. Transfert syndical</PDFText>
+              <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>4</PDFText>  Transfert syndical</PDFText>
               <View style={pdfStyles.twoCol}>
                 <View style={pdfStyles.colLeft}>
                   {data.autresCentraleFGTB && (
@@ -1938,7 +1937,7 @@ function AffiliationDocument({
 
           {/* ══ 5. COTISATION ═════════════════════════════════════════════════ */}
           <View style={pdfStyles.section}>
-            <PDFText style={pdfStyles.sectionTitle}>5. Cotisation</PDFText>
+            <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>5</PDFText>  Cotisation</PDFText>
             <View style={pdfStyles.twoCol}>
               <View style={pdfStyles.colLeft}>
                 <PdfRow label="Début d'affiliation :" value={affiliationDebut} />
@@ -1968,7 +1967,7 @@ function AffiliationDocument({
 
           {/* ══ 6. PAIEMENT DE LA COTISATION ══════════════════════════════════ */}
           <View style={pdfStyles.section} break>
-            <PDFText style={pdfStyles.sectionTitle}>6. Paiement de la cotisation</PDFText>
+            <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>6</PDFText>  Paiement de la cotisation</PDFText>
 
             {/* Coordonnées bancaires */}
             <View style={pdfStyles.twoCol}>
@@ -1993,7 +1992,7 @@ function AffiliationDocument({
             {/* ── Domiciliation : informations créancier + échéancier ── */}
             {data.modePaiement === "domiciliation" && (
               <View style={pdfStyles.sepaBox}>
-                <PDFText style={[pdfStyles.infoBoxTitle, { color: "#b91c1c", fontSize: 7.5 }]}>
+                <PDFText style={[pdfStyles.infoBoxTitle, { color: "#AA0F33", fontSize: 7.5 }]}>
                   Informations créancier SEPA
                 </PDFText>
                 <PdfRow label="Créancier :"                   value="Centrale Générale FGTB Namur-Luxembourg" />
@@ -2016,7 +2015,7 @@ function AffiliationDocument({
             {/* ── Tableau d'échéances domiciliation ── */}
             {echeancesDom.length > 0 && (
               <View style={pdfStyles.echeancierWrap}>
-                <PDFText style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#374151", marginBottom: 2 }}>
+                <PDFText style={{ fontSize: 7, fontFamily: "Barlow", fontWeight: 600, color: "#222222", marginBottom: 2 }}>
                   Échéancier des prélèvements
                 </PDFText>
                 <View style={pdfStyles.echeancierHeaderRow}>
@@ -2037,25 +2036,25 @@ function AffiliationDocument({
             {/* ── Paiement immédiat 2025 (1 seul virement) ── */}
             {paiement2025 && (
               <View style={pdfStyles.paiement2025Box}>
-                <PDFText style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: "#92400e", marginBottom: 3 }}>
-                  ⚠  Paiement immédiat 2025 — à régler en 1 seul virement
+                <PDFText style={{ fontSize: 7.5, fontFamily: "Barlow", fontWeight: 600, color: "#222222", marginBottom: 3 }}>
+                  Paiement immédiat 2025 — à régler en 1 seul virement
                 </PDFText>
                 <View style={{ flexDirection: "row", marginBottom: 2 }}>
-                  <PDFText style={{ fontSize: 7, color: "#78350f", fontFamily: "Helvetica-Bold", width: "35%" }}>
+                  <PDFText style={{ fontSize: 7, color: "#222222", fontFamily: "Barlow", fontWeight: 600, width: "35%" }}>
                     Mois couverts :
                   </PDFText>
-                  <PDFText style={{ fontSize: 7, color: "#78350f", flex: 1 }}>
+                  <PDFText style={{ fontSize: 7, color: "#222222", flex: 1 }}>
                     {paiement2025.moisCouverts[0]} à {paiement2025.moisCouverts[paiement2025.moisCouverts.length - 1]}
                   </PDFText>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <PDFText style={{ fontSize: 7, color: "#78350f", fontFamily: "Helvetica-Bold", width: "35%" }}>
+                  <PDFText style={{ fontSize: 7, color: "#222222", fontFamily: "Barlow", fontWeight: 600, width: "35%" }}>
                     Total à payer :
                   </PDFText>
-                  <PDFText style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: "#b45309" }}>
+                  <PDFText style={{ fontSize: 11, fontFamily: "Barlow", fontWeight: 600, color: "#AA0F33" }}>
                     {paiement2025.montant.toFixed(2)} €
                   </PDFText>
-                  <PDFText style={{ fontSize: 6.5, color: "#92400e", marginLeft: 4, marginTop: 2 }}>
+                  <PDFText style={{ fontSize: 6.5, color: "#222222", marginLeft: 4, marginTop: 2 }}>
                     (barème 2025)
                   </PDFText>
                 </View>
@@ -2065,7 +2064,7 @@ function AffiliationDocument({
             {/* ── Tableau d'échéances virement 2026 ── */}
             {echeancesVir.length > 0 && (
               <View style={pdfStyles.echeancierWrap}>
-                <PDFText style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: "#374151", marginBottom: 2 }}>
+                <PDFText style={{ fontSize: 7, fontFamily: "Barlow", fontWeight: 600, color: "#222222", marginBottom: 2 }}>
                   {paiement2025 ? "Échéancier trimestriel 2026 (barème 2026)" : "Échéancier des virements"}
                 </PDFText>
                 <View style={pdfStyles.echeancierHeaderRow}>
@@ -2088,7 +2087,7 @@ function AffiliationDocument({
 
           {/* ══ 7. MENTIONS LÉGALES ═══════════════════════════════════════════ */}
           <View style={pdfStyles.section}>
-            <PDFText style={pdfStyles.sectionTitle}>7. Mentions légales — Acceptées le {dateDoc}</PDFText>
+            <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>7</PDFText>  Mentions légales — Acceptées le {dateDoc}</PDFText>
             {mentionsList.map(({ key, label, desc }) => (
               <View key={key} style={pdfStyles.mentionRow}>
                 <View style={pdfStyles.mentionBadgeOk}>
@@ -2104,12 +2103,12 @@ function AffiliationDocument({
 
           {/* ══ 8. SIGNATURE ═════════════════════════════════════════════════ */}
           <View style={pdfStyles.section}>
-            <PDFText style={pdfStyles.sectionTitle}>8. Signature du membre</PDFText>
+            <PDFText style={pdfStyles.sectionTitle}><PDFText style={{ color: "#E32119" }}>8</PDFText>  Signature du membre</PDFText>
             <View style={pdfStyles.signatureBox}>
               {data.signature ? (
                 <PDFImage src={data.signature} style={pdfStyles.signatureImage} />
               ) : (
-                <PDFText style={{ fontSize: 8, color: "#9ca3af", alignSelf: "center" }}>
+                <PDFText style={{ fontSize: 8, color: "#222222", alignSelf: "center" }}>
                   (aucune signature fournie)
                 </PDFText>
               )}
@@ -2126,7 +2125,7 @@ function AffiliationDocument({
         </View>
 
         {/* ══ PIED DE PAGE ════════════════════════════════════════════════════ */}
-        <PDFText style={pdfStyles.footer}>
+        <PDFText style={pdfStyles.footer} fixed>
           Centrale Générale FGTB Namur-Luxembourg · admin.nalux@accg.be · Données traitées conformément au RGPD
         </PDFText>
 
@@ -2177,7 +2176,9 @@ export default function FormulaireWebIndependant({
   // Précharge le logo en base64 dès le montage du composant,
   // pour qu'il soit disponible lors de la génération du PDF.
   useEffect(() => {
-    fetch("/Logo%20CG%20Blanc.png")
+    // Polices de la charte, nécessaires avant tout rendu PDF (y compris le lien de téléchargement).
+    enregistrerPolicesPdf(window.location.origin);
+    fetch("/logo-cg-rouge.png")
       .then((r) => r.blob())
       .then(
         (blob) =>
@@ -2381,6 +2382,7 @@ export default function FormulaireWebIndependant({
       setUserIp(resolvedIp);
 
       const { echeancesDom, echeancesVir, paiement2025 } = buildEcheanciers(data);
+      enregistrerPolicesPdf(window.location.origin);
       const pdfBlob = await pdf(
         <AffiliationDocument
           data={data}
@@ -2598,7 +2600,7 @@ export default function FormulaireWebIndependant({
             <div className="flex items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/Logo CG Blanc.png"
+                src="/logo-cg-blanc.png"
                 alt="FGTB"
                 className="h-9 w-auto object-contain shrink-0"
               />

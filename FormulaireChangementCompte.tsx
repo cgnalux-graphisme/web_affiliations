@@ -5,6 +5,7 @@ import { dateFrToIso, formatDateFr, isValidDateFr } from "./lib/dates";
 import { getSupabase } from "./lib/supabase";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
+import { enregistrerPolicesPdf } from "./lib/pdf/charte";
 import {
   pdf,
   Document,
@@ -241,7 +242,7 @@ function AddressAutocomplete({
 
 // ── Logo (chargé une fois) ───────────────────────────────────────────────────
 async function fetchLogoBase64(): Promise<string> {
-  const res = await fetch("/Logo CG Blanc.png");
+  const res = await fetch("/logo-cg-rouge.png");
   if (!res.ok) return "";
   const blob = await res.blob();
   return new Promise((resolve) => {
@@ -254,24 +255,23 @@ async function fetchLogoBase64(): Promise<string> {
 // ── PDF (look aligné sur le formulaire d'affiliation) ────────────────────────
 const pdfStyles = StyleSheet.create({
   page: {
-    fontFamily: "Helvetica",
+    fontFamily: "Barlow",
     fontSize: 9,
-    paddingTop: 40,
-    paddingBottom: 40,
+    paddingTop: 36,
+    paddingBottom: 52,
     paddingLeft: 40,
     paddingRight: 40,
-    backgroundColor: "#ffffff",
-    color: "#111827",
+    backgroundColor: "#FFFFFF",
+    color: "#222222",
   },
   header: {
-    backgroundColor: "#b91c1c",
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingLeft: 10,
-    paddingRight: 10,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     justifyContent: "space-between",
+    borderBottomWidth: 4,
+    borderBottomColor: "#222222",
+    borderBottomStyle: "solid",
+    paddingBottom: 8,
   },
   headerLeft: {
     flexDirection: "row",
@@ -279,14 +279,16 @@ const pdfStyles = StyleSheet.create({
     flex: 1,
   },
   logoImage: {
-    width: 96,
-    marginRight: 12,
+    width: 150,
   },
   headerTitle: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontFamily: "Helvetica-Bold",
-    textAlign: "center",
+    fontFamily: "Barlow Condensed",
+    fontWeight: 800,
+    fontSize: 19,
+    lineHeight: 1,
+    textTransform: "uppercase",
+    color: "#222222",
+    textAlign: "right",
   },
   headerSubtitle: {
     color: "#fca5a5",
@@ -297,19 +299,18 @@ const pdfStyles = StyleSheet.create({
     alignItems: "flex-end",
   },
   headerDateLabel: {
-    color: "#fecaca",
-    fontSize: 6.5,
+    fontSize: 8,
+    color: "#222222",
+    marginTop: 4,
+    textAlign: "right",
   },
   headerDateValue: {
-    color: "#ffffff",
-    fontSize: 7.5,
-    fontFamily: "Helvetica-Bold",
-    marginTop: 1,
+    fontWeight: 600,
   },
   headerMember: {
-    color: "#fecaca",
-    fontSize: 7,
-    marginTop: 3,
+    fontSize: 8,
+    color: "#222222",
+    marginTop: 1,
     textAlign: "right",
   },
   body: {
@@ -318,17 +319,17 @@ const pdfStyles = StyleSheet.create({
     paddingTop: 10,
   },
   sectionTitle: {
-    backgroundColor: "#b91c1c",
-    color: "#ffffff",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 8,
-    paddingTop: 3,
-    paddingBottom: 3,
-    paddingLeft: 7,
-    paddingRight: 7,
+    fontFamily: "Barlow Condensed",
+    fontWeight: 800,
+    fontSize: 11.5,
+    textTransform: "uppercase",
+    color: "#222222",
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#222222",
+    borderBottomStyle: "solid",
+    paddingBottom: 2,
     marginBottom: 5,
-    marginTop: 7,
-    borderRadius: 2,
+    marginTop: 9,
   },
   section: { marginBottom: 3 },
   twoCol: { flexDirection: "row" },
@@ -336,22 +337,26 @@ const pdfStyles = StyleSheet.create({
   colRight: { flex: 1 },
   row: {
     flexDirection: "row",
-    marginBottom: 3.5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#7C90A0",
+    borderBottomStyle: "solid",
+    paddingBottom: 2,
+    marginBottom: 2.5,
   },
   label: {
     width: "42%",
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Barlow", fontWeight: 600,
     fontSize: 7.5,
-    color: "#6b7280",
+    color: "#222222",
   },
   value: {
     width: "58%",
     fontSize: 7.5,
-    color: "#111827",
+    color: "#222222",
   },
   adminBox: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#7C90A0",
     borderStyle: "dashed",
     borderRadius: 3,
     paddingTop: 6,
@@ -370,31 +375,31 @@ const pdfStyles = StyleSheet.create({
   },
   adminFieldLabel: {
     fontSize: 7.5,
-    fontFamily: "Helvetica-Bold",
-    color: "#374151",
+    fontFamily: "Barlow", fontWeight: 600,
+    color: "#222222",
     marginRight: 6,
     width: "52%",
   },
   adminFieldLine: {
     flex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     height: 12,
   },
   sepaBox: {
-    backgroundColor: "#fff8f8",
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: "#7C90A0",
     borderTopStyle: "solid",
     borderRightWidth: 1,
-    borderRightColor: "#e5e7eb",
+    borderRightColor: "#7C90A0",
     borderRightStyle: "solid",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     borderLeftWidth: 3,
-    borderLeftColor: "#b91c1c",
+    borderLeftColor: "#AA0F33",
     borderLeftStyle: "solid",
     borderRadius: 3,
     paddingTop: 6,
@@ -405,13 +410,13 @@ const pdfStyles = StyleSheet.create({
   },
   infoBoxTitle: {
     fontSize: 7,
-    fontFamily: "Helvetica-Bold",
-    color: "#374151",
+    fontFamily: "Barlow", fontWeight: 600,
+    color: "#222222",
     marginBottom: 3,
   },
   signatureBox: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#7C90A0",
     borderStyle: "solid",
     borderRadius: 3,
     paddingTop: 8,
@@ -419,7 +424,7 @@ const pdfStyles = StyleSheet.create({
     paddingLeft: 8,
     paddingRight: 8,
     marginTop: 3,
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
   },
   signatureImage: {
@@ -428,31 +433,32 @@ const pdfStyles = StyleSheet.create({
   },
   signatureDate: {
     fontSize: 6.5,
-    color: "#6b7280",
+    color: "#222222",
     marginTop: 3,
-    fontFamily: "Helvetica-Oblique",
+    fontFamily: "Barlow", fontStyle: "italic",
   },
   luApprouve: {
     fontSize: 7,
-    color: "#6b7280",
+    color: "#222222",
     marginTop: 6,
     lineHeight: 1.5,
     borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    borderTopColor: "#7C90A0",
     borderTopStyle: "solid",
     paddingTop: 5,
     textAlign: "center",
   },
   footer: {
+    // Positionné depuis le haut : avec react-pdf, "bottom" peut sortir de la page (A4 = 842 pt).
     position: "absolute",
-    bottom: 16,
+    top: 808,
     left: 40,
     right: 40,
     textAlign: "center",
-    fontSize: 6,
-    color: "#9ca3af",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
+    fontSize: 7,
+    color: "#222222",
+    borderTopWidth: 1.5,
+    borderTopColor: "#E32119",
     borderTopStyle: "solid",
     paddingTop: 4,
   },
@@ -504,22 +510,18 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
       <Page size="A4" style={pdfStyles.page}>
 
         <View style={pdfStyles.header}>
-          <View style={pdfStyles.headerLeft}>
-            {logoBase64 ? (
-              <PDFImage src={logoBase64} style={pdfStyles.logoImage} />
-            ) : (
-              <View style={{ width: 96, marginRight: 12, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 4, alignItems: "center", justifyContent: "center", paddingTop: 8, paddingBottom: 8 }}>
-                <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Helvetica-Bold" }}>CG</Text>
-              </View>
-            )}
-            <View style={{ flex: 1, alignItems: "center" }}>
-              <Text style={pdfStyles.headerTitle}>{titreDemande}</Text>
-              <Text style={pdfStyles.headerSubtitle}>Centrale Générale FGTB Namur-Luxembourg</Text>
-            </View>
-          </View>
+          {logoBase64 ? (
+            <PDFImage src={logoBase64} style={pdfStyles.logoImage} />
+          ) : (
+            <Text style={{ fontFamily: "Barlow Condensed", fontWeight: 800, fontSize: 13, color: "#E32119" }}>
+              Centrale Générale FGTB Namur-Luxembourg
+            </Text>
+          )}
           <View style={pdfStyles.headerRight}>
-            <Text style={pdfStyles.headerDateLabel}>Document du</Text>
-            <Text style={pdfStyles.headerDateValue}>{dateDoc}</Text>
+            <Text style={pdfStyles.headerTitle}>{titreDemande}</Text>
+            <Text style={pdfStyles.headerDateLabel}>
+              Document du <Text style={pdfStyles.headerDateValue}>{dateDoc}</Text>
+            </Text>
             <Text style={pdfStyles.headerMember}>{data.prenom} {data.nom}</Text>
           </View>
         </View>
@@ -527,7 +529,7 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
         <View style={pdfStyles.body}>
 
           <View style={pdfStyles.section}>
-            <Text style={pdfStyles.sectionTitle}>0. Réservé à l&apos;administration</Text>
+            <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>0</Text>  Réservé à l&apos;administration</Text>
             <View style={pdfStyles.adminBox}>
               <View style={pdfStyles.adminFieldWrap}>
                 <Text style={pdfStyles.adminFieldLabel}>N° de mandat :</Text>
@@ -547,7 +549,7 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
           </View>
 
           <View style={pdfStyles.section}>
-            <Text style={pdfStyles.sectionTitle}>1. Identité</Text>
+            <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>1</Text>  Identité</Text>
             <View style={pdfStyles.twoCol}>
               <View style={pdfStyles.colLeft}>
                 <PdfRow label="Nom :" value={v(data.nom)} />
@@ -562,7 +564,7 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
           </View>
 
           <View style={pdfStyles.section}>
-            <Text style={pdfStyles.sectionTitle}>2. Adresse</Text>
+            <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>2</Text>  Adresse</Text>
             <View style={pdfStyles.twoCol}>
               <View style={pdfStyles.colLeft}>
                 <PdfRow label="Rue :" value={v(data.adresseRue)} />
@@ -577,9 +579,9 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
           </View>
 
           <View style={pdfStyles.section}>
-            <Text style={pdfStyles.sectionTitle}>3. Créancier SEPA</Text>
+            <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>3</Text>  Créancier SEPA</Text>
             <View style={pdfStyles.sepaBox}>
-              <Text style={[pdfStyles.infoBoxTitle, { color: "#b91c1c", fontSize: 7.5 }]}>
+              <Text style={[pdfStyles.infoBoxTitle, { color: "#AA0F33", fontSize: 7.5 }]}>
                 Informations créancier SEPA
               </Text>
               <View style={pdfStyles.twoCol}>
@@ -599,12 +601,12 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
           </View>
 
           <View style={pdfStyles.section}>
-            <Text style={pdfStyles.sectionTitle}>4. Coordonnées bancaires</Text>
+            <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>4</Text>  Coordonnées bancaires</Text>
             <View style={pdfStyles.twoCol}>
               <View style={pdfStyles.colLeft}>
                 <View style={pdfStyles.row}>
                   <Text style={pdfStyles.label}>Nouvel IBAN :</Text>
-                  <Text style={[pdfStyles.value, { fontFamily: "Helvetica-Bold" }]}>{ibanAffiche}</Text>
+                  <Text style={[pdfStyles.value, { fontFamily: "Barlow", fontWeight: 600 }]}>{ibanAffiche}</Text>
                 </View>
                 <PdfRow label="BIC / SWIFT :" value={v(data.nouveauBic.toUpperCase())} />
               </View>
@@ -624,12 +626,12 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
           </View>
 
           <View style={pdfStyles.section}>
-            <Text style={pdfStyles.sectionTitle}>5. Autorisation</Text>
+            <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>5</Text>  Autorisation</Text>
             <View style={pdfStyles.sepaBox}>
-              <Text style={[pdfStyles.infoBoxTitle, { color: "#b91c1c", fontSize: 7.5 }]}>
+              <Text style={[pdfStyles.infoBoxTitle, { color: "#AA0F33", fontSize: 7.5 }]}>
                 Mandat de domiciliation
               </Text>
-              <Text style={{ fontSize: 7, color: "#7f1d1d", lineHeight: 1.5 }}>
+              <Text style={{ fontSize: 7, color: "#222222", lineHeight: 1.5 }}>
                 En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur - Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire, et ce conformément aux instructions disponibles sur simple demande. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
               </Text>
             </View>
@@ -647,12 +649,12 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
           </View>
 
           <View style={pdfStyles.section}>
-            <Text style={pdfStyles.sectionTitle}>6. Signature du membre</Text>
+            <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>6</Text>  Signature du membre</Text>
             <View style={pdfStyles.signatureBox}>
               {data.signature ? (
                 <PDFImage src={data.signature} style={pdfStyles.signatureImage} />
               ) : (
-                <Text style={{ fontSize: 8, color: "#9ca3af", alignSelf: "center" }}>
+                <Text style={{ fontSize: 8, color: "#222222", alignSelf: "center" }}>
                   (aucune signature fournie)
                 </Text>
               )}
@@ -670,7 +672,7 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
         </View>
 
         <Text style={pdfStyles.footer} fixed>
-          Centrale Générale FGTB Namur-Luxembourg · cg.namurluxembourg@accg.be · Données traitées conformément au RGPD
+          Centrale Générale FGTB Namur-Luxembourg · admin.nalux@accg.be · Données traitées conformément au RGPD
         </Text>
 
       </Page>
@@ -836,7 +838,8 @@ export default function FormulaireChangementCompte() {
       // Logo
       const logoBase64 = await fetchLogoBase64().catch(() => "");
 
-      // Génération PDF
+      // Génération PDF (polices de la charte du site)
+      enregistrerPolicesPdf(window.location.origin);
       const blob = await pdf(
         <MandatPDF data={form} logoBase64={logoBase64} ipAddress={ipAddress} dateHeure={dateHeure} />
       ).toBlob();

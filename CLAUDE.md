@@ -151,9 +151,7 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - [ ] Supprimer le projet Supabase doublon `accg-nalux-site`
 - [~] Partie publique du site : accueil, `/demarches`, `/actions`, `/contact`
       faits ; **manquent** présentation, mentions légales, vie privée
-- [ ] « Trouver votre contact » : recherche du permanent et du service juridique
-      par province et commission paritaire (données de l'ancien site à migrer en
-      base, voir les idées du 25/09/2026)
+- [ ] « Trouver votre contact » → voir Phase 4, lié à l'assistant-aiguilleur
 - [x] Refonte graphique « direction D » (éditorial + modulaire, sans fond noir) —
       voir Conventions > Design
 - [ ] Rebrancher le domaine `accg-nalux.com` (quitter e-monsite) — plus tard
@@ -197,7 +195,32 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
   précédents.
 - **Assistant-aiguilleur IA** : comprend la demande, répond au pratique simple,
   oriente vers le bon service — ne donne **jamais** de conseil juridique en
-  autonomie.
+  autonomie. **Lié à « Trouver votre contact »** : l'assistant s'appuie sur le même
+  annuaire pour orienter vers le bon permanent ou le service juridique.
+- **« Trouver votre contact »** (nouvelle branche du site, idée retenue le
+  25/09/2026). Aujourd'hui sur l'ancien site : choix de la province puis de la
+  commission paritaire (CP) → permanent(s) + service juridique 1re ligne ; données
+  écrites dans le code, e-mails personnels visibles. Pistes :
+  1. **Annuaire en base** (table `site_contacts` : province, CP, permanent(s),
+     service juridique), modifiable depuis l'espace admin — plus de modification
+     de code quand l'équipe change ;
+  2. **Une seule recherche** : métier, secteur, entreprise ou n° de CP (ex.
+     « maçon » → CP 124 Construction), en réutilisant le catalogue officiel des CP
+     déjà présent pour le calcul de préavis (`lib/preavis`) + synonymes ;
+  3. aide **« Je ne connais pas ma CP »** (où la trouver sur la fiche de paie ou le
+     contrat) ;
+  4. **province déduite du code postal**, avec le bureau le plus proche, ses
+     horaires et son statut « ouvert » (`lib/bureaux.ts`) ;
+  5. **contact sans exposer les e-mails** : formulaire « Écrire à mon permanent »
+     routé par Resend (anti-spam, RGPD, traçabilité) ; téléphones des bureaux
+     visibles ;
+  6. **liens partageables** (`/contact/trouver?cp=124`) pour tracts et QR codes ;
+  7. **lien avec l'affiliation** : afficher « Votre permanent » en fin de
+     formulaire et dans l'e-mail de confirmation (CP et adresse déjà connues) ;
+  8. **statistiques** des recherches sans résultat (trous de couverture ou de
+     vocabulaire).
+  Démarrage suggéré : 1, 2, 4, 5 ; les noms et e-mails des permanents viennent de
+  l'ancien site (données personnelles : ne pas les publier en clair).
 - Autres idées évoquées : calculateurs publics comme produits d'appel, newsletter
   automatique, alerte-mobilisation ciblée, espace affilié, tableau de bord réseaux.
 
@@ -211,15 +234,11 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - Bureaux (`lib/bureaux.ts`) repris de l'ancien site le 25/09/2026 : Libramont
   (siège), Namur, Arlon, Marche-en-Famenne. À tenir à jour à chaque changement
   d'horaire ; le statut « ouvert » est calculé à l'heure de Bruxelles.
-- Reste de la migration graphique : les **PDF générés** par les anciens formulaires
-  (mandat SEPA, indépendants, préavis) gardent leurs couleurs d'origine, et
-  `FormulaireWebIndependant` / `FormulaireChangementCompte` utilisent encore
-  l'ancien logo `Logo CG Blanc.png`.
-- En cours : propositions graphiques pour les PDF **Affiliation** et **Mandat
-  SEPA** (à uniformiser avec le site). Les PDF **C1, C3.2 et Calcul de préavis ne
-  doivent pas être modifiés**.
-- Pistes suivantes : « Trouver votre contact », rubrique Actualités (phase 2),
-  mentions légales.
+- PDF **Affiliation** et **Mandat SEPA** passés à la charte du site (proposition
+  « Registre » du 25/09/2026). Les PDF **C1, C3.2 et Calcul de préavis ne doivent
+  pas être modifiés**.
+- Pistes suivantes : « Trouver votre contact » (phase 4, avec l'assistant),
+  rubrique Actualités (phase 2), mentions légales.
 
 ---
 
@@ -266,6 +285,17 @@ Nalux » (rangée D).
 - **Logos** (`public/`) : `logo-cg-rouge.png` sur fond blanc (usage principal),
   `logo-cg-blanc.png` sur fond bordeaux (connexion, couverture du rapport PDF),
   `logo-cg-noir.png` réservé à l'impression noir et blanc — pas sur le site.
+- **Documents PDF** (affiliation, mandat SEPA, rapport) : charte « Registre » —
+  page blanche, logo rouge en tête, titre en majuscules condensées sur filet
+  charbon, sections numérotées en rouge sur filet, lignes libellé / valeur sur
+  filets ardoise, encadrés en bordeaux, pied de page avec filet rouge. Polices
+  Barlow via `enregistrerPolicesPdf()` (`lib/pdf/charte.ts`). **Ne jamais supprimer
+  une mention légale** (surtout le mandat SEPA : texte de domiciliation, créancier,
+  ICS, RGPD, certification de signature). Les PDF officiels C1 / C3.2 et le
+  courrier de préavis ne suivent pas cette charte.
+- **Adresses e-mail** : contact général `cg.nalux@accg.be` (site, page Contact) ;
+  administration `admin.nalux@accg.be` (PDF affiliation et SEPA, envois
+  automatiques). `cg.namurluxembourg@accg.be` est obsolète.
 - **Graphiques** (rapport PDF…) : couleurs libres, à valider (daltonisme,
   contraste), **hors vert et bleu** réservés à la CSC et à Synova. Camembert des
   types : `#222222` `#E32119` `#7C90A0` `#B8720F` `#AA0F33` `#9C6FB3`.

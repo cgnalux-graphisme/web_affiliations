@@ -1,5 +1,6 @@
 import React from "react";
-import { Circle, Document, Font, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { Circle, Document, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { enregistrerPolicesPdf } from "../pdf/charte";
 import { isoToDateFr } from "../dates";
 import { partsCamembert, type ActionRapport, type Bilan } from "./bilan";
 
@@ -20,29 +21,8 @@ const COULEURS_PARTS = [C.charbon, C.rouge, C.ardoise, "#B8720F", C.bordeaux, "#
 /** Couleurs des syndicats : CSC = vert, Synova = bleu. */
 const SYNDICATS = { csc: "#1E8C45", synova: "#1F5FAD" };
 
-let policesEnregistrees = false;
-/** Barlow / Barlow Condensed servies depuis /public/fonts (licence OFL). */
-export function enregistrerPolices(origine: string) {
-  if (policesEnregistrees) return;
-  Font.register({
-    family: "Barlow",
-    fonts: [
-      { src: `${origine}/fonts/barlow-400.woff`, fontWeight: 400 },
-      { src: `${origine}/fonts/barlow-400-italic.woff`, fontWeight: 400, fontStyle: "italic" },
-      { src: `${origine}/fonts/barlow-600.woff`, fontWeight: 600 },
-    ],
-  });
-  Font.register({
-    family: "Barlow Condensed",
-    fonts: [
-      { src: `${origine}/fonts/barlow-condensed-600.woff`, fontWeight: 600 },
-      { src: `${origine}/fonts/barlow-condensed-800.woff`, fontWeight: 800 },
-    ],
-  });
-  // Pas de césure automatique au milieu des mots.
-  Font.registerHyphenationCallback((mot) => [mot]);
-  policesEnregistrees = true;
-}
+/** Polices du PDF : enregistrement partagé avec les autres documents (lib/pdf/charte.ts). */
+export const enregistrerPolices = enregistrerPolicesPdf;
 
 const s = StyleSheet.create({
   page: {
