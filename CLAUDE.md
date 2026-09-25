@@ -258,7 +258,8 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 
 ### Design — « direction D » (mélange éditorial A + modulaire C)
 Maquettes de référence : page de maquettes claude.ai « Propositions design ACCG
-Nalux » (rangée D).
+Nalux » (rangée D pour le site, rangée « PDF » pour les documents) :
+https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 - **Palette stricte** : `#E32119` rouge, `#AA0F33` bordeaux, `#222222` charbon,
   `#FFFFFF` blanc, `#7C90A0` ardoise. Dans le code : couleurs Tailwind
   `militant-rouge`, `militant-bordeaux`, `militant-charbon`, `militant-ardoise`.
@@ -333,8 +334,10 @@ Nalux » (rangée D).
   réseau) → polices auto-hébergées.
 - **PDF (`@react-pdf/renderer`)** : généré dans le navigateur ; polices en `.woff`
   dans `public/fonts/` ; les éléments `fixed` positionnés avec `bottom` sortent de
-  la page → les placer avec `top` (A4 = 842 pt de haut) ; les emojis sont retirés
-  (absents des polices).
+  la page → les placer avec `top` (A4 = 842 pt de haut) ; un élément `absolute`
+  **sans** `fixed` placé avec `top` sur un document de plusieurs pages fait tourner
+  la génération sans fin → toujours `fixed` pour un pied de page ; les emojis et
+  symboles (⚠…) sont retirés (absents des polices).
 - **Images** : photos du bucket servies via `next/image` (domaine Supabase
   autorisé dans `next.config.ts`). Pages publiques revalidées toutes les 60 s.
 - **Tests** : `npm test` (Vitest, fichiers `lib/**/*.test.ts`).
