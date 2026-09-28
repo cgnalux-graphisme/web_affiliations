@@ -5,17 +5,22 @@
     "@react-pdf/renderer": "^4.3.2",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "^2.98.0",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "lucide-react": "^0.577.0",
     "next": "^16.1.6",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "resend": "^6.9.3"
+    "resend": "^6.9.3",
+    "sanitize-html": "^2.17.7"
   },
   "devDependencies": {
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/sanitize-html": "^2.16.1",
     "autoprefixer": "^10.4.27",
     "pdfjs-dist": "^5.7.284",
     "postcss": "^8.5.3",

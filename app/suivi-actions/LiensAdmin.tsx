@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const LIENS = [
+const LIENS: { href: string; label: string; sousPages?: boolean }[] = [
   { href: "/suivi-actions", label: "Toutes les actions" },
   { href: "/suivi-actions/nouvelle", label: "Nouvelle action" },
   { href: "/suivi-actions/rapport", label: "Rapport d'activité" },
+  { href: "/suivi-actions/articles", label: "Articles", sousPages: true },
+  { href: "/suivi-actions/articles/nouveau", label: "Écrire un article" },
 ];
 
 export default function LiensAdmin() {
@@ -15,7 +17,10 @@ export default function LiensAdmin() {
     <nav aria-label="Espace admin">
       <ul className="flex flex-wrap items-center gap-1 lg:flex-col lg:items-stretch lg:gap-0.5">
         {LIENS.map((l) => {
-          const actif = pathname === l.href;
+          // « Articles » reste actif pendant la modification d'un article.
+          const actif =
+            pathname === l.href ||
+            (Boolean(l.sousPages) && pathname.startsWith(`${l.href}/`) && !LIENS.some((x) => x.href === pathname));
           return (
             <li key={l.href}>
               <Link

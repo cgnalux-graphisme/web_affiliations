@@ -6,15 +6,13 @@ const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
 
 const nextConfig: NextConfig = {
   images: {
-    // Photos des actions servies depuis le bucket public "action-photos".
+    // Photos des actions (bucket "action-photos") et images du blog (bucket "blog-images").
     remotePatterns: supabaseHost
-      ? [
-          {
-            protocol: "https",
-            hostname: supabaseHost,
-            pathname: "/storage/v1/object/public/action-photos/**",
-          },
-        ]
+      ? ["action-photos", "blog-images"].map((bucket) => ({
+          protocol: "https" as const,
+          hostname: supabaseHost,
+          pathname: `/storage/v1/object/public/${bucket}/**`,
+        }))
       : [],
   },
 };

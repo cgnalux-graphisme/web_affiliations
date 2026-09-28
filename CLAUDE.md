@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **25/09/2026**
+> Dernière mise à jour : **28/09/2026**
 
 ---
 
@@ -48,6 +48,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 |---|---|---|
 | `/` | public | Accueil : ouverture, dernière action publiée, démarches, nos actions |
 | `/actions` | public | Vitrine des actions publiées (frise + « unes ») |
+| `/blog` | public | Actualités : dernier article en grand + articles précédents |
+| `/blog/<slug>` | public | Un article : encart « En bref », chapô, image, contenu, sources |
 | `/demarches` | public | Toutes les démarches en ligne (tuiles, l'affiliation en tête) |
 | `/contact` | public | Nos 4 bureaux : adresses, téléphones, horaires (été en juillet-août), statut « ouvert maintenant » |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
@@ -56,12 +58,16 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/nouvelle` | SUPER_ADMIN | Encoder une action |
 | `/suivi-actions/<id>/modifier` | SUPER_ADMIN | Modifier / supprimer une action |
 | `/suivi-actions/rapport` | SUPER_ADMIN | Rapport d'activité PDF (congrès) |
+| `/suivi-actions/articles` | SUPER_ADMIN | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
+| `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article |
+| `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
 
-Navigation publique : Accueil · Nos actions · Démarches en ligne · Contact +
-bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
+Navigation publique : Accueil · Nos actions · Actualités · Démarches en ligne ·
+Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
 ligne » (pas un onglet par formulaire). Rubriques à venir : Actualités (blog),
 « Trouver votre contact » (permanent et juriste par secteur / commission
-paritaire).
+paritaire). La gestion des articles vit sous `/suivi-actions/articles` pour
+profiter du même verrou super admin (proxy + layout + chaque page).
 
 **L'affiliation est la démarche la plus importante** : grande tuile bordeaux en
 tête de la grille des démarches (`app/TuilesDemarches.tsx`) et bouton
@@ -84,6 +90,24 @@ Créées le **24/09/2026** dans la base CG Link :
 | Bucket `action-photos` | Fichiers photo (public en lecture) | Écriture super admin |
 
 `site_photos` et `site_videos` → `site_actions` en `ON DELETE CASCADE`.
+
+Blog (créés côté Supabase avant le 28/09/2026, aucune migration dans le dépôt) :
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_articles` | Articles du blog | Super admin (lecture/écriture) |
+| `site_articles_public` | Vue : articles publiés (sans `statut`, `created_at`, `updated_at`) | Lecture publique |
+| Bucket `blog-images` | Images de couverture (public en lecture) | Écriture super admin |
+
+### Colonnes de `site_articles`
+`titre`, `slug` (adresse `/blog/<slug>`), `chapo` (accroche), `points_cles`
+(encart « En bref », **texte, une ligne par point**), `contenu` (**HTML** produit
+par l'éditeur Tiptap), `image_couverture` (URL publique du bucket), `sources`
+(**texte, un lien par ligne**, libellé facultatif avant le lien :
+« Le Soir – https://… »), `statut` (`brouillon` / `publie`), `date_publication`
+(timestamptz), `created_at`, `updated_at`. Types relevés par sondage de l'API
+(pas d'accès au schéma) : si la base contraint `statut` à d'autres valeurs,
+adapter `STATUT_*` dans `lib/articles.ts`.
 
 ### Colonnes de `site_actions`
 `nom` (titre court de la une), `date_action`, `ville`, `type_action` +
@@ -171,9 +195,16 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       bilan en chiffres, graphiques, chronologie détaillée avec photo principale
 
 ### Phase 2 — Veille + blog
+- [x] **Blog (structure, sans IA)** — 28/09/2026 : gestion admin (liste, éditeur
+      riche, image de couverture, sources, brouillon / publié, date, aperçu),
+      pages `/blog` et `/blog/<slug>`, lien « Actualités ». Contenu HTML nettoyé
+      à l'affichage (`lib/articles-html.ts`, `sanitize-html`). Temps de lecture :
+      220 mots/min (`tempsLecture()`). Date future = article programmé (les pages
+      publiques filtrent `date_publication <= maintenant`). Image de couverture :
+      `<article_id>/couverture-<uuid>.jpg`, réduite comme les photos d'actions ;
+      suppression d'un article = image d'abord, puis la ligne.
 - Veille quotidienne sur des sources belges fiables → recoupement → résumé + liens
   sources → **Fred valide et corrige** → article de blog.
-- Table `site_articles` à créer (+ vue publique, comme pour les actions).
 - Droit d'auteur : résumer avec nos propres mots, citer et lier la source, jamais
   recopier.
 
@@ -237,8 +268,10 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - PDF **Affiliation** et **Mandat SEPA** passés à la charte du site (proposition
   « Registre » du 25/09/2026). Les PDF **C1, C3.2 et Calcul de préavis ne doivent
   pas être modifiés**.
+- Blog en place le 28/09/2026 (branche `suivi-actions`) ; branche poussée sur
+  GitHub pour un déploiement de prévisualisation Vercel (pas de production).
 - Pistes suivantes : « Trouver votre contact » (phase 4, avec l'assistant),
-  rubrique Actualités (phase 2), mentions légales.
+  veille automatique (phase 2), derniers articles sur l'accueil, mentions légales.
 
 ---
 
