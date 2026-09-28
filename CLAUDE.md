@@ -59,21 +59,23 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/<id>/modifier` | SUPER_ADMIN | Modifier / supprimer une action |
 | `/suivi-actions/rapport` | SUPER_ADMIN | Rapport d'activité PDF (congrès) |
 | `/suivi-actions/articles` | SUPER_ADMIN | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
-| `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article |
+| `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article ; `?veille=<id>` pré-remplit depuis la veille et affiche le panneau de rédaction assistée |
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
-| `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, rafraîchir |
+| `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
 | `/api/image-distante` | SUPER_ADMIN | Télécharge une image glissée depuis une autre page web (POST `{ url }`) |
-| `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 à partir d'un item de veille (POST `{ veilleId }`) |
+| `/api/redaction/lisibilite` | SUPER_ADMIN | L'IA peut-elle lire l'article ? Vérification gratuite du `robots.txt` du média (GET `?veilleId=`) |
+| `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 (POST `{ veilleId, lire, extrait?, consignes? }`) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
 Navigation publique : Accueil · Nos actions · Actualités · Démarches en ligne ·
 Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
-ligne » (pas un onglet par formulaire). Rubriques à venir : Actualités (blog),
-« Trouver votre contact » (permanent et juriste par secteur / commission
-paritaire). La gestion des articles vit sous `/suivi-actions/articles` pour
-profiter du même verrou super admin (proxy + layout + chaque page).
+ligne » (pas un onglet par formulaire). Rubrique à venir : « Trouver votre
+contact » (permanent et juriste par secteur / commission paritaire). Toute la
+gestion (actions, articles, veille, sources, thématiques) vit sous
+`/suivi-actions/…` pour profiter du même verrou super admin (proxy + layout +
+chaque page) ; liens dans la barre latérale (`app/suivi-actions/LiensAdmin.tsx`).
 
 **L'affiliation est la démarche la plus importante** : grande tuile bordeaux en
 tête de la grille des démarches (`app/TuilesDemarches.tsx`) et bouton
@@ -187,8 +189,8 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 ### Phase 0 — Fondations
 - [x] Base de données prête (tables `site_*` dans CG Link)
 - [ ] Supprimer le projet Supabase doublon `accg-nalux-site`
-- [~] Partie publique du site : accueil, `/demarches`, `/actions`, `/contact`
-      faits ; **manquent** présentation, mentions légales, vie privée
+- [~] Partie publique du site : accueil, `/demarches`, `/actions`, `/blog`,
+      `/contact` faits ; **manquent** présentation, mentions légales, vie privée
 - [ ] « Trouver votre contact » → voir Phase 4, lié à l'assistant-aiguilleur
 - [x] Refonte graphique « direction D » (éditorial + modulaire, sans fond noir) —
       voir Conventions > Design
@@ -208,118 +210,125 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - [x] Rapport d'activité (congrès) en PDF : période au choix, toutes les actions,
       bilan en chiffres, graphiques, chronologie détaillée avec photo principale
 
-### Phase 2 — Veille + blog
-- [x] **Veille RSS (sans IA)** — 28/09/2026 : sources gérées dans l'admin ;
-      `lib/veille-flux.ts` lit RSS 2.0 / Atom / RDF (50 items max par flux,
-      résumé sans HTML, 5 000 caractères max, affiché **en entier** dans la
-      liste de la veille) ; `lib/veille-ramassage.ts` insère en
-      `upsert … ignoreDuplicates` sur `lien` avec la clé **service_role**
+### Phase 2 — Veille + blog *(fonctionnel sur `suivi-actions`, 28/09/2026)*
+Principe : veille sur des sources belges fiables → tri → brouillon (à la main ou
+avec l'IA) → **Fred vérifie, corrige et valide** → publication. Droit d'auteur :
+reformuler, citer et lier la source, jamais recopier.
+
+#### Blog (Actualités)
+- [x] Gestion admin : liste (brouillons et publiés), éditeur riche Tiptap (gras,
+      sous-titres, listes, liens, citations), image de couverture, sources,
+      brouillon / publié, date `jj/mm/aaaa`, aperçu, suppression.
+- [x] Pages `/blog` et `/blog/<slug>` (encart « En bref » sous le titre, temps de
+      lecture), lien « Actualités » dans la navigation et le pied de page.
+- Contenu HTML **nettoyé à l'affichage** (`lib/articles-html.ts`,
+  `sanitize-html`). Temps de lecture : 220 mots/min (`tempsLecture()`). Date
+  future = article programmé (les pages publiques filtrent
+  `date_publication <= maintenant`).
+- **Image de couverture** : `<article_id>/couverture-<uuid>.jpg` dans
+  `blog-images`, réduite comme les photos d'actions. Choix par bouton ou
+  **glisser-déposer** (fichier de l'ordinateur ou image tirée d'une autre page
+  web). Une image web n'arrive que sous forme d'adresse : `/api/image-distante`
+  la télécharge côté serveur (super admin, http(s), **adresses publiques
+  uniquement, chaque redirection revérifiée** — `lib/adresse-publique.ts`,
+  protection contre les requêtes vers le réseau interne —, images ≤ 20 Mo).
+  Rappel affiché : photo de la centrale ou banque libre ; une photo de presse est
+  protégée. Suppression d'un article = image d'abord, puis la ligne.
+
+#### Veille RSS (sans IA)
+- [x] Écran **Sources** : nom + URL du flux + actif / inactif.
+- [x] **Ramassage** : `lib/veille-flux.ts` lit RSS 2.0 / Atom / RDF (50 items max
+      par flux, résumé sans HTML, 5 000 caractères max) ; `lib/veille-ramassage.ts`
+      insère en `upsert … ignoreDuplicates` sur `lien` avec la clé **service_role**
       (`lib/supabase-service.ts`, serveur uniquement). Route protégée par
       `CRON_SECRET` (en-tête `Authorization: Bearer`) ou session super admin.
-      Cron `vercel.json` : `0 6 * * *`, une fois par jour à 6 h UTC (7 h ou 8 h à
-      Bruxelles selon la saison) — compatible plan Hobby, qui n'accepte qu'une
-      exécution par jour et peut la décaler dans l'heure. Ramassage manuel à tout
-      moment : bouton « Rafraîchir maintenant ». « Rédiger un article » passe l'item
-      en `traite` et ouvre `/suivi-actions/articles/nouveau?veille=<id>`
-      (titre + lien pré-remplis dans les sources).
-- [x] **Pertinence par mots-clés (sans IA)** — 28/09/2026 : écran Veille filtré
-      par défaut sur « Pertinents » (`?pertinence=tous` pour tout voir),
-      compteur « X pertinents sur Y », mots-clés retenus affichés sur chaque
-      article. Règle (`lib/themes.ts`) : au moins un mot-clé actif dans le titre
-      ou le résumé, insensible à la casse et aux accents, le mot-clé doit
-      **commencer un mot** (« salaire » → « salaires », mais « cp » ↛
-      « capacité »). Filtre d'affichage uniquement : rien n'est effacé, un
-      changement de mots-clés re-filtre tout de suite.
-- **Longueur des résumés = celle du flux** : chaque média fournit ce qu'il veut.
-  La RTBF (`highlight_rtbf_info.xml`) n'envoie qu'une accroche d'environ 120
-  caractères terminée par « ... », sans `content:encoded` ; Le Soir envoie plus.
-  Le **ramassage** ne va jamais lire la page de l'article (il n'enregistre que
-  le flux) ; seule la rédaction assistée la lit, à la demande (voir ci-dessous).
-  Une modale « Aperçu » a
-  été essayée puis retirée le 28/09/2026 (elle n'apportait rien de plus que la
-  liste) : ne pas la reproposer. Les items ramassés avant le 28/09/2026 ont un
-  résumé coupé à 600 caractères (le ramassage ne réécrit jamais une ligne).
-- [x] **Rédaction assistée par IA** — 28/09/2026 : bouton « Brouillon IA » sur
-      chaque item de veille (ouvre le formulaire, focus sur le panneau ; la
-      génération ne démarre qu'au clic) et
-      « Proposer un brouillon avec l'IA » dans le formulaire d'article ouvert
-      depuis la veille. Modèle **`claude-sonnet-5`** (choix de Fred), appel
-      **uniquement serveur** (`app/api/redaction/brouillon`, SDK
-      `@anthropic-ai/sdk`, sortie structurée `zod`, réflexion adaptative, effort
-      `medium`). La route ne reçoit que l'id de l'item et relit titre / résumé /
-      lien en base. **L'IA lit elle-même l'article d'origine** (choix de Fred,
-      28/09/2026) : outil serveur `web_fetch_20250910` (version de base, choisie
-      pour récupérer le texte lu tel quel), `max_uses: 1`, `allowed_domains` =
-      domaine de l'article, `max_content_tokens: 30000` ; relance sur
-      `pause_turn` (3 fois max). Si la page est illisible (payante, bloquée,
-      supprimée), brouillon à partir du seul flux + avertissement. Certains
-      sites **interdisent le robot d'Anthropic** (ex. `rtl.be`, constaté le
-      28/09/2026) : l'API rejette alors toute la demande (400 « not accessible
-      to our user agent ») ; la route relance **sans l'outil de lecture**
-      (brouillon depuis le flux, raison « le site refuse la lecture par les
-      robots d'IA »). Ne pas contourner ce blocage.
-      **Tunnel en 5 étapes (panneau IA du formulaire, voulu par Fred)** :
-      1. lisibilité par l'IA vérifiée **gratuitement** à l'ouverture
-         (`/api/redaction/lisibilite` : règles du `robots.txt` du média pour
-         le robot **`Claude-User`** d'Anthropic, `lib/robots.ts` ; « non »
-         fiable, « oui » ne garantit pas un article payant) + bouton **Faire
-         lire l'article par l'IA**, **désactivé par défaut** (surcoût ~5-10 c.) ;
-      2. « Accéder à l'article » (lien source, nouvel onglet) ;
-      3. notes personnelles ou extrait (60 000 caractères max) ;
-      4. consignes pour l'IA (2 000 caractères max ; orientent angle / ton /
-         public, ne lèvent jamais les règles strictes) ;
-      5. « Créer le brouillon avec l'IA ».
-      La lecture (si demandée) se fait pendant la création, en un seul appel.
-      Le garde-fou italique compare avec l'article lu **et** le texte collé.
+      Cron `vercel.json` : `0 6 * * *` (6 h UTC = 7 h ou 8 h à Bruxelles), compatible
+      plan Hobby (une exécution par jour, décalable dans l'heure) ; en plus,
+      bouton « Rafraîchir maintenant ». Le cron ne tourne qu'en production.
+- [x] Écran **Veille** : les « nouveau » d'abord, filtres statut / source, résumé
+      du flux **en entier**, lien vers l'article d'origine, « Ignorer »,
+      « Remettre à trier », « Rédiger un article » (item → `traite`, formulaire
+      pré-rempli : titre + lien dans les sources), « Brouillon IA ».
+- [x] **Thématiques / pertinence par mots-clés** : écran Thématiques
+      (`site_themes`) ; Veille filtrée par défaut sur « Pertinents »
+      (`?pertinence=tous` pour tout voir), compteur « X pertinents sur Y »,
+      mots-clés retenus affichés. Règle (`lib/themes.ts`) : au moins un mot-clé
+      actif dans le titre ou le résumé, insensible à la casse et aux accents, le
+      mot-clé doit **commencer un mot** (« salaire » → « salaires », mais « cp »
+      ↛ « capacité »). Filtre d'affichage uniquement : rien n'est effacé.
+- **Longueur des résumés = celle du flux** : la RTBF
+  (`highlight_rtbf_info.xml`) n'envoie qu'environ 120 caractères terminés par
+  « ... », sans `content:encoded` ; Le Soir envoie plus. Les items ramassés avant
+  le 28/09/2026 ont un résumé coupé à 600 caractères (le ramassage ne réécrit
+  jamais une ligne). Le **ramassage** ne lit jamais la page de l'article ; seule
+  la rédaction assistée la lit, sur demande.
+- Une modale « Aperçu » a été essayée puis retirée le 28/09/2026 (n'apportait
+  rien de plus que la liste) : **ne pas la reproposer**.
+
+#### Rédaction assistée par IA
+- [x] Modèle **`claude-sonnet-5`** (choix de Fred), appel **uniquement serveur**
+      (`app/api/redaction/brouillon`, SDK `@anthropic-ai/sdk`, sortie structurée
+      `zod`, réflexion adaptative, effort `medium`). La route reçoit l'id de
+      l'item et relit titre / résumé / lien en base. Coût indicatif : 1 à 3 c.
+      par brouillon, 5 à 10 c. avec lecture de l'article.
+- [x] **Tunnel en 5 étapes** (panneau IA du formulaire d'article ouvert depuis la
+      veille ; « Brouillon IA » l'ouvre avec le focus sur le panneau, rien ne
+      démarre sans clic) :
+      1. **Lisibilité par l'IA**, vérifiée gratuitement à l'ouverture
+         (`/api/redaction/lisibilite`, `lib/robots.ts`) : règles du `robots.txt`
+         du média pour le robot **`Claude-User`** d'Anthropic (RTBF l'autorise,
+         RTL l'interdit, Le Soir ne se laisse pas vérifier). « Non » est fiable ;
+         « oui » ne garantit pas un article payant. Bouton **Faire lire l'article
+         par l'IA**, **désactivé par défaut** (surcoût).
+      2. **Accéder à l'article** (lien source, nouvel onglet).
+      3. **Notes personnelles ou extrait** (60 000 caractères max).
+      4. **Consignes pour l'IA** (2 000 caractères max) : angle, ton, public,
+         longueur ; elles ne lèvent jamais les règles strictes.
+      5. **Créer le brouillon avec l'IA** (récapitulatif de ce que l'IA utilisera).
       Limites dans `lib/redaction-limites.ts` (fichier sans dépendance,
       importable côté navigateur).
-      **Ligne éditoriale de la consigne (Fred, 28/09/2026)** : vulgariser en
-      restant **professionnel**, et **surtout** écrire avec la **vision et la
-      critique constructive syndicales** — au nom de la centrale (« nous »),
-      impact concret pour les travailleurs, qui gagne / qui paie / qui est
-      oublié, ce qui pose problème et pourquoi, ce qui va dans le bon sens,
-      pistes et exigences de principe. Jamais de revendication chiffrée,
-      d'action ou de position officielle FGTB absentes de la source.
-- **Image de couverture : glisser-déposer** (fichier de l'ordinateur ou image
-  tirée d'une autre page web). Une image web n'arrive que sous forme
-  d'adresse : `/api/image-distante` la télécharge côté serveur (super admin,
-  http(s), **adresses publiques uniquement, chaque redirection revérifiée**
-  — `lib/adresse-publique.ts` contre les requêtes vers le réseau interne —,
-  images ≤ 20 Mo). Rappel affiché : photo de la centrale ou banque libre, une
-  photo de presse est protégée.
-      Consigne et post-traitement dans `lib/redaction-ia.ts` : reformuler,
-      **aucun fait / chiffre / citation absent de l'article ou du flux**, analyse
-      syndicale formulée comme analyse ou question, matière maigre signalée,
-      contenu lu traité comme donnée (pas comme instruction).
-      **Garde-fou droit d'auteur (règle de Fred)** : toute phrase reprise mot
-      pour mot est en **italique** (`<em>`) — Fred la reformule ou la garde
-      comme citation. L'IA en a la consigne, et le **code le vérifie** :
-      comparaison avec le texte réellement lu, toute phrase du contenu qui
-      partage ≥ 8 mots consécutifs avec l'article (`MOTS_REPRISE`) est mise en
-      `<em>` ; une reprise dans le titre, le chapô ou les points clés
-      (texte brut, pas d'italique possible) est signalée en avertissement.
-      Le code recalcule aussi l'adresse depuis le titre, met le lien d'origine
-      en première source, nettoie le HTML. Date et statut restent au
-      formulaire (brouillon). Suggestion de photo affichée, **non enregistrée**
-      (pas de colonne). Rappel « Brouillon IA — à vérifier, corriger et valider
-      avant publication. Recoupez avec la source. »
-- Variables d'environnement requises (Vercel **et** `.env.local` pour tester en
-  local) : `SUPABASE_SERVICE_ROLE_KEY` (jamais préfixée `NEXT_PUBLIC_`),
-  `CRON_SECRET` (chaîne aléatoire d'au moins 16 caractères),
-  `ANTHROPIC_API_KEY` (jamais préfixée `NEXT_PUBLIC_`, jamais importée dans un
-  composant client).
-- [x] **Blog (structure, sans IA)** — 28/09/2026 : gestion admin (liste, éditeur
-      riche, image de couverture, sources, brouillon / publié, date, aperçu),
-      pages `/blog` et `/blog/<slug>`, lien « Actualités ». Contenu HTML nettoyé
-      à l'affichage (`lib/articles-html.ts`, `sanitize-html`). Temps de lecture :
-      220 mots/min (`tempsLecture()`). Date future = article programmé (les pages
-      publiques filtrent `date_publication <= maintenant`). Image de couverture :
-      `<article_id>/couverture-<uuid>.jpg`, réduite comme les photos d'actions ;
-      suppression d'un article = image d'abord, puis la ligne.
-- Veille quotidienne sur des sources belges fiables → recoupement → résumé + liens
-  sources → **Fred valide et corrige** → article de blog.
-- Droit d'auteur : résumer avec nos propres mots, citer et lier la source, jamais
-  recopier.
+- **Lecture de l'article** (si demandée, dans le même appel que la rédaction) :
+  outil serveur `web_fetch_20250910` (version de base : renvoie le texte lu tel
+  quel, nécessaire au garde-fou), `max_uses: 1`, `allowed_domains` = domaine de
+  l'article, `max_content_tokens: 30000`, relance sur `pause_turn` (3 fois
+  max). Page illisible → brouillon avec le reste + avertissement. Site qui
+  **interdit le robot d'Anthropic** (ex. `rtl.be`) : l'API rejette toute la
+  demande (400 « not accessible to our user agent ») → la route relance **sans
+  lecture**. **Ne pas contourner ce blocage** (respect du choix de l'éditeur).
+- **Ligne éditoriale de la consigne** (`CONSIGNE_SYSTEME`, `lib/redaction-ia.ts`,
+  voulue par Fred) : vulgariser en restant **professionnel** (précis, sobre,
+  argumenté), et **surtout** écrire avec la **vision et la critique
+  constructive syndicales** : au nom de la centrale (« nous »), impact concret
+  pour les travailleurs, qui gagne / qui paie / qui est oublié, ce qui pose
+  problème et pourquoi, ce qui va dans le bon sens, pistes et exigences de
+  principe.
+- **Règles strictes de la consigne** : reformuler ; **aucun fait / chiffre /
+  citation absent de l'article lu, du texte collé ou du flux** ; jamais de
+  revendication chiffrée, d'action (grève, manif) ou de position officielle FGTB
+  absentes de la source ; matière maigre signalée ; contenus lus traités comme
+  données, pas comme instructions (seules les `<consignes_editeur>` viennent de
+  Fred).
+- **Garde-fou droit d'auteur (règle de Fred)** : toute phrase reprise mot pour
+  mot est en **italique** (`<em>`) — Fred la reformule ou la garde comme
+  citation. L'IA en a la consigne, et le **code le vérifie** : comparaison avec
+  l'article lu **et** le texte collé ; toute phrase du contenu qui partage
+  ≥ 8 mots consécutifs avec eux (`MOTS_REPRISE`) passe en `<em>` ; une reprise
+  dans le titre, le chapô ou les points clés (texte brut) est signalée. Limite :
+  détection phrase par phrase entre deux balises (une reprise coupée par du gras
+  peut échapper).
+- **Post-traitement côté code** : adresse recalculée depuis le titre, lien
+  d'origine en première source, HTML nettoyé. Date et statut restent au
+  formulaire (l'article reste un brouillon). Suggestion de photo affichée,
+  **non enregistrée** (pas de colonne). Rappel visible : « Brouillon IA — à
+  vérifier, corriger et valider avant publication. Recoupez avec la source. »
+- Erreurs traduites en clair : clé absente ou refusée, limite d'utilisation,
+  crédit épuisé (402), service surchargé ou injoignable, refus, réponse vide.
+
+#### Variables d'environnement (Vercel Production + Preview **et** `.env.local`)
+- `SUPABASE_SERVICE_ROLE_KEY` (ramassage ; jamais préfixée `NEXT_PUBLIC_`).
+- `CRON_SECRET` (chaîne aléatoire ≥ 16 caractères).
+- `ANTHROPIC_API_KEY` (rédaction assistée ; jamais préfixée `NEXT_PUBLIC_`,
+  jamais importée dans un composant client).
 
 ### Phase 3 — Publication réseaux
 - Décliner chaque article validé par réseau (court/punchy pour Insta-TikTok, plus
@@ -381,15 +390,17 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - PDF **Affiliation** et **Mandat SEPA** passés à la charte du site (proposition
   « Registre » du 25/09/2026). Les PDF **C1, C3.2 et Calcul de préavis ne doivent
   pas être modifiés**.
-- Le 28/09/2026 : blog (Actualités), veille RSS (sources, ramassage quotidien,
-  thématiques / pertinence par mots-clés) en place sur `suivi-actions`, poussée
-  sur GitHub pour un déploiement de **prévisualisation** Vercel (pas de
-  production, rien sur `main`).
-- `SUPABASE_SERVICE_ROLE_KEY` et `CRON_SECRET` sont dans `.env.local` (vérifié le
-  28/09/2026). À ajouter aussi dans Vercel (Production + Preview) par Fred.
-- Pistes suivantes : « Trouver votre contact » (phase 4, avec l'assistant),
-  déclinaison réseaux (phase 3), images de couverture (plus tard), derniers
-  articles sur l'accueil, mentions légales.
+- Le 28/09/2026 : blog, veille RSS (sources, ramassage quotidien, thématiques)
+  et rédaction assistée par IA en place sur `suivi-actions`. Branche poussée sur
+  GitHub (prévisualisation Vercel) jusqu'au commit `16a26fd` ; les commits de la
+  rédaction assistée (`ba51603` → `a5b4ea8`) sont **locaux, pas encore
+  poussés**. Rien sur `main`, rien en production.
+- `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` et `ANTHROPIC_API_KEY` sont dans
+  `.env.local` (vérifié le 28/09/2026). À ajouter aussi dans Vercel
+  (Production + Preview) par Fred.
+- Pistes suivantes : déclinaison réseaux (phase 3), images (génération /
+  gabarits, plus tard), derniers articles sur l'accueil, « Trouver votre
+  contact » (phase 4, avec l'assistant), mentions légales.
 
 ---
 
@@ -493,6 +504,22 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   symboles (⚠…) sont retirés (absents des polices).
 - **Images** : photos du bucket servies via `next/image` (domaine Supabase
   autorisé dans `next.config.ts`). Pages publiques revalidées toutes les 60 s.
+- **Pièges rencontrés (blog, veille, IA)** :
+  - un `page.tsx` ne peut exporter que les noms prévus par Next.js (pas de
+    constante ni de composant en plus) → les mettre dans `lib/` ou un fichier
+    voisin ;
+  - un composant client ne doit importer de `lib/` que des fichiers **sans
+    dépendance serveur** (sinon `sanitize-html`, `zod`, `fast-xml-parser`
+    partent dans le navigateur) : `import type` est sans risque, les constantes
+    partagées vont dans un petit fichier dédié (`lib/redaction-limites.ts`,
+    `lib/veille.ts`) ;
+  - champ fichier : copier `input.files[0]` **avant** `input.value = ""` (vider
+    le champ vide aussi sa `FileList` dans Chrome et Edge) ;
+  - Tiptap : `immediatelyRender: false` (rendu serveur) ; l'éditeur ne relit sa
+    valeur qu'à sa création → changer sa `key` pour recharger un contenu ;
+  - Supabase : le schéma n'est pas lisible avec la clé publique ; les colonnes
+    ont été relevées par sondage en lecture seule (`select=<col>&limit=0`).
+    **Aucune écriture de test dans la base.**
 - **Tests** : `npm test` (Vitest, fichiers `lib/**/*.test.ts`).
 - **Git** : travailler sur la branche de la fonctionnalité (actuellement
   `suivi-actions`), jamais directement sur `main`, rien déployer sans l'accord de
