@@ -239,9 +239,8 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
   liste) : ne pas la reproposer. Les items ramassés avant le 28/09/2026 ont un
   résumé coupé à 600 caractères (le ramassage ne réécrit jamais une ligne).
 - [x] **Rédaction assistée par IA** — 28/09/2026 : bouton « Brouillon IA » sur
-      chaque item de veille (ouvre le formulaire, curseur dans le champ
-      « Extrait de l'article ou vos notes » ; la génération ne démarre qu'au
-      clic) et
+      chaque item de veille (ouvre le formulaire, focus sur le panneau ; la
+      génération ne démarre qu'au clic) et
       « Proposer un brouillon avec l'IA » dans le formulaire d'article ouvert
       depuis la veille. Modèle **`claude-sonnet-5`** (choix de Fred), appel
       **uniquement serveur** (`app/api/redaction/brouillon`, SDK
@@ -258,11 +257,21 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       to our user agent ») ; la route relance **sans l'outil de lecture**
       (brouillon depuis le flux, raison « le site refuse la lecture par les
       robots d'IA »). Ne pas contourner ce blocage.
-      **Extrait collé (facultatif, 60 000 caractères max,
-      `lib/redaction-limites.ts`)** : texte de l'article ou notes de Fred ;
-      s'il est rempli, c'est la source principale et le site **n'est pas lu**
-      (pas d'outil `web_fetch`) — solution pour les sites payants ou qui
-      bloquent les robots. Le garde-fou italique compare alors avec l'extrait.
+      **Tunnel en 5 étapes (panneau IA du formulaire, voulu par Fred)** :
+      1. lisibilité par l'IA vérifiée **gratuitement** à l'ouverture
+         (`/api/redaction/lisibilite` : règles du `robots.txt` du média pour
+         le robot **`Claude-User`** d'Anthropic, `lib/robots.ts` ; « non »
+         fiable, « oui » ne garantit pas un article payant) + bouton **Faire
+         lire l'article par l'IA**, **désactivé par défaut** (surcoût ~5-10 c.) ;
+      2. « Accéder à l'article » (lien source, nouvel onglet) ;
+      3. notes personnelles ou extrait (60 000 caractères max) ;
+      4. consignes pour l'IA (2 000 caractères max ; orientent angle / ton /
+         public, ne lèvent jamais les règles strictes) ;
+      5. « Créer le brouillon avec l'IA ».
+      La lecture (si demandée) se fait pendant la création, en un seul appel.
+      Le garde-fou italique compare avec l'article lu **et** le texte collé.
+      Limites dans `lib/redaction-limites.ts` (fichier sans dépendance,
+      importable côté navigateur).
       Consigne et post-traitement dans `lib/redaction-ia.ts` : reformuler,
       **aucun fait / chiffre / citation absent de l'article ou du flux**, analyse
       syndicale formulée comme analyse ou question, matière maigre signalée,

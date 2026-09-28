@@ -5,6 +5,7 @@ import {
   CONSIGNE_SYSTEME,
   MODELE_REDACTION,
   SchemaBrouillon,
+  CONSIGNES_MAX,
   EXTRAIT_MAX,
   construireBrouillon,
   messageSource,
@@ -62,17 +63,17 @@ function lectureDepuis(blocs: Anthropic.ContentBlock[]): { lecture: Lecture; tex
     }
   }
   return texte.trim()
-    ? { lecture: { source: "article" }, texte }
-    : { lecture: { source: "flux", raison: raisonLecture(codeErreur) }, texte: "" };
+    ? { lecture: { lectureDemandee: true, articleLu: true, extrait: false }, texte }
+    : { lecture: { lectureDemandee: true, articleLu: false, raisonEchec: raisonLecture(codeErreur), extrait: false }, texte: "" };
 }
 
 /**
  * Brouillon d'article proposé par Claude Sonnet 5 à partir d'un item de la veille.
- * Entrée : { veilleId, extrait? }. L'item est relu en base.
- * - Avec un extrait (texte de l'article ou notes collés par l'éditeur) : c'est la source principale,
- *   le site n'est pas lu.
- * - Sans extrait : l'IA lit elle-même l'article (outil web_fetch : une lecture, domaine de l'article) ;
- *   si le site refuse les robots d'IA, brouillon à partir du seul flux.
+ * Entrée : { veilleId, lire, extrait?, consignes? }. L'item est relu en base.
+ * - lire : l'IA lit l'article en ligne (outil web_fetch : une lecture, domaine de l'article) — choix de
+ *   l'éditeur, car la lecture coûte plus cher ; si le site refuse les robots d'IA, relance sans lecture.
+ * - extrait : texte de l'article ou notes personnelles collés par l'éditeur.
+ * - consignes : consignes de rédaction propres à cet article (sans jamais lever les règles strictes).
  * Réservé aux super admins. La clé API ne quitte jamais le serveur.
  */
 export async function POST(request: NextRequest) {
@@ -81,13 +82,23 @@ export async function POST(request: NextRequest) {
     return erreur("La rédaction assistée n'est pas configurée : la variable ANTHROPIC_API_KEY manque sur le serveur.", 503);
   }
 
-  const corps = (await request.json().catch(() => ({}))) as { veilleId?: unknown; extrait?: unknown };
+  const corps = (await request.json().catch(() => ({}))) as {
+    veilleId?: unknown;
+    lire?: unknown;
+    extrait?: unknown;
+    consignes?: unknown;
+  };
   const veilleId = typeof corps.veilleId === "string" && UUID.test(corps.veilleId) ? corps.veilleId : null;
   if (!veilleId) return erreur("Article de veille manquant.", 400);
   const extrait = typeof corps.extrait === "string" ? corps.extrait.trim() : "";
   if (extrait.length > EXTRAIT_MAX) {
     return erreur(`Le texte collé est trop long (${extrait.length} caractères, ${EXTRAIT_MAX} maximum). Gardez les passages utiles.`, 413);
   }
+  const consignes = typeof corps.consignes === "string" ? corps.consignes.trim() : "";
+  if (consignes.length > CONSIGNES_MAX) {
+    return erreur(`Les consignes sont trop longues (${consignes.length} caractères, ${CONSIGNES_MAX} maximum).`, 413);
+  }
+  const lire = corps.lire === true;
 
   const supabase = await getSupabaseServer();
   const { data, error } = await supabase
@@ -120,10 +131,12 @@ export async function POST(request: NextRequest) {
 
   const client = new Anthropic({ timeout: 240_000 });
 
-  /** Lecture de l'article (mode « site ») puis rédaction ; relance le tour s'il est mis en pause. */
-  async function rediger(mode: "extrait" | "site" | "impossible") {
-    const avecLecture = mode === "site";
-    const messages: Anthropic.MessageParam[] = [{ role: "user", content: messageSource(item, mode, extrait) }];
+  /** Lecture de l'article (si demandée et permise) puis rédaction ; relance le tour s'il est mis en pause. */
+  async function rediger(siteRefuse: boolean) {
+    const avecLecture = lire && !siteRefuse;
+    const messages: Anthropic.MessageParam[] = [
+      { role: "user", content: messageSource(item, { lire, siteRefuse, extrait, consignes }) },
+    ];
     const parametres = {
       model: MODELE_REDACTION,
       max_tokens: 16000,
@@ -148,14 +161,14 @@ export async function POST(request: NextRequest) {
     let lectureRefusee = false;
     let resultat: Awaited<ReturnType<typeof rediger>>;
     try {
-      resultat = await rediger(extrait ? "extrait" : "site");
+      resultat = await rediger(false);
     } catch (err) {
       // Site qui interdit la lecture par les robots d'IA (robots.txt) : l'API refuse toute la
       // demande dès qu'il figure dans allowed_domains. On respecte ce choix et on rédige
       // à partir du seul flux. Pas de type d'erreur dédié : seul le message distingue ce cas.
-      if (!extrait && err instanceof Anthropic.BadRequestError && /not accessible to our user agent/i.test(err.message)) {
+      if (lire && err instanceof Anthropic.BadRequestError && /not accessible to our user agent/i.test(err.message)) {
         lectureRefusee = true;
-        resultat = await rediger("impossible");
+        resultat = await rediger(true);
       } else {
         throw err;
       }
@@ -170,11 +183,15 @@ export async function POST(request: NextRequest) {
       return erreur("L'IA a renvoyé une réponse vide ou incomplète. Réessayez.", 502);
     }
 
-    const { lecture, texte }: { lecture: Lecture; texte: string } = extrait
-      ? { lecture: { source: "extrait" }, texte: extrait }
+    // Matière réellement utilisée (pour les avertissements et le garde-fou italique).
+    const lu: { lecture: Lecture; texte: string } = !lire
+      ? { lecture: { lectureDemandee: false, articleLu: false, extrait: false }, texte: "" }
       : lectureRefusee
-        ? { lecture: { source: "flux", raison: raisonLecture("site_refuse_ia") }, texte: "" }
+        ? { lecture: { lectureDemandee: true, articleLu: false, raisonEchec: raisonLecture("site_refuse_ia"), extrait: false }, texte: "" }
         : lectureDepuis(blocs);
+    const lecture: Lecture = { ...lu.lecture, extrait: Boolean(extrait) };
+    const texte = `${lu.texte}
+${extrait}`;
     const brouillon = construireBrouillon(reponse.parsed_output, item, lecture, texte);
     if (!brouillon.contenu.trim()) {
       return erreur("L'IA a renvoyé un contenu vide. Réessayez.", 502);

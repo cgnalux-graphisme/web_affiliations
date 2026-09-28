@@ -19,11 +19,13 @@ export default async function NouvelArticlePage({ searchParams }: { searchParams
 
   let preRemplissage: PreRemplissage | undefined;
   let veilleId: string | undefined;
+  let veilleLien: string | undefined;
   if (veille && UUID.test(veille)) {
     const supabase = await getSupabaseServer();
     const { data } = await supabase.from("site_veille").select("titre, lien, source_nom").eq("id", veille).maybeSingle();
     if (data) {
       veilleId = veille;
+      veilleLien = data.lien;
       preRemplissage = {
         titre: data.titre,
         sources: data.source_nom ? `${data.source_nom} – ${data.lien}` : data.lien,
@@ -36,6 +38,7 @@ export default async function NouvelArticlePage({ searchParams }: { searchParams
       key={veille ?? "vide"}
       preRemplissage={preRemplissage}
       veilleId={veilleId}
+      veilleLien={veilleLien}
       mettreEnAvantIA={Boolean(veilleId) && ia === "1"}
     />
   );

@@ -2,3 +2,6 @@
 
 /** Taille maximale du texte collé par l'éditeur (environ 12 000 mots). */
 export const EXTRAIT_MAX = 60000;
+
+/** Taille maximale des consignes de rédaction données à l'IA. */
+export const CONSIGNES_MAX = 2000;
