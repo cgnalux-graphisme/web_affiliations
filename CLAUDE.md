@@ -58,6 +58,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/nouvelle` | SUPER_ADMIN | Encoder une action |
 | `/suivi-actions/<id>/modifier` | SUPER_ADMIN | Modifier / supprimer une action |
 | `/suivi-actions/rapport` | SUPER_ADMIN | Rapport d'activité PDF (congrès) |
+| `/suivi-actions/demandes` | SUPER_ADMIN | Back-office des demandes : historique des formulaires par type (onglets), recherche, dates, tri, pagination |
+| `/suivi-actions/demandes/<type>/<id>` | SUPER_ADMIN | Une demande : toutes ses informations, signature, « Régénérer le PDF » + « Télécharger » |
 | `/suivi-actions/articles` | SUPER_ADMIN | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
 | `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article ; `?veille=<id>` pré-remplit depuis la veille et affiche le panneau de rédaction assistée |
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
@@ -65,6 +67,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
+| `/api/admin/demandes` | SUPER_ADMIN | Liste d'un type de demande (GET `?type=&q=&du=&au=&tri=&page=`) — clé service_role |
+| `/api/admin/demandes/<type>/<id>` · `/pdf` | SUPER_ADMIN | Détail complet d'une demande ; PDF C1 / C3.2 rempli côté serveur |
 | `/api/image-distante` | SUPER_ADMIN | Télécharge une image glissée depuis une autre page web (POST `{ url }`) |
 | `/api/redaction/lisibilite` | SUPER_ADMIN | L'IA peut-elle lire l'article ? Vérification gratuite du `robots.txt` du média (GET `?veilleId=`) |
 | `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 (POST `{ veilleId, lire, extrait?, consignes? }`) |
@@ -169,6 +173,40 @@ adapter `STATUT_*` dans `lib/articles.ts`.
 - **Suppression d'une action** : fichiers photo du bucket d'abord, puis la ligne
   `site_actions`. Si l'effacement des fichiers échoue réellement, l'action est
   conservée (pas de photos orphelines en ligne).
+
+### Tables des formulaires publics (back-office des demandes)
+
+Tables `web_*` écrites par les formulaires avec la clé publique, **jamais lisibles
+par elle** (vérifié le 28/09/2026 : 0 ligne renvoyée à `anon`). **Ne pas les
+modifier, pas de migration.**
+
+| Table | Formulaire | Contenu |
+|---|---|---|
+| `web_affiliations` | `FormulaireWebIndependant` | Colonnes à plat (identité, adresse, situation, transfert, cotisation, IBAN, mentions, signature) ; suivi dans `status` (défaut `en_attente`) — seule table avec un statut |
+| `web_mandats_sepa` | `FormulaireChangementCompte` | Mandat SEPA **et** changement de compte, distingués par `type_demande` (`nouveau_mandat` / `changement_compte` ; vide = compté comme nouveau mandat) |
+| `web_c1`, `web_c3_2` | `FormulaireC1`, `FormulaireC32` | `nom`, `prenom`, `niss`, `email` + le formulaire complet dans `data` (jsonb) |
+
+**Back-office des demandes** (28/09/2026) — données personnelles (NISS, IBAN,
+signature) :
+- Lecture **uniquement** par les routes `/api/admin/demandes…` : session
+  SUPER_ADMIN vérifiée, puis clé **service_role** (`lib/demandes-serveur.ts`,
+  serveur uniquement). Réponses `Cache-Control: private, no-store`, aucune
+  donnée de demande journalisée. La liste ne renvoie que date, nom, prénom,
+  e-mail, statut ; le reste seulement dans le détail. Rien n'est jamais écrit.
+- Recherche : chaque mot doit figurer dans le nom, le prénom ou l'e-mail
+  (caractères de filtre PostgREST retirés, `motsRecherche()`) ; dates
+  `jj/mm/aaaa` à l'heure de Bruxelles ; 25 lignes par page ; une page hors
+  limites renvoie la dernière.
+- **PDF régénérés avec le code existant, mise en page inchangée** :
+  affiliation et mandat SEPA / changement de compte **dans le navigateur**
+  (`genererPdfAffiliationEnregistree()` et `genererPdfMandatEnregistre()`,
+  exportées des formulaires ; ligne en base → données du formulaire, **datées
+  du jour de la demande** via l'option `dateDocument`) ; C1 et C3.2 **sur le
+  serveur**, en appelant tels quels les handlers `POST` de `/api/fill-c1` et
+  `/api/fill-c3-2` avec `data`. L'IP n'est pas conservée pour
+  l'affiliation (elle n'apparaît pas dans son PDF).
+- Libellés et sections du détail : `lib/demandes-affichage.ts` ; une colonne
+  ajoutée plus tard en base apparaît dans « Autres informations ».
 
 ---
 
@@ -441,6 +479,9 @@ reformuler, citer et lier la source, jamais recopier.
   28/09/2026** (déclaré par Fred, non vérifiable depuis Claude Code sans accès
   Vercel). Une variable ajoutée ou modifiée dans Vercel ne s'applique qu'aux
   **déploiements suivants** : redéployer la preview si besoin.
+- Le 28/09/2026 : **back-office des demandes** (`/suivi-actions/demandes`) sur
+  `suivi-actions` : 238 affiliations, 20 mandats SEPA, 11 changements de compte,
+  29 C1 et 27 C3.2 à cette date.
 - Avant un usage réel de la déclinaison réseaux : définir `SITE_URL` dans
   Vercel, sinon les posts générés depuis la preview pointent vers la preview.
 - Pistes suivantes : brancher la déclinaison aux futurs outils de visuels et de

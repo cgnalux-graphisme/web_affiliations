@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { dateFrToIso, formatDateFr, isValidDateFr } from "./lib/dates";
+import { dateFrToIso, formatDateFr, isoToDateFr, isValidDateFr } from "./lib/dates";
 import { getSupabase } from "./lib/supabase";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
@@ -475,13 +475,15 @@ function PdfRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MandatPDF({ data, logoBase64, ipAddress, dateHeure }: {
+function MandatPDF({ data, logoBase64, ipAddress, dateHeure, dateDocument }: {
   data: FormData;
   logoBase64: string;
   ipAddress: string;
   dateHeure: string;
+  /** Date de la demande (back-office) ; par défaut, maintenant. */
+  dateDocument?: Date;
 }) {
-  const now = new Date();
+  const now = dateDocument ?? new Date();
   const dateDoc = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   const titreDemande =
@@ -1295,4 +1297,49 @@ function input(error?: string) {
       ? "border-red-400 focus:ring-red-300 bg-red-50"
       : "border-gray-300 focus:ring-red-200"
   }`;
+}
+
+// ── Back-office : PDF d'une demande enregistrée ──────────────────────────────
+/**
+ * Régénère, dans le navigateur, le PDF d'un mandat enregistré dans web_mandats_sepa
+ * (même document que celui envoyé au moment de la demande, daté du jour de la demande).
+ */
+export async function genererPdfMandatEnregistre(ligne: Record<string, unknown>): Promise<Blob> {
+  const t = (v: unknown) => (typeof v === "string" ? v : "");
+  const creeLe = t(ligne.created_at) ? new Date(t(ligne.created_at)) : new Date();
+  const accord = t(ligne.accord_cloture);
+  const typeDemande = t(ligne.type_demande);
+  const data: FormData = {
+    ...EMPTY,
+    typeDemande: typeDemande === "nouveau_mandat" || typeDemande === "changement_compte" ? typeDemande : "",
+    nom: t(ligne.nom),
+    prenom: t(ligne.prenom),
+    niss: t(ligne.niss),
+    email: t(ligne.email),
+    adresseRue: t(ligne.adresse_rue),
+    adresseNumero: t(ligne.adresse_numero),
+    codePostal: t(ligne.code_postal),
+    localite: t(ligne.localite),
+    pays: t(ligne.pays),
+    nouveauIban: t(ligne.nouveau_iban_be) || t(ligne.nouveau_iban_eu),
+    nouveauBic: t(ligne.nouveau_bic),
+    ancienIban: t(ligne.ancien_iban),
+    estTitulaire: ligne.est_titulaire !== false,
+    nomTitulaire: t(ligne.nom_titulaire),
+    accordCloture: accord === "avec_cloture" || accord === "sans_cloture" ? accord : "",
+    dateSig: t(ligne.date_signature) ? isoToDateFr(t(ligne.date_signature)) : "",
+    lieu: t(ligne.lieu_signature),
+    signature: t(ligne.signature),
+  };
+  enregistrerPolicesPdf(window.location.origin);
+  const logoBase64 = await fetchLogoBase64().catch(() => "");
+  return pdf(
+    <MandatPDF
+      data={data}
+      logoBase64={logoBase64}
+      ipAddress={t(ligne.ip_address)}
+      dateHeure={creeLe.toLocaleString("fr-BE", { timeZone: "Europe/Brussels" })}
+      dateDocument={creeLe}
+    />
+  ).toBlob();
 }

@@ -1723,6 +1723,7 @@ function AffiliationDocument({
   echeancesVir,
   paiement2025,
   userIp,
+  dateDocument,
 }: {
   data: FormData;
   mentions: PdfMentions;
@@ -1731,8 +1732,10 @@ function AffiliationDocument({
   echeancesVir: Echeance[];
   paiement2025: Paiement2025 | null;
   userIp: string;
+  /** Date de la demande (back-office) ; par défaut, maintenant. */
+  dateDocument?: Date;
 }) {
-  const now          = new Date();
+  const now          = dateDocument ?? new Date();
   const dateDoc      = now.toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit", year: "numeric" });
   const heureDoc     = now.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
 
@@ -3933,4 +3936,93 @@ export default function FormulaireWebIndependant({
       </div>
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 9. BACK-OFFICE — PDF d'une affiliation enregistrée
+// ═══════════════════════════════════════════════════════════════════════════════
+/**
+ * Régénère, dans le navigateur, le PDF d'une affiliation enregistrée dans web_affiliations
+ * (même document que celui envoyé au moment de la demande, daté du jour de la demande).
+ */
+export async function genererPdfAffiliationEnregistree(ligne: Record<string, unknown>): Promise<Blob> {
+  const t = (v: unknown) => (typeof v === "string" ? v : v === null || v === undefined ? "" : String(v));
+  const data: FormData = {
+    ...INIT,
+    nom: t(ligne.nom),
+    prenom: t(ligne.prenom),
+    niss: t(ligne.niss),
+    email: t(ligne.email),
+    tel: t(ligne.tel),
+    genre: t(ligne.genre),
+    dateNaissance: t(ligne.date_naissance),
+    lieuNaissance: t(ligne.lieu_naissance),
+    nationalite: t(ligne.nationalite),
+    etatCivil: t(ligne.etat_civil),
+    rue: t(ligne.rue),
+    numero: t(ligne.numero),
+    boite: t(ligne.boite),
+    codePostal: t(ligne.code_postal),
+    localite: t(ligne.localite),
+    pays: t(ligne.pays),
+    situationPro: t(ligne.situation_pro),
+    statut: t(ligne.statut),
+    typeInactif: t(ligne.type_inactif),
+    allocationsChomage: t(ligne.allocations_chomage),
+    autreInactifPrecision: t(ligne.autre_inactif_precision),
+    entreprise: t(ligne.entreprise),
+    secteur: t(ligne.secteur),
+    secteurAutre: t(ligne.secteur_autre),
+    matriculeONSS: t(ligne.matricule_onss),
+    dateEntree: t(ligne.date_entree),
+    regimeTravail: t(ligne.regime_travail),
+    regimeTravailDetail: t(ligne.regime_travail_detail),
+    autresCentraleFGTB: t(ligne.autres_centrale_fgtb),
+    centralesFGTBChoisie: t(ligne.centrales_fgtb_choisie),
+    provinceCentraleFGTB: t(ligne.province_centrale_fgtb),
+    affilieAutreSyndicat: t(ligne.affilie_autre_syndicat),
+    autreSyndicatChoix: t(ligne.autre_syndicat_choix),
+    autreSyndicatAutreDetail: t(ligne.autre_syndicat_autre_detail),
+    dossierJuridique: t(ligne.dossier_juridique),
+    affiliationMois: t(ligne.affiliation_mois),
+    affiliationAnnee: t(ligne.affiliation_annee),
+    iban: t(ligne.iban),
+    bic: t(ligne.bic),
+    modePaiement: t(ligne.mode_paiement),
+    titulaireDuCompte: t(ligne.titulaire_du_compte),
+    titulaireNomPrenom: t(ligne.titulaire_nom_prenom),
+    signature: t(ligne.signature),
+  };
+  const mentions: PdfMentions = {
+    assistance: ligne.mention_assistance === true,
+    continuite: ligne.mention_continuite === true,
+    information: ligne.mention_information === true,
+    accord: ligne.mention_accord === true,
+    rgpd: ligne.mention_rgpd === true,
+  };
+  enregistrerPolicesPdf(window.location.origin);
+  const logoBase64 = await fetch("/logo-cg-rouge.png")
+    .then((r) => r.blob())
+    .then(
+      (blob) =>
+        new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        })
+    )
+    .catch(() => null);
+  const { echeancesDom, echeancesVir, paiement2025 } = buildEcheanciers(data);
+  return pdf(
+    <AffiliationDocument
+      data={data}
+      mentions={mentions}
+      logoBase64={logoBase64}
+      echeancesDom={echeancesDom}
+      echeancesVir={echeancesVir}
+      paiement2025={paiement2025}
+      userIp="N/A"
+      dateDocument={t(ligne.created_at) ? new Date(t(ligne.created_at)) : undefined}
+    />
+  ).toBlob();
 }
