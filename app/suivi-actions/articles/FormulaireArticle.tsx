@@ -39,6 +39,7 @@ import {
   type StatutArticle,
 } from "../../../lib/articles";
 import type { Brouillon } from "../../../lib/redaction-ia";
+import { EXTRAIT_MAX } from "../../../lib/redaction-limites";
 import EditeurTexte from "./EditeurTexte";
 import { rafraichirBlog } from "./revalidation";
 
@@ -105,7 +106,7 @@ type EtatIA =
       etape: "propose";
       avertissement: string | null;
       suggestionImage: string;
-      articleLu: boolean;
+      sourceLue: Brouillon["source_lue"];
       reprises: number;
     }
   | { etape: "erreur"; message: string };
@@ -114,14 +115,14 @@ export default function FormulaireArticle({
   article,
   preRemplissage,
   veilleId,
-  iaAuChargement,
+  mettreEnAvantIA,
 }: {
   article?: ArticleEnregistre;
   preRemplissage?: PreRemplissage;
   /** Item de veille à l'origine de l'article : active « Proposer un brouillon avec l'IA ». */
   veilleId?: string;
-  /** Lance la proposition dès l'ouverture (bouton « Brouillon IA » de la veille). */
-  iaAuChargement?: boolean;
+  /** Ouverture depuis « Brouillon IA » de la veille : curseur dans le champ « extrait », prêt à proposer. */
+  mettreEnAvantIA?: boolean;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<Form>(() => formDepuis(article, preRemplissage));
@@ -139,7 +140,9 @@ export default function FormulaireArticle({
   const [ia, setIa] = useState<EtatIA>({ etape: "inactif" });
   // L'éditeur riche ne relit sa valeur qu'à sa création : on le recrée après un brouillon IA.
   const [versionEditeur, setVersionEditeur] = useState(0);
-  const iaLancee = useRef(false);
+  // Texte de l'article ou notes collés par l'éditeur (facultatif) : source principale s'il est rempli.
+  const [extrait, setExtrait] = useState("");
+  const champExtrait = useRef<HTMLTextAreaElement>(null);
 
   async function proposerBrouillon(confirme = false) {
     if (!veilleId || ia.etape === "en_cours") return;
@@ -152,7 +155,7 @@ export default function FormulaireArticle({
       const reponse = await fetch("/api/redaction/brouillon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ veilleId }),
+        body: JSON.stringify({ veilleId, extrait: extrait.trim() || undefined }),
       });
       const json = (await reponse.json().catch(() => ({}))) as { brouillon?: Brouillon; erreur?: string };
       if (!reponse.ok || !json.brouillon) {
@@ -177,7 +180,7 @@ export default function FormulaireArticle({
         etape: "propose",
         avertissement: b.avertissement,
         suggestionImage: b.suggestion_image,
-        articleLu: b.article_lu,
+        sourceLue: b.source_lue,
         reprises: b.reprises,
       });
     } catch {
@@ -185,13 +188,9 @@ export default function FormulaireArticle({
     }
   }
 
-  // Ouverture depuis « Brouillon IA » de la veille : une seule proposition, puis l'adresse est nettoyée
-  // (un rechargement de la page ne relance pas l'IA).
+  // Ouverture depuis « Brouillon IA » de la veille : on peut coller un extrait avant de lancer l'IA.
   useEffect(() => {
-    if (!iaAuChargement || !veilleId || iaLancee.current) return;
-    iaLancee.current = true;
-    router.replace(`/suivi-actions/articles/nouveau?veille=${veilleId}`, { scroll: false });
-    proposerBrouillon(true);
+    if (mettreEnAvantIA && veilleId) champExtrait.current?.focus();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Libère l'aperçu local de l'image quand il est remplacé ou à la sortie.
@@ -390,7 +389,15 @@ export default function FormulaireArticle({
         )}
       </header>
 
-      {veilleId && <PanneauIA ia={ia} onProposer={() => proposerBrouillon()} />}
+      {veilleId && (
+        <PanneauIA
+          ia={ia}
+          onProposer={() => proposerBrouillon()}
+          extrait={extrait}
+          onExtrait={setExtrait}
+          champExtrait={champExtrait}
+        />
+      )}
 
       <form onSubmit={enregistrer} noValidate className="overflow-hidden rounded-2xl border border-militant-ardoise bg-white">
         {/* ── TITRE ── */}
@@ -683,100 +690,153 @@ export default function FormulaireArticle({
 // ── Sous-composants ──────────────────────────────────────────────────────────
 const RAPPEL_IA = "Brouillon IA — à vérifier, corriger et valider avant publication. Recoupez avec la source.";
 
-/** Bouton « Proposer un brouillon avec l'IA », indicateur, rappel et erreurs. */
-function PanneauIA({ ia, onProposer }: { ia: EtatIA; onProposer: () => void }) {
-  if (ia.etape === "propose") {
-    return (
-      <section aria-live="polite" className="overflow-hidden rounded-2xl bg-militant-bordeaux text-white">
-        <div className="flex flex-wrap items-start gap-x-4 gap-y-3 px-5 py-4">
-          <Sparkles size={22} className="mt-0.5 shrink-0" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <p className="font-condensed text-2xl font-extrabold leading-tight">{RAPPEL_IA}</p>
-            <p className="mt-1 text-sm">
-              {ia.articleLu
-                ? "Rédigé après lecture de l'article d'origine. "
-                : "L'article d'origine n'a pas pu être lu : rédigé à partir du seul résumé du flux. "}
-              Tous les champs sont modifiables ; la date et le statut n&apos;ont pas été touchés (l&apos;article reste un
-              brouillon).
-            </p>
+const PHRASES_SOURCE: Record<Brouillon["source_lue"], string> = {
+  extrait: "Rédigé à partir du texte que vous avez collé.",
+  article: "Rédigé après lecture de l'article d'origine.",
+  flux: "L'article d'origine n'a pas pu être lu : rédigé à partir du seul résumé du flux.",
+};
+
+/** Rédaction assistée : extrait facultatif, bouton « Proposer un brouillon avec l'IA », indicateur, rappel, erreurs. */
+function PanneauIA({
+  ia,
+  onProposer,
+  extrait,
+  onExtrait,
+  champExtrait,
+}: {
+  ia: EtatIA;
+  onProposer: () => void;
+  extrait: string;
+  onExtrait: (v: string) => void;
+  champExtrait: React.RefObject<HTMLTextAreaElement | null>;
+}) {
+  const enCours = ia.etape === "en_cours";
+  const trop = extrait.trim().length > EXTRAIT_MAX;
+  return (
+    <section aria-live="polite" className="overflow-hidden rounded-2xl border-2 border-militant-bordeaux">
+      {ia.etape === "propose" && (
+        <>
+          <div className="flex items-start gap-3 bg-militant-bordeaux px-5 py-4 text-white">
+            <Sparkles size={22} className="mt-0.5 shrink-0" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="font-condensed text-2xl font-extrabold leading-tight">{RAPPEL_IA}</p>
+              <p className="mt-1 text-sm">
+                {PHRASES_SOURCE[ia.sourceLue]} Tous les champs sont modifiables ; la date et le statut n&apos;ont pas été
+                touchés (l&apos;article reste un brouillon).
+              </p>
+            </div>
           </div>
+          {(ia.reprises > 0 || ia.avertissement) && (
+            <div className="space-y-2 border-b-2 border-militant-bordeaux px-5 py-3 text-sm">
+              {ia.reprises > 0 && (
+                <p className="flex items-start gap-2">
+                  <Italic size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
+                  <span>
+                    <span className="font-bold text-militant-bordeaux">
+                      {ia.reprises} passage{ia.reprises > 1 ? "s" : ""} repris mot pour mot, mis en italique dans le
+                      contenu.
+                    </span>{" "}
+                    Reformulez-les, ou gardez-les comme citations (entre guillemets, en citant le média).
+                  </span>
+                </p>
+              )}
+              {ia.avertissement && (
+                <p className="flex items-start gap-2">
+                  <AlertTriangle size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
+                  <span>
+                    <span className="font-bold text-militant-bordeaux">À vérifier : </span>
+                    {ia.avertissement}
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="space-y-3 px-5 py-4">
+        {ia.etape !== "propose" && (
+          <p className="flex items-start gap-2.5 text-sm">
+            <Sparkles size={20} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
+            <span>
+              <span className="font-bold">Rédaction assistée.</span> L&apos;IA propose un brouillon complet (titre, chapô,
+              points clés, contenu, sources), reformulé ; les passages repris mot pour mot sont mis en italique. Vous
+              relisez et corrigez tout avant publication.
+            </span>
+          </p>
+        )}
+
+        <div>
+          <label htmlFor="extrait-ia" className="block text-sm font-semibold">
+            Extrait de l&apos;article ou vos notes (facultatif)
+          </label>
+          <p id="aide-extrait-ia" className="mb-1.5 text-xs">
+            Collez le texte de l&apos;article (utile s&apos;il est payant ou si le site bloque les robots) ou vos propres
+            notes : l&apos;IA s&apos;en sert comme source principale et ne lit pas le site. Laissé vide, l&apos;IA lit
+            elle-même l&apos;article d&apos;origine.
+          </p>
+          <textarea
+            id="extrait-ia"
+            ref={champExtrait}
+            aria-describedby="aide-extrait-ia"
+            value={extrait}
+            onChange={(e) => onExtrait(e.target.value)}
+            disabled={enCours}
+            rows={5}
+            placeholder="Collez ici le texte de l'article ou vos notes…"
+            className={`w-full resize-y rounded-xl border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-militant-rouge disabled:opacity-60 ${
+              trop ? "border-2 border-militant-bordeaux" : "border-militant-ardoise focus:border-militant-charbon"
+            }`}
+          />
+          {extrait.trim() && (
+            <p className={`mt-1 text-right text-xs tabular-nums ${trop ? "font-bold text-militant-bordeaux" : ""}`}>
+              {extrait.trim().length.toLocaleString("fr-BE")} / {EXTRAIT_MAX.toLocaleString("fr-BE")} caractères
+              {trop ? " : gardez les passages utiles" : ""}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={onProposer}
-            className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border-2 border-white px-3.5 py-1.5 text-sm font-bold transition-colors hover:bg-white hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            disabled={enCours || trop}
+            className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-militant-bordeaux px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
           >
-            <RefreshCw size={15} aria-hidden /> Proposer un autre brouillon
+            {enCours ? (
+              <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden />
+            ) : ia.etape === "propose" ? (
+              <RefreshCw size={16} aria-hidden />
+            ) : (
+              <Sparkles size={16} aria-hidden />
+            )}
+            {enCours
+              ? "Rédaction en cours…"
+              : ia.etape === "propose"
+                ? "Proposer un autre brouillon"
+                : "Proposer un brouillon avec l'IA"}
           </button>
+          {enCours && (
+            <p className="text-sm font-semibold">
+              {extrait.trim()
+                ? "L'IA rédige à partir de votre texte… Comptez 20 secondes à 1 minute."
+                : "L'IA lit l'article d'origine puis rédige… Comptez 30 secondes à 2 minutes."}{" "}
+              Ne fermez pas la page.
+            </p>
+          )}
         </div>
-        {(ia.reprises > 0 || ia.avertissement) && (
-          <div className="space-y-2 border-t-2 border-white bg-white px-5 py-3 text-sm text-militant-charbon">
-            {ia.reprises > 0 && (
-              <p className="flex items-start gap-2">
-                <Italic size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
-                <span>
-                  <span className="font-bold text-militant-bordeaux">
-                    {ia.reprises} passage{ia.reprises > 1 ? "s" : ""} repris mot pour mot, mis en italique dans le contenu.
-                  </span>{" "}
-                  Reformulez-les, ou gardez-les comme citations (entre guillemets, en citant le média).
-                </span>
-              </p>
-            )}
-            {ia.avertissement && (
-              <p className="flex items-start gap-2">
-                <AlertTriangle size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
-                <span>
-                  <span className="font-bold text-militant-bordeaux">À vérifier : </span>
-                  {ia.avertissement}
-                </span>
-              </p>
-            )}
-          </div>
-        )}
-      </section>
-    );
-  }
 
-  return (
-    <section aria-live="polite" className="rounded-2xl border-2 border-militant-bordeaux px-5 py-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <Sparkles size={22} className="shrink-0 text-militant-bordeaux" aria-hidden />
-        <p className="min-w-0 flex-1 text-sm">
-          {ia.etape === "en_cours" ? (
-            <span className="font-semibold">
-              L&apos;IA lit l&apos;article d&apos;origine puis rédige le brouillon… Comptez 30 secondes à 2 minutes. Ne
-              fermez pas la page.
-            </span>
-          ) : (
-            <>
-              <span className="font-bold">Rédaction assistée.</span> L&apos;IA lit l&apos;article d&apos;origine et propose
-              un brouillon complet (titre, chapô, points clés, contenu, sources), reformulé ; les passages repris mot pour
-              mot sont mis en italique. Vous relisez et corrigez tout avant publication.
-            </>
-          )}
-        </p>
-        <button
-          type="button"
-          onClick={onProposer}
-          disabled={ia.etape === "en_cours"}
-          className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-militant-bordeaux px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
-        >
-          {ia.etape === "en_cours" ? (
-            <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden />
-          ) : (
-            <Sparkles size={16} aria-hidden />
-          )}
-          {ia.etape === "en_cours" ? "Rédaction en cours…" : "Proposer un brouillon avec l'IA"}
-        </button>
+        {ia.etape === "erreur" && (
+          <p role="alert" className="flex items-start gap-1.5 text-sm font-semibold text-militant-bordeaux">
+            <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
+            {ia.message}
+          </p>
+        )}
       </div>
-      {ia.etape === "erreur" && (
-        <p role="alert" className="mt-3 flex items-start gap-1.5 text-sm font-semibold text-militant-bordeaux">
-          <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
-          {ia.message}
-        </p>
-      )}
     </section>
   );
 }
+
 const BOUTON_SECONDAIRE =
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-militant-charbon bg-white px-4 py-2 text-sm font-bold transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50";
 

@@ -153,7 +153,7 @@ export function ActionsItem({ id, titre, statut }: { id: string; titre: string; 
     setEnCours(avecIA ? "ia" : "rediger");
     setErreur("");
     // L'item est marqué traité, puis le formulaire d'article s'ouvre pré-rempli
-    // (avec l'IA : le brouillon est proposé dès l'ouverture du formulaire).
+    // (avec l'IA : le panneau de rédaction assistée est prêt, on peut y coller un extrait avant de lancer).
     if (statut === VEILLE_TRAITE || (await changerStatut(VEILLE_TRAITE))) {
       router.push(`/suivi-actions/articles/nouveau?veille=${id}${avecIA ? "&ia=1" : ""}`);
       return;

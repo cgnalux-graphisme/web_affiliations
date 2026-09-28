@@ -32,7 +32,7 @@ const reponse: ReponseIA = {
 };
 
 describe("construireBrouillon", () => {
-  const b = construireBrouillon(reponse, item, { lu: true }, ARTICLE);
+  const b = construireBrouillon(reponse, item, { source: "article" }, ARTICLE);
 
   it("nettoie le titre et en déduit l'adresse", () => {
     expect(b.titre).toBe("Incapacité : les mutuelles sonnent l'alarme");
@@ -53,14 +53,14 @@ describe("construireBrouillon", () => {
 
   it("n'avertit pas quand l'article est lu et la source suffit", () => {
     expect(b.avertissement).toBeNull();
-    expect(b.article_lu).toBe(true);
+    expect(b.source_lue).toBe("article");
     expect(b.suggestion_image).toBe("Une salle d'attente de mutuelle.");
   });
 
   it("avertit quand la source est maigre ou l'article non lu", () => {
-    expect(construireBrouillon({ ...reponse, source_suffisante: false }, item, { lu: true }).avertissement).toMatch(/trop maigre/);
-    const nonLu = construireBrouillon(reponse, item, { lu: false, raison: raisonLecture("url_not_accessible") });
-    expect(nonLu.article_lu).toBe(false);
+    expect(construireBrouillon({ ...reponse, source_suffisante: false }, item, { source: "article" }).avertissement).toMatch(/trop maigre/);
+    const nonLu = construireBrouillon(reponse, item, { source: "flux", raison: raisonLecture("url_not_accessible") });
+    expect(nonLu.source_lue).toBe("flux");
     expect(nonLu.avertissement).toMatch(/non lu \(page inaccessible/);
   });
 
@@ -72,7 +72,7 @@ describe("construireBrouillon", () => {
           "<p>Une étude est sortie. Près d'une personne en invalidité sur trois souhaite reprendre le travail. Et après ?</p>",
       },
       item,
-      { lu: true },
+      { source: "article" },
       ARTICLE
     );
     expect(copie.contenu).toBe(
@@ -85,7 +85,7 @@ describe("construireBrouillon", () => {
     const c = construireBrouillon(
       { ...reponse, chapo: "Près d'une personne en invalidité sur trois souhaite reprendre le travail, dit l'étude." },
       item,
-      { lu: true },
+      { source: "article" },
       ARTICLE
     );
     expect(c.avertissement).toMatch(/Reprise mot pour mot dans le chapô/);
@@ -110,15 +110,34 @@ describe("marquerReprises", () => {
 });
 
 describe("messageSource", () => {
+  it("joint le texte collé, balisé comme donnée", () => {
+    const m = messageSource(item, "extrait", "  Mes notes : réunion le 14/10.  ");
+    expect(m).toContain("<texte_colle>\nMes notes : réunion le 14/10.\n</texte_colle>");
+    expect(m).toContain("N'utilise pas d'outil de lecture");
+    expect(messageSource(item, "site", "ignoré")).not.toContain("<texte_colle>");
+  });
+
+  it("met en italique une reprise du texte collé", () => {
+    const b = construireBrouillon(
+      { ...reponse, contenu_html: "<p>Près d'une personne en invalidité sur trois souhaite reprendre le travail.</p>" },
+      item,
+      { source: "extrait" },
+      ARTICLE
+    );
+    expect(b.contenu).toContain("<em>");
+    expect(b.source_lue).toBe("extrait");
+    expect(b.avertissement).toBeNull();
+  });
+
   it("balise la source comme donnée et signale un résumé absent", () => {
-    const m = messageSource({ ...item, resume: null });
+    const m = messageSource({ ...item, resume: null }, "site");
     expect(m).toContain("<lien>https://www.rtbf.be/article/mutuelles-123</lien>");
     expect(m).toContain("(aucun résumé fourni par le flux)");
   });
 
   it("prévient l'IA quand l'article ne peut pas être lu", () => {
-    expect(messageSource(item, true)).toContain("ne peut pas être lu");
-    expect(messageSource(item)).toContain("Lis d'abord l'article");
+    expect(messageSource(item, "impossible")).toContain("ne peut pas être lu");
+    expect(messageSource(item, "site")).toContain("Lis d'abord l'article");
     expect(raisonLecture("site_refuse_ia")).toBe("le site refuse la lecture par les robots d'IA");
   });
 });

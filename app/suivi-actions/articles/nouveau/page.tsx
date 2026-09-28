@@ -36,7 +36,7 @@ export default async function NouvelArticlePage({ searchParams }: { searchParams
       key={veille ?? "vide"}
       preRemplissage={preRemplissage}
       veilleId={veilleId}
-      iaAuChargement={Boolean(veilleId) && ia === "1"}
+      mettreEnAvantIA={Boolean(veilleId) && ia === "1"}
     />
   );
 }
