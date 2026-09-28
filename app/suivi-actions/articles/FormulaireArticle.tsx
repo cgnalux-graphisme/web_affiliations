@@ -106,9 +106,10 @@ export default function FormulaireArticle({ article }: { article?: ArticleEnregi
     setErreurs((e) => ({ ...e, titre: undefined, slug: slugManuel ? e.slug : undefined }));
   }
 
-  function choisirImage(fichiers: FileList | null) {
-    const file = fichiers?.[0];
-    if (champFichier.current) champFichier.current.value = "";
+  function choisirImage(input: HTMLInputElement) {
+    // Copier le fichier AVANT de vider le champ : vider le champ vide aussi sa FileList (Chrome, Edge).
+    const file = input.files?.[0] ?? null;
+    input.value = ""; // permet de rechoisir la même image ensuite
     if (!file) return;
     if (!TYPES_IMAGE.includes(file.type) || file.size > TAILLE_MAX) {
       setErreurs((e) => ({ ...e, image: "Image non ajoutée : JPEG, PNG ou WebP de 20 Mo maximum." }));
@@ -443,7 +444,7 @@ export default function FormulaireArticle({ article }: { article?: ArticleEnregi
             ref={champFichier}
             type="file"
             accept={TYPES_IMAGE.join(",")}
-            onChange={(e) => choisirImage(e.target.files)}
+            onChange={(e) => choisirImage(e.currentTarget)}
             className="sr-only"
             tabIndex={-1}
             aria-label="Image de couverture"
