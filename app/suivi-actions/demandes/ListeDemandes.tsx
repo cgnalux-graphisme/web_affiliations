@@ -10,7 +10,6 @@ import {
   TRIS,
   TYPES_DEMANDE,
   dateHeureBruxelles,
-  libelleStatut,
   type ReponseListe,
   type Tri,
   type TypeDemande,
@@ -86,7 +85,6 @@ export default function ListeDemandes({ initial }: { initial: Filtres }) {
   const config = DEMANDES[filtres.type];
   const pages = reponse ? Math.max(1, Math.ceil(reponse.total / reponse.parPage)) : 1;
   const filtresActifs = Boolean(filtres.q || filtres.du || filtres.au || filtres.tri !== "date_desc");
-  const avecStatut = filtres.type === "affiliation";
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -243,11 +241,6 @@ export default function ListeDemandes({ initial }: { initial: Filtres }) {
                   <th scope="col" className="px-3 py-2 font-bold">
                     E-mail
                   </th>
-                  {avecStatut && (
-                    <th scope="col" className="px-3 py-2 font-bold">
-                      Statut
-                    </th>
-                  )}
                   <th scope="col" className="px-3 py-2">
                     <span className="sr-only">Ouvrir</span>
                   </th>
@@ -271,17 +264,6 @@ export default function ListeDemandes({ initial }: { initial: Filtres }) {
                         </Link>
                       </td>
                       <td className="max-w-[16rem] truncate px-3 py-3 text-sm">{l.email || "—"}</td>
-                      {avecStatut && (
-                        <td className="px-3 py-3">
-                          {l.statut ? (
-                            <span className="inline-block whitespace-nowrap rounded-full border-2 border-militant-ardoise px-2.5 py-0.5 text-sm font-bold">
-                              {libelleStatut(l.statut)}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                      )}
                       <td className="px-3 py-3 text-right">
                         <Link
                           href={lien}

@@ -5,7 +5,6 @@ import {
   estTri,
   estTypeDemande,
   lendemain,
-  libelleStatut,
   motsRecherche,
   nomFichierPdf,
 } from "./demandes";
@@ -47,11 +46,6 @@ describe("demandes", () => {
     expect(nomFichierPdf("c1", "Van Dœuf", "Hélène", "2026-09-24T08:05:00Z")).toBe("formulaire-c1-van-doeuf-helene-24-09-2026.pdf");
   });
 
-  it("statuts lisibles", () => {
-    expect(libelleStatut("en_attente")).toBe("En attente");
-    expect(libelleStatut("a_rappeler")).toBe("A rappeler");
-    expect(libelleStatut(null)).toBe("");
-  });
 });
 
 describe("demandes-affichage", () => {
@@ -75,7 +69,9 @@ describe("demandes-affichage", () => {
     });
     expect(d.sections[0].titre).toBe("Demande");
     expect(d.sections.at(-1)?.titre).toBe("Autres informations");
+    // status est masqué ; les colonnes inconnues restent visibles.
     expect(d.sections.at(-1)?.champs.map((c) => c.cle)).toEqual(["pdf_generated_url"]);
+    expect(d.sections[0].champs.map((c) => c.cle)).toEqual(["created_at"]);
     expect(d.signature).toBe("data:image/png;base64,AAAA");
   });
 

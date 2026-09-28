@@ -182,7 +182,7 @@ modifier, pas de migration.**
 
 | Table | Formulaire | Contenu |
 |---|---|---|
-| `web_affiliations` | `FormulaireWebIndependant` | Colonnes à plat (identité, adresse, situation, transfert, cotisation, IBAN, mentions, signature) ; suivi dans `status` (défaut `en_attente`) — seule table avec un statut |
+| `web_affiliations` | `FormulaireWebIndependant` | Colonnes à plat (identité, adresse, situation, transfert, cotisation, IBAN, mentions, signature) ; colonne `status` (défaut `en_attente`) jamais utilisée par la centrale : **masquée** dans le back-office (choix de Fred, 28/09/2026) |
 | `web_mandats_sepa` | `FormulaireChangementCompte` | Mandat SEPA **et** changement de compte, distingués par `type_demande` (`nouveau_mandat` / `changement_compte` ; vide = compté comme nouveau mandat) |
 | `web_c1`, `web_c3_2` | `FormulaireC1`, `FormulaireC32` | `nom`, `prenom`, `niss`, `email` + le formulaire complet dans `data` (jsonb) |
 
@@ -192,7 +192,7 @@ signature) :
   SUPER_ADMIN vérifiée, puis clé **service_role** (`lib/demandes-serveur.ts`,
   serveur uniquement). Réponses `Cache-Control: private, no-store`, aucune
   donnée de demande journalisée. La liste ne renvoie que date, nom, prénom,
-  e-mail, statut ; le reste seulement dans le détail. Rien n'est jamais écrit.
+  e-mail ; le reste seulement dans le détail. Rien n'est jamais écrit.
 - Recherche : chaque mot doit figurer dans le nom, le prénom ou l'e-mail
   (caractères de filtre PostgREST retirés, `motsRecherche()`) ; dates
   `jj/mm/aaaa` à l'heure de Bruxelles ; 25 lignes par page ; une page hors
@@ -205,6 +205,10 @@ signature) :
   serveur**, en appelant tels quels les handlers `POST` de `/api/fill-c1` et
   `/api/fill-c3-2` avec `data`. L'IP n'est pas conservée pour
   l'affiliation (elle n'apparaît pas dans son PDF).
+- **Parcours de transfert** (`/parcours-transfert`) : pas de table à lui. Chaque
+  étape enregistre dans la table de son formulaire (`web_affiliations`, `web_c1`,
+  `web_c3_2`) et **rien ne relie les 3 lignes** (pas d'identifiant de parcours) :
+  un dossier de parcours apparaît donc éclaté dans 3 onglets.
 - Libellés et sections du détail : `lib/demandes-affichage.ts` ; une colonne
   ajoutée plus tard en base apparaît dans « Autres informations ».
 

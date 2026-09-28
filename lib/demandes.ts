@@ -64,8 +64,6 @@ export type LigneDemande = {
   nom: string | null;
   prenom: string | null;
   email: string | null;
-  /** Suivi (affiliations seulement : colonne `status`). */
-  statut: string | null;
 };
 
 export type ReponseListe = {
@@ -75,21 +73,6 @@ export type ReponseListe = {
   parPage: number;
   compteurs: Partial<Record<TypeDemande, number>>;
 };
-
-/** Libellé d'un statut de suivi (`en_attente` → « En attente »). */
-export function libelleStatut(statut: string | null | undefined): string {
-  if (!statut) return "";
-  const connus: Record<string, string> = {
-    en_attente: "En attente",
-    traite: "Traitée",
-    traitee: "Traitée",
-    valide: "Validée",
-    validee: "Validée",
-    refuse: "Refusée",
-    refusee: "Refusée",
-  };
-  return connus[statut] ?? (statut.charAt(0).toUpperCase() + statut.slice(1)).replace(/_/g, " ");
-}
 
 /** Mots de la recherche, sans les caractères qui ont un sens dans un filtre PostgREST. */
 export function motsRecherche(q: string | null | undefined): string[] {

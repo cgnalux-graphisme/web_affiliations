@@ -1,5 +1,5 @@
 import { isoToDateFr } from "./dates";
-import { dateHeureBruxelles, libelleStatut, type TypeDemande } from "./demandes";
+import { dateHeureBruxelles, type TypeDemande } from "./demandes";
 
 /**
  * Vue détail d'une demande : sections, libellés et mise en forme des valeurs.
@@ -13,7 +13,7 @@ export type Detail = { sections: Section[]; signature: string | null };
 type Plan = { titre: string; cles: [string, string][] }[];
 
 const PLAN_AFFILIATION: Plan = [
-  { titre: "Demande", cles: [["created_at", "Reçue le"], ["status", "Statut"]] },
+  { titre: "Demande", cles: [["created_at", "Reçue le"]] },
   {
     titre: "Identité",
     cles: [
@@ -140,7 +140,6 @@ export function formaterValeur(cle: string, v: unknown): string {
   if (typeof v === "number") return String(v).replace(".", ",");
   if (typeof v !== "string") return JSON.stringify(v);
   if (cle === "created_at") return dateHeureBruxelles(v);
-  if (cle === "status") return libelleStatut(v);
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return isoToDateFr(v);
   if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return dateHeureBruxelles(v);
   if (/iban/i.test(cle)) return groupeIban(v.replace(/\s/g, "").toUpperCase());
@@ -170,7 +169,8 @@ const SIGNATURE_IMAGE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
 /** Toutes les informations d'une demande, rangées par section (rien n'est omis, sauf l'identifiant technique). */
 export function detailDemande(type: TypeDemande, ligne: Record<string, unknown>): Detail {
   const plan = type === "affiliation" ? PLAN_AFFILIATION : type === "sepa" || type === "changement" ? PLAN_SEPA : PLAN_ONEM;
-  const vues = new Set<string>(["id", "signature", "data"]);
+  // `status` (affiliations) : jamais utilisé par la centrale, masqué.
+  const vues = new Set<string>(["id", "signature", "data", "status"]);
   const sections: Section[] = plan.map((s) => ({ titre: s.titre, champs: champs(ligne, s.cles, vues) }));
 
   let signature = typeof ligne.signature === "string" ? ligne.signature : null;

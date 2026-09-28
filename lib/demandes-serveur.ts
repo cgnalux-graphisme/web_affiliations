@@ -62,7 +62,7 @@ export type FiltresListe = {
 
 export async function listerDemandes(db: SupabaseClient, f: FiltresListe): Promise<ReponseListe> {
   const config = DEMANDES[f.type];
-  const colonnes = `id, created_at, nom, prenom, email${f.type === "affiliation" ? ", statut:status" : ""}`;
+  const colonnes = "id, created_at, nom, prenom, email";
 
   const chercher = (page: number) => {
     let q = requete(f.type, db.from(config.table).select(colonnes, { count: "exact" }));
@@ -108,7 +108,6 @@ export async function listerDemandes(db: SupabaseClient, f: FiltresListe): Promi
       nom: (l.nom as string | null) ?? null,
       prenom: (l.prenom as string | null) ?? null,
       email: (l.email as string | null) ?? null,
-      statut: (l.statut as string | null) ?? null,
     })
   );
   return { lignes, total: count ?? lignes.length, page, parPage: PAR_PAGE, compteurs };
