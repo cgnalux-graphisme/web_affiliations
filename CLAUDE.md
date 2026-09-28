@@ -324,7 +324,7 @@ reformuler, citer et lier la source, jamais recopier.
 - Erreurs traduites en clair : clé absente ou refusée, limite d'utilisation,
   crédit épuisé (402), service surchargé ou injoignable, refus, réponse vide.
 
-#### Variables d'environnement (Vercel Production + Preview **et** `.env.local`)
+#### Variables d'environnement (Vercel Production + Preview **et** `.env.local` — en place depuis le 28/09/2026)
 - `SUPABASE_SERVICE_ROLE_KEY` (ramassage ; jamais préfixée `NEXT_PUBLIC_`).
 - `CRON_SECRET` (chaîne aléatoire ≥ 16 caractères).
 - `ANTHROPIC_API_KEY` (rédaction assistée ; jamais préfixée `NEXT_PUBLIC_`,
@@ -395,8 +395,10 @@ reformuler, citer et lier la source, jamais recopier.
   GitHub** le 28/09/2026 (déploiement de prévisualisation Vercel). Rien sur
   `main`, rien en production.
 - `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` et `ANTHROPIC_API_KEY` sont dans
-  `.env.local` (vérifié le 28/09/2026). À ajouter aussi dans Vercel
-  (Production + Preview) par Fred.
+  `.env.local` (vérifié le 28/09/2026) **et ajoutées dans Vercel par Fred le
+  28/09/2026** (déclaré par Fred, non vérifiable depuis Claude Code sans accès
+  Vercel). Une variable ajoutée ou modifiée dans Vercel ne s'applique qu'aux
+  **déploiements suivants** : redéployer la preview si besoin.
 - Pistes suivantes : déclinaison réseaux (phase 3), images (génération /
   gabarits, plus tard), derniers articles sur l'accueil, « Trouver votre
   contact » (phase 4, avec l'assistant), mentions légales.
