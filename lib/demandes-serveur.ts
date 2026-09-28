@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { demandesLiees, emailNormalise, nissChiffres, type Candidate, type DemandeLiee } from "./demandes-liees";
+import type { EnvoiMail } from "./envois";
 import { getSuperAdmin } from "./supabase-server";
 import { getSupabaseService } from "./supabase-service";
 import {
@@ -178,4 +179,27 @@ export async function chercherDemandesLiees(
     }
   }
   return demandesLiees(reference, candidates);
+}
+
+/** Codes d'erreur « table inconnue » (migration site_envois_mails pas encore exécutée). */
+export const TABLE_ABSENTE = new Set(["42P01", "PGRST205"]);
+
+/** Historique des e-mails envoyés pour une demande (site_envois_mails), du plus récent au plus ancien. */
+export async function lireEnvois(
+  db: SupabaseClient,
+  type: TypeDemande,
+  id: string
+): Promise<{ envois: EnvoiMail[]; tableAbsente: boolean }> {
+  const { data, error } = await db
+    .from("site_envois_mails")
+    .select("id, created_at, envoi, destinataire, sujet, statut, erreur")
+    .eq("demande_type", type)
+    .eq("demande_id", id)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) {
+    if (TABLE_ABSENTE.has(error.code ?? "")) return { envois: [], tableAbsente: true };
+    throw new Error(`envois : ${error.code ?? ""} ${error.message}`);
+  }
+  return { envois: (data ?? []) as EnvoiMail[], tableAbsente: false };
 }

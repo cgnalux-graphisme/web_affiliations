@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { getSupabase } from "./lib/supabase";
+import { insererDemande } from "./lib/insertion-demande";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
 import { enregistrerPolicesPdf } from "./lib/pdf/charte";
@@ -2153,6 +2153,8 @@ export interface AffiliationFormProps {
   initialData?: Partial<FormData>;
   onComplete?: (result: {
     data: FormData;
+    /** Id de la ligne web_affiliations (null si la base l'a refusé). */
+    demandeId: string | null;
     pdfBase64: string;
     fileName: string;
   }) => void;
@@ -2308,7 +2310,8 @@ export default function FormulaireWebIndependant({
     setServerError("");
 
     // 1. Enregistrement dans Supabase
-    const { error } = await getSupabase().from("web_affiliations").insert([{
+    // Identifiant choisi ici : il rattache les e-mails envoyés à la demande (historique du back-office).
+    const { id: demandeId, error } = await insererDemande("web_affiliations", {
       nom:                          data.nom,
       prenom:                       data.prenom,
       niss:                         nissInconnu ? null : data.niss,
@@ -2360,7 +2363,7 @@ export default function FormulaireWebIndependant({
       mention_rgpd:                 mentions.rgpd,
       signature:                    data.signature,
       created_at:                   new Date().toISOString(),
-    }]);
+    });
 
     if (error) {
       setLoading(false);
@@ -2444,6 +2447,7 @@ export default function FormulaireWebIndependant({
         modePaiement:            data.modePaiement,
         niss:                    data.niss || null,
         premiereEcheanceMontant,
+        demandeId,
       });
     } catch (emailErr) {
       // L'inscription Supabase a réussi, on affiche la confirmation même si
@@ -2453,7 +2457,7 @@ export default function FormulaireWebIndependant({
 
     setLoading(false);
     if (journeyMode && onComplete && generatedPdfBase64) {
-      onComplete({ data, pdfBase64: generatedPdfBase64, fileName: pdfFileName });
+      onComplete({ data, demandeId, pdfBase64: generatedPdfBase64, fileName: pdfFileName });
       return;
     }
     setSubmitted(true);

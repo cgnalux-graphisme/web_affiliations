@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { FileDown, ChevronRight, ChevronLeft } from "lucide-react";
 import type { C1Data, CohabitantRow } from "./app/api/fill-c1/route";
 import LivraisonFormulaires from "./LivraisonFormulaires";
-import { getSupabase } from "./lib/supabase";
+import { insererDemande } from "./lib/insertion-demande";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
 
@@ -415,6 +415,8 @@ export interface C1FormProps {
   initialData?: Partial<C1Data>;
   onComplete?: (result: {
     form: C1Data;
+    /** Id de la ligne web_c1 (null si la base l'a refusé). */
+    demandeId: string | null;
     pdfBase64: string;
     fileName: string;
   }) => void;
@@ -430,6 +432,7 @@ export default function FormulaireC1({
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [loading, setLoading] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [demandeId, setDemandeId] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const { acquire, release } = useOnceSubmit();
 
@@ -509,7 +512,8 @@ export default function FormulaireC1({
       setPdfBase64(b64);
 
       // Save to Supabase
-      await getSupabase().from("web_c1").insert({
+      // Identifiant choisi ici : il rattache les e-mails envoyés à la demande (historique du back-office).
+      const { id } = await insererDemande("web_c1", {
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
         niss: form.niss.replace(/\D/g, "") || null,
@@ -521,9 +525,10 @@ export default function FormulaireC1({
 
       // En parcours guidé, le choix d'envoi se fait à la toute fin.
       if (journeyMode && onComplete) {
-        onComplete({ form, pdfBase64: b64, fileName });
+        onComplete({ form, demandeId: id, pdfBase64: b64, fileName });
         return;
       }
+      setDemandeId(id);
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -546,9 +551,10 @@ export default function FormulaireC1({
           prenom={form.prenom.trim()}
           emailDeclarant={form.email.trim().toLowerCase()}
           texteServiceChomage="Le service chômage reçoit ce formulaire, comme jusqu'ici."
-          documents={[{ label: "Formulaire C1", fileName, pdfBase64 }]}
+          documents={[{ label: "Formulaire C1", fileName, pdfBase64, demande: demandeId ? { type: "c1", id: demandeId } : undefined }]}
           onEnvoyerServiceChomage={() =>
             postJson("/api/send-c1", {
+              demandeId,
               nom: form.nom.trim(),
               prenom: form.prenom.trim(),
               email: form.email.trim().toLowerCase(),

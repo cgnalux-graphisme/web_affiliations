@@ -1,3 +1,4 @@
+import type { RefDemande } from "./envois";
 import type { PersonProfile } from "./person-profile";
 
 export type JourneyPhase = "intro" | "affiliation" | "c1" | "c32" | "complete";
@@ -7,6 +8,8 @@ export interface JourneyPdf {
   label: string;
   fileName: string;
   pdfBase64: string;
+  /** Demande enregistrée (historique des envois du back-office). */
+  demande?: RefDemande;
 }
 
 export interface TransferJourneyState {

@@ -31,6 +31,8 @@ export function uniqueRecipients(
   return [...seen];
 }
 
+export type ResultatEnvoi = { to: string; id: string | null; erreur: string | null };
+
 interface IsolatedEmailOptions {
   /** Destinataires — chacun reçoit son propre e-mail, seul en « À ». */
   recipients: string[];
@@ -66,14 +68,21 @@ export async function sendIsolatedEmail(
     )
   );
 
+  // Résultat par destinataire (historique des envois, lib/envois-serveur.ts).
+  const envois: ResultatEnvoi[] = results.map((r, i) => ({
+    to: toList[i],
+    id: r.data?.id ?? null,
+    erreur: r.error ? r.error.message || r.error.name || "Échec" : null,
+  }));
+
   const failed = results.find((r) => r.error);
   if (failed?.error) {
     console.error(
       "[sendIsolatedEmail] Échec d'envoi :",
       results.filter((r) => r.error).map((r) => r.error)
     );
-    return { data: null, error: failed.error };
+    return { data: null, error: failed.error, envois };
   }
 
-  return { data: results[0]?.data ?? null, error: null };
+  return { data: results[0]?.data ?? null, error: null, envois };
 }

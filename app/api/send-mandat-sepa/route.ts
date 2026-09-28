@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getResendClient, sendIsolatedEmail } from "@/lib/resend-mail";
+import { getResendClient } from "@/lib/resend-mail";
+import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
 
 const ADMIN_EMAIL    = "admin.nalux@accg.be";
 const TEL_NAMUR      = "+32 (0) 81 64 99 61";
@@ -14,6 +15,8 @@ interface Payload {
   fileName:    string;
   nouveauIban: string;
   typeDemande?: "nouveau_mandat" | "changement_compte";
+  /** Id de la ligne web_mandats_sepa (historique des envois). */
+  demandeId?: string;
 }
 
 function buildHtml(p: Payload): string {
@@ -118,8 +121,11 @@ export async function POST(request: Request) {
     const pdfBuffer = Buffer.from(pdfBase64, "base64");
     const resend = getResendClient();
 
-    const { error } = await sendIsolatedEmail(resend, {
-      recipients: [email, ADMIN_EMAIL],
+    const envoi = typeDemande === "changement_compte" ? "changement" : "sepa";
+    const { error } = await envoyerEtJournaliser(resend, {
+      envoi,
+      refs: lireRefs({ type: envoi, id: body.demandeId }),
+      recipients: [email, ...(await destinatairesInternes(envoi))],
       subject: `${typeDemande === "nouveau_mandat" ? "Nouveau mandat SEPA" : "Changement de compte / Mandat SEPA"} — Centrale Générale FGTB Namur Luxembourg`,
       html: buildHtml({ email, nom, prenom, pdfBase64, fileName, nouveauIban, typeDemande }),
       attachments: [{ filename: fileName, content: pdfBuffer }],

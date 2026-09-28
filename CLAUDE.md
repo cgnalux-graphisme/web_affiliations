@@ -67,8 +67,9 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
+| `/suivi-actions/parametres` | SUPER_ADMIN | Paramètres : adresses internes qui reçoivent chaque envoi automatique des formulaires (ajouter, activer / désactiver, supprimer) |
 | `/api/admin/demandes` | SUPER_ADMIN | Liste d'un type de demande (GET `?type=&q=&du=&au=&tri=&page=`) — clé service_role |
-| `/api/admin/demandes/<type>/<id>` · `/pdf` | SUPER_ADMIN | Détail complet d'une demande ; PDF C1 / C3.2 rempli côté serveur |
+| `/api/admin/demandes/<type>/<id>` · `/pdf` · `/liees` · `/envois` | SUPER_ADMIN | Détail complet d'une demande ; PDF C1 / C3.2 rempli côté serveur ; demandes de la même personne ; historique des e-mails |
 | `/api/image-distante` | SUPER_ADMIN | Télécharge une image glissée depuis une autre page web (POST `{ url }`) |
 | `/api/redaction/lisibilite` | SUPER_ADMIN | L'IA peut-elle lire l'article ? Vérification gratuite du `robots.txt` du média (GET `?veilleId=`) |
 | `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 (POST `{ veilleId, lire, extrait?, consignes? }`) |
@@ -217,11 +218,43 @@ signature) :
 - Libellés et sections du détail : `lib/demandes-affichage.ts` ; une colonne
   ajoutée plus tard en base apparaît dans « Autres informations ».
 
+### Envois automatiques : paramètres et historique (28/09/2026)
+
+Migration **demandée par Fred** le 28/09/2026 :
+`supabase/migrations/20260928120000_site_destinataires_envois_mails.sql`
+(première migration du dépôt, idempotente). **À exécuter par Fred dans l'éditeur
+SQL de Supabase** : tant qu'elle ne l'est pas, les envois partent vers les
+adresses par défaut (`DESTINATAIRES_DEFAUT`, `lib/envois.ts`), l'écran
+Paramètres et l'historique affichent « pas encore activé ».
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_destinataires` | Adresses internes par envoi : `envoi` (`affiliation`, `sepa`, `changement`, `c1`, `c32`, `parcours_onem`), `email` (minuscules, unique par envoi), `actif` ; pré-remplie avec les adresses du code au 28/09/2026 | Super admin (lecture / écriture) ; lue par les routes d'envoi en service_role |
+| `site_envois_mails` | Journal : une ligne par demande et par destinataire (`demande_type`, `demande_id`, `envoi` ou `copie_personnelle`, `destinataire`, `sujet`, `statut` `envoye` / `echec`, `resend_id`, `erreur`) | Lecture super admin ; écriture **uniquement** en service_role (aucune politique d'écriture) |
+
+- Routes d'envoi (`/api/send-*`) : `destinatairesInternes()` puis
+  `envoyerEtJournaliser()` (`lib/envois-serveur.ts`). Le **demandeur reçoit
+  toujours sa copie** ; seules les adresses internes se règlent. Toutes les
+  adresses internes désactivées = seul le demandeur reçoit (avertissement à
+  l'écran). Le journal ne fait jamais échouer un envoi ; une référence de
+  demande n'est journalisée que si la demande existe.
+- `sendIsolatedEmail()` renvoie aussi `envois` (résultat par destinataire).
+- Rattachement mail → demande : les formulaires choisissent l'`id` de la ligne
+  dans le navigateur (`insererDemande()`, `lib/insertion-demande.ts`, la clé
+  publique ne peut pas relire la ligne) et le passent à l'envoi (`demandeId`,
+  ou `demande` sur chaque document de `LivraisonFormulaires`, parcours compris).
+  Si la base refuse l'`id` fourni (erreur 42501), la demande est enregistrée
+  sans lui (pas d'historique, mais le formulaire marche).
+- L'historique ne couvre que les demandes reçues après la mise en ligne.
+- Les adresses citées **dans le texte** des mails (`ADMIN_EMAIL` des routes)
+  restent dans le code : ce sont des contacts, pas des destinataires.
+
 ---
 
 ## Sécurité base de données — correctifs déjà appliqués côté Supabase (invisibles depuis le code)
 
-Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
+Appliqués directement dans la base CG Link, sans migration dans ce dépôt (seule
+exception : la migration des envois, voir plus haut, demandée par Fred).
 **Ne pas créer de migration** sans demande explicite de Fred.
 
 - **Rôles dans `profiles`** : le trigger `trg_site_protect_profiles_role` (fonction
@@ -468,6 +501,9 @@ reformuler, citer et lier la source, jamais recopier.
 ## État au 28/09/2026
 - Tout le travail est sur la branche **`suivi-actions`** : rien sur `main`, rien
   déployé. À relire puis fusionner quand Fred valide.
+- À faire par Fred : **exécuter** la migration
+  `supabase/migrations/20260928120000_site_destinataires_envois_mails.sql`
+  dans l'éditeur SQL de Supabase (paramètres des envois + historique).
 - À faire par Fred : **supprimer** le projet Supabase `accg-nalux-site`
   (dashboard).
 - Bureaux (`lib/bureaux.ts`) repris de l'ancien site le 25/09/2026 : Libramont

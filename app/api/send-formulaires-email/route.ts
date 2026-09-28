@@ -4,7 +4,8 @@
  */
 import { NextResponse } from "next/server";
 import { buildLivraisonPersonnelleHtml } from "@/lib/onem-email-html";
-import { getResendClient, sendIsolatedEmail } from "@/lib/resend-mail";
+import { getResendClient } from "@/lib/resend-mail";
+import { envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
 
 const ADMIN_EMAIL = "jonathan.hubert@accg.be";
 const MAX_FICHIER_OCTETS = 4 * 1024 * 1024;
@@ -15,6 +16,8 @@ interface DocumentPayload {
   label?: string;
   fileName?: string;
   pdfBase64?: string;
+  /** Demande d'où vient le document (historique des envois). */
+  demande?: { type?: string; id?: string };
 }
 
 interface Payload {
@@ -78,7 +81,9 @@ export async function POST(request: Request) {
     const resend = getResendClient();
     const sujet = `Formulaires remplis — ${prenom} ${nom}`.replace(/[\r\n]/g, " ").slice(0, 180);
 
-    const { error } = await sendIsolatedEmail(resend, {
+    const { error } = await envoyerEtJournaliser(resend, {
+      envoi: "copie_personnelle",
+      refs: lireRefs(documents.map((d) => d.demande).filter(Boolean)),
       recipients: [to],
       subject: sujet,
       html: buildLivraisonPersonnelleHtml({

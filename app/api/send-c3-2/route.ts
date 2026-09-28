@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { buildC32Html } from "@/lib/onem-email-html";
-import { getResendClient, sendIsolatedEmail } from "@/lib/resend-mail";
+import { getResendClient } from "@/lib/resend-mail";
+import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
 
+// Adresse de contact citée dans le texte du mail (les destinataires sont réglés dans Paramètres).
 const ADMIN_EMAIL = "jonathan.hubert@accg.be";
-const OP_EMAIL = "op.namlux@fgtb.be";
 
 interface Payload {
   nom: string;
@@ -11,6 +12,8 @@ interface Payload {
   email: string;
   pdfBase64: string;
   fileName: string;
+  /** Id de la ligne web_c3_2 (historique des envois). */
+  demandeId?: string;
 }
 
 export async function POST(request: Request) {
@@ -25,8 +28,10 @@ export async function POST(request: Request) {
     const pdfBuffer = Buffer.from(pdfBase64, "base64");
     const resend = getResendClient();
 
-    const { error } = await sendIsolatedEmail(resend, {
-      recipients: [ADMIN_EMAIL, OP_EMAIL, email],
+    const { error } = await envoyerEtJournaliser(resend, {
+      envoi: "c32",
+      refs: lireRefs({ type: "c32", id: body.demandeId }),
+      recipients: [...(await destinatairesInternes("c32")), email],
       subject: `Formulaire C3.2 — ${prenom} ${nom}`,
       html: buildC32Html({ nom, prenom, email, adminEmail: ADMIN_EMAIL }),
       attachments: [{ filename: fileName, content: pdfBuffer }],

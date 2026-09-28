@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { CheckCircle, FileDown, Mail, Send } from "lucide-react";
+import type { RefDemande } from "./lib/envois";
 import { postJson } from "./lib/post-json";
 import {
   PROVINCES_BELGIQUE,
@@ -13,6 +14,8 @@ export interface DocumentLivraison {
   label: string;
   fileName: string;
   pdfBase64: string;
+  /** Demande d'où vient le document : l'envoi apparaît dans son historique (back-office). */
+  demande?: RefDemande;
 }
 
 interface LivraisonFormulairesProps {

@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, FileText, Link2, Loader2, Lock, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle, Download, FileText, Link2, Loader2, Lock, Mail, RefreshCw } from "lucide-react";
 import { DEMANDES, dateHeureBruxelles, nomFichierPdf, type TypeDemande } from "../../../../../lib/demandes";
 import { detailDemande } from "../../../../../lib/demandes-affichage";
 import type { DemandeLiee } from "../../../../../lib/demandes-liees";
+import { LIBELLES_ENVOI_JOURNAL, type EnvoiMail } from "../../../../../lib/envois";
 
 const BOUTON_PRINCIPAL =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2.5 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50";
@@ -39,6 +40,8 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
   const [ligne, setLigne] = useState<Record<string, unknown> | null>(null);
   const [erreur, setErreur] = useState("");
   const [liees, setLiees] = useState<DemandeLiee[] | null>(null);
+  const [envois, setEnvois] = useState<{ envois: EnvoiMail[]; tableAbsente: boolean } | null>(null);
+  const [erreurEnvois, setErreurEnvois] = useState("");
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [generation, setGeneration] = useState(false);
@@ -63,6 +66,16 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
       .then(setLiees)
       .catch(() => {
         if (!ctrl.signal.aborted) setLiees([]);
+      });
+    // Historique des e-mails envoyés pour cette demande.
+    fetch(`/api/admin/demandes/${type}/${id}/envois`, { signal: ctrl.signal, cache: "no-store" })
+      .then(async (res) => {
+        const data = (await res.json().catch(() => ({}))) as { envois?: EnvoiMail[]; tableAbsente?: boolean; erreur?: string };
+        if (!res.ok || !data.envois) throw new Error(data.erreur ?? `Erreur ${res.status}.`);
+        setEnvois({ envois: data.envois, tableAbsente: Boolean(data.tableAbsente) });
+      })
+      .catch((e: unknown) => {
+        if (!ctrl.signal.aborted) setErreurEnvois(e instanceof Error ? e.message : "L'historique ne peut pas être chargé.");
       });
     return () => ctrl.abort();
   }, [type, id]);
@@ -202,6 +215,64 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
                 title={`Aperçu du PDF — ${nomFichier}`}
                 className="mt-4 h-[75vh] w-full rounded-xl border border-militant-ardoise"
               />
+            )}
+          </section>
+
+          <section aria-labelledby="titre-envois" className="mt-6 rounded-2xl border border-militant-ardoise p-5">
+            <h2 id="titre-envois" className="flex items-center gap-2 font-condensed text-2xl font-extrabold uppercase">
+              <Mail size={20} aria-hidden /> Historique des envois
+            </h2>
+            {erreurEnvois ? (
+              <p role="alert" className="mt-2 text-sm font-semibold text-militant-bordeaux">
+                {erreurEnvois}
+              </p>
+            ) : !envois ? (
+              <p role="status" className="mt-2 flex items-center gap-2 text-sm">
+                <Loader2 size={15} className="animate-spin text-militant-rouge" aria-hidden /> Chargement…
+              </p>
+            ) : envois.tableAbsente ? (
+              <p className="mt-2 text-sm">
+                L&apos;historique n&apos;est pas encore activé : la migration <code>site_envois_mails</code> doit être exécutée
+                dans Supabase.
+              </p>
+            ) : envois.envois.length === 0 ? (
+              <p className="mt-2 text-sm">
+                Aucun envoi enregistré pour cette demande. L&apos;historique ne couvre que les demandes reçues depuis sa
+                mise en ligne.
+              </p>
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-militant-charbon">
+                      <th scope="col" className="py-2 pr-3 font-bold">Date</th>
+                      <th scope="col" className="py-2 pr-3 font-bold">Envoi</th>
+                      <th scope="col" className="py-2 pr-3 font-bold">Destinataire</th>
+                      <th scope="col" className="py-2 font-bold">Résultat</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-militant-ardoise">
+                    {envois.envois.map((e) => (
+                      <tr key={e.id}>
+                        <td className="whitespace-nowrap py-2 pr-3 tabular-nums">{dateHeureBruxelles(e.created_at)}</td>
+                        <td className="py-2 pr-3">{LIBELLES_ENVOI_JOURNAL[e.envoi] ?? e.envoi}</td>
+                        <td className="break-all py-2 pr-3">{e.destinataire}</td>
+                        <td className="py-2">
+                          {e.statut === "envoye" ? (
+                            <span className="inline-flex items-center gap-1 font-bold">
+                              <CheckCircle size={15} aria-hidden /> Envoyé
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-start gap-1 font-bold text-militant-bordeaux" title={e.erreur ?? undefined}>
+                              <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden /> Échec{e.erreur ? ` : ${e.erreur}` : ""}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
 

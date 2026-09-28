@@ -13,7 +13,8 @@
  */
 
 import { NextResponse } from "next/server";
-import { getResendClient, sendIsolatedEmail } from "@/lib/resend-mail";
+import { getResendClient } from "@/lib/resend-mail";
+import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
 const ADMIN_EMAIL   = "admin.nalux@accg.be";
@@ -34,6 +35,7 @@ interface EmailPayload {
   modePaiement:             string;   // "domiciliation" | "virement"
   niss:                     string | null;
   premiereEcheanceMontant:  string | null;   // ex: "57.00" (virement seulement)
+  demandeId?:               string;   // id de la ligne web_affiliations (historique des envois)
 }
 
 // ── Template HTML de l'email ───────────────────────────────────────────────────
@@ -296,8 +298,10 @@ export async function POST(request: Request) {
     const pdfBuffer = Buffer.from(pdfBase64, "base64");
     const resend = getResendClient();
 
-    const { error } = await sendIsolatedEmail(resend, {
-      recipients: [email, ADMIN_EMAIL],
+    const { error } = await envoyerEtJournaliser(resend, {
+      envoi: "affiliation",
+      refs: lireRefs({ type: "affiliation", id: body.demandeId }),
+      recipients: [email, ...(await destinatairesInternes("affiliation"))],
       subject: `Confirmation de votre demande d'affiliation – Centrale Générale FGTB Namur Luxembourg`,
       html: buildEmailHtml({
         email, nom, prenom, pdfBase64, fileName,

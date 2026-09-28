@@ -239,6 +239,7 @@ export default function ParcoursTransfert() {
 
   function handleAffiliationComplete(result: {
     data: AffiliationProfileSource & { signature: string };
+    demandeId: string | null;
     pdfBase64: string;
     fileName: string;
   }) {
@@ -252,6 +253,7 @@ export default function ParcoursTransfert() {
           label: "Demande d'affiliation FGTB",
           fileName: result.fileName,
           pdfBase64: result.pdfBase64,
+          demande: result.demandeId ? { type: "affiliation", id: result.demandeId } : undefined,
         },
       ],
       updatedAt: new Date().toISOString(),
@@ -262,6 +264,7 @@ export default function ParcoursTransfert() {
   }
 
   function handleC1Complete(result: {
+    demandeId: string | null;
     pdfBase64: string;
     fileName: string;
   }) {
@@ -275,6 +278,7 @@ export default function ParcoursTransfert() {
           label: "Formulaire C1 — Déclaration de situation",
           fileName: result.fileName,
           pdfBase64: result.pdfBase64,
+          demande: result.demandeId ? { type: "c1", id: result.demandeId } : undefined,
         },
       ],
       updatedAt: new Date().toISOString(),
@@ -296,8 +300,8 @@ export default function ParcoursTransfert() {
       nom: state.profile.nom.trim(),
       prenom: state.profile.prenom.trim(),
       email: state.profile.email.trim().toLowerCase(),
-      c1: { pdfBase64: c1Pdf.pdfBase64, fileName: c1Pdf.fileName },
-      c32: { pdfBase64: c32Pdf.pdfBase64, fileName: c32Pdf.fileName },
+      c1: { pdfBase64: c1Pdf.pdfBase64, fileName: c1Pdf.fileName, demandeId: c1Pdf.demande?.id },
+      c32: { pdfBase64: c32Pdf.pdfBase64, fileName: c32Pdf.fileName, demandeId: c32Pdf.demande?.id },
     });
 
     persist({
@@ -309,6 +313,7 @@ export default function ParcoursTransfert() {
 
   async function handleC32Complete(result: {
     form: { nom: string; prenom: string; email: string };
+    demandeId: string | null;
     pdfBase64: string;
     fileName: string;
   }) {
@@ -327,6 +332,7 @@ export default function ParcoursTransfert() {
           label: "Formulaire C3.2 — Chômage temporaire",
           fileName: result.fileName,
           pdfBase64: result.pdfBase64,
+          demande: result.demandeId ? { type: "c32", id: result.demandeId } : undefined,
         },
       ],
       updatedAt: new Date().toISOString(),

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { dateFrToIso, formatDateFr, isoToDateFr, isValidDateFr } from "./lib/dates";
-import { getSupabase } from "./lib/supabase";
+import { insererDemande } from "./lib/insertion-demande";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
 import { enregistrerPolicesPdf } from "./lib/pdf/charte";
@@ -853,8 +853,8 @@ export default function FormulaireChangementCompte() {
       const dateIso = dateFrToIso(form.dateSig);
       if (!dateIso) throw new Error("Date de signature invalide.");
 
-      const supabase = getSupabase();
-      const { error: dbError } = await supabase.from("web_mandats_sepa").insert({
+      // Identifiant choisi ici : il rattache les e-mails envoyés à la demande (historique du back-office).
+      const { id: demandeId, error: dbError } = await insererDemande("web_mandats_sepa", {
         type_demande: form.typeDemande,
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
@@ -906,6 +906,7 @@ export default function FormulaireChangementCompte() {
           fileName,
           nouveauIban: formatIBAN(form.nouveauIban),
           typeDemande: form.typeDemande,
+          demandeId,
         });
       } catch (emailErr) {
         // L'enregistrement a réussi : on laisse télécharger le PDF même si l'e-mail échoue.

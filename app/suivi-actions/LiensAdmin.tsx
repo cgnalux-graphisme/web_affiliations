@@ -13,6 +13,7 @@ const LIENS: { href: string; label: string; sousPages?: boolean }[] = [
   { href: "/suivi-actions/veille", label: "Veille" },
   { href: "/suivi-actions/sources", label: "Sources de la veille" },
   { href: "/suivi-actions/themes", label: "Thématiques" },
+  { href: "/suivi-actions/parametres", label: "Paramètres" },
 ];
 
 export default function LiensAdmin() {

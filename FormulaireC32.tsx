@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import LivraisonFormulaires from "./LivraisonFormulaires";
 import type { C32Data } from "./app/api/fill-c3-2/route";
-import { getSupabase } from "./lib/supabase";
+import { insererDemande } from "./lib/insertion-demande";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
 
@@ -213,6 +213,8 @@ export interface C32FormProps {
   /** En parcours guidé : le choix d'envoi se fait à la fin du parcours. */
   onComplete?: (result: {
     form: C32Data;
+    /** Id de la ligne web_c3_2 (null si la base l'a refusé). */
+    demandeId: string | null;
     pdfBase64: string;
     fileName: string;
   }) => void | Promise<void>;
@@ -228,6 +230,7 @@ export default function FormulaireC32({
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [loading, setLoading] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [demandeId, setDemandeId] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const { acquire, release } = useOnceSubmit();
 
@@ -289,7 +292,8 @@ export default function FormulaireC32({
       const { pdfBase64: b64 } = await fillRes.json();
       setPdfBase64(b64);
 
-      await getSupabase().from("web_c3_2").insert({
+      // Identifiant choisi ici : il rattache les e-mails envoyés à la demande (historique du back-office).
+      const { id } = await insererDemande("web_c3_2", {
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
         niss: form.niss.replace(/\D/g, "") || null,
@@ -300,10 +304,11 @@ export default function FormulaireC32({
       const fileName = `formulaire-c3-2-${form.nom.toLowerCase()}-${form.prenom.toLowerCase()}.pdf`;
 
       if (journeyMode && onComplete) {
-        await onComplete({ form, pdfBase64: b64, fileName });
+        await onComplete({ form, demandeId: id, pdfBase64: b64, fileName });
         return;
       }
 
+      setDemandeId(id);
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -325,9 +330,10 @@ export default function FormulaireC32({
           prenom={form.prenom.trim()}
           emailDeclarant={form.email.trim().toLowerCase()}
           texteServiceChomage="Le service chômage reçoit ce formulaire, comme jusqu'ici."
-          documents={[{ label: "Formulaire C3.2", fileName, pdfBase64 }]}
+          documents={[{ label: "Formulaire C3.2", fileName, pdfBase64, demande: demandeId ? { type: "c32", id: demandeId } : undefined }]}
           onEnvoyerServiceChomage={() =>
             postJson("/api/send-c3-2", {
+              demandeId,
               nom: form.nom.trim(),
               prenom: form.prenom.trim(),
               email: form.email.trim().toLowerCase(),

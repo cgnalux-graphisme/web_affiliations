@@ -4,14 +4,17 @@
  */
 import { NextResponse } from "next/server";
 import { buildOnemBundleHtml } from "@/lib/onem-email-html";
-import { getResendClient, sendIsolatedEmail } from "@/lib/resend-mail";
+import { getResendClient } from "@/lib/resend-mail";
+import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
 
+// Adresse de contact citée dans le texte du mail (les destinataires sont réglés dans Paramètres).
 const ADMIN_EMAIL = "jonathan.hubert@accg.be";
-const OP_EMAIL = "op.namlux@fgtb.be";
 
 interface AttachmentPayload {
   pdfBase64: string;
   fileName: string;
+  /** Id de la ligne web_c1 / web_c3_2 (historique des envois). */
+  demandeId?: string;
 }
 
 interface Payload {
@@ -33,8 +36,10 @@ export async function POST(request: Request) {
 
     const resend = getResendClient();
 
-    const { error } = await sendIsolatedEmail(resend, {
-      recipients: [ADMIN_EMAIL, OP_EMAIL, email],
+    const { error } = await envoyerEtJournaliser(resend, {
+      envoi: "parcours_onem",
+      refs: lireRefs([{ type: "c1", id: c1.demandeId }, { type: "c32", id: c32.demandeId }]),
+      recipients: [...(await destinatairesInternes("parcours_onem")), email],
       subject: `Formulaires C1 et C3.2 — ${prenom} ${nom}`,
       html: buildOnemBundleHtml({ nom, prenom, email, adminEmail: ADMIN_EMAIL }),
       attachments: [
