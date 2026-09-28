@@ -61,12 +61,14 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/articles` | SUPER_ADMIN | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
 | `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article ; `?veille=<id>` pré-remplit depuis la veille et affiche le panneau de rédaction assistée |
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
+| `/suivi-actions/articles/<id>/reseaux` | SUPER_ADMIN | Déclinaison d'un article publié en posts Facebook, Instagram, TikTok, YouTube : générer, modifier, enregistrer, copier |
 | `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
 | `/api/image-distante` | SUPER_ADMIN | Télécharge une image glissée depuis une autre page web (POST `{ url }`) |
 | `/api/redaction/lisibilite` | SUPER_ADMIN | L'IA peut-elle lire l'article ? Vérification gratuite du `robots.txt` du média (GET `?veilleId=`) |
 | `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 (POST `{ veilleId, lire, extrait?, consignes? }`) |
+| `/api/reseaux/declinaison` | SUPER_ADMIN | Posts réseaux proposés par Claude Sonnet 5 (POST `{ articleId, reseau? }` ; sans `reseau` = les 4) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
 Navigation publique : Accueil · Nos actions · Actualités · Démarches en ligne ·
@@ -114,6 +116,14 @@ Veille (créés côté Supabase avant le 28/09/2026) :
 | `site_sources` | Flux RSS suivis : `nom`, `url_flux`, `actif` | Super admin |
 | `site_themes` | Mots-clés de pertinence : `mot_cle`, `actif` (pré-remplie) | Super admin |
 | `site_veille` | Articles ramassés : `source_id`, `source_nom`, `titre`, `resume`, `lien` (**index unique**), `date_publication`, `statut` (`nouveau` / `traite` / `ignore`) | Super admin ; écriture du ramassage en service_role |
+
+Réseaux sociaux (créé côté Supabase avant le 28/09/2026) :
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_publications_reseaux` | Posts déclinés d'un article : `article_id` (→ `site_articles`), `reseau` (`facebook` / `instagram` / `tiktok` / `youtube`), `contenu`, `statut` (défaut `brouillon`, non utilisé par le code), `created_at`, `updated_at` | Super admin |
+
+Colonnes relevées par l'OpenAPI de PostgREST ; aucune contrainte d'unicité visible sur (`article_id`, `reseau`) : le code met à jour la ligne la plus récente, sinon en insère une. YouTube : titre sur la 1re ligne, ligne vide, puis description (`composerYoutube()` / `lireYoutube()`, `lib/reseaux.ts`). Si la base contraint `reseau` à d'autres valeurs, adapter `RESEAUX`.
 
 ### Colonnes de `site_articles`
 `titre`, `slug` (adresse `/blog/<slug>`), `chapo` (accroche), `points_cles`
@@ -331,8 +341,26 @@ reformuler, citer et lier la source, jamais recopier.
   jamais importée dans un composant client).
 
 ### Phase 3 — Publication réseaux
-- Décliner chaque article validé par réseau (court/punchy pour Insta-TikTok, plus
-  détaillé pour Facebook…).
+- [x] **Déclinaison par l'IA** (28/09/2026, `suivi-actions`) : depuis un article
+      **publié** (bouton « Réseaux » de la liste, bandeau de la page Modifier),
+      `/suivi-actions/articles/<id>/reseaux`. Claude Sonnet 5, serveur uniquement
+      (`app/api/reseaux/declinaison`, `lib/reseaux-ia.ts`, sortie structurée `zod`,
+      réflexion adaptative, effort `medium`, ~1 c. et 15 s pour les 4). Source =
+      titre + chapô + points clés + contenu + lien de l'article. Consigne : fidélité
+      stricte à l'article validé (aucun ajout, chiffres et nuances conservés), ton
+      militant mais factuel, longueur et style propres à chaque réseau.
+      **Post-traitement côté code** : Facebook et description YouTube = seul le lien
+      de l'article (ajouté s'il manque) ; Instagram et TikTok = aucun lien,
+      « Lien en bio » garanti sur Instagram. Écran : 4 cartes côte à côte, chacune
+      éditable, compteur de caractères (limites : Facebook 63 206, Instagram 2 200 +
+      30 hashtags, TikTok 4 000, YouTube titre 100 / description 5 000), Copier,
+      Enregistrer (écriture navigateur, RLS super admin), Régénérer (une seule
+      version) ; confirmation avant de remplacer une version, alerte en quittant
+      avec des modifications non enregistrées. **Aucune publication automatique** :
+      Fred copie-colle.
+- Lien des posts : `SITE_URL` (ex. `https://accg-nalux.com`, variable facultative,
+  serveur) sinon l'adresse par laquelle l'admin consulte le site (la preview
+  donnerait un lien de preview : définir `SITE_URL` avant usage réel).
 - Passer par un **outil-pont** (Ayrshare / Metricool / Buffer — à choisir) plutôt
   que coder chaque réseau.
 - Fred valide chaque post avant publication. Pas de copier/coller manuel.
@@ -399,7 +427,9 @@ reformuler, citer et lier la source, jamais recopier.
   28/09/2026** (déclaré par Fred, non vérifiable depuis Claude Code sans accès
   Vercel). Une variable ajoutée ou modifiée dans Vercel ne s'applique qu'aux
   **déploiements suivants** : redéployer la preview si besoin.
-- Pistes suivantes : déclinaison réseaux (phase 3), images (génération /
+- Le 28/09/2026 : déclinaison des articles pour les réseaux (phase 3, sans
+  publication automatique) sur `suivi-actions`.
+- Pistes suivantes : publication directe sur les réseaux (phase 3, outil-pont), images (génération /
   gabarits, plus tard), derniers articles sur l'accueil, « Trouver votre
   contact » (phase 4, avec l'assistant), mentions légales.
 
@@ -483,7 +513,8 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 - Stack : Next.js 16 (App Router, Node 24), Supabase, Vercel, Resend (envoi
   d'e-mails), Tailwind 3, `@react-pdf/renderer`, Vitest, Tiptap (éditeur),
   `sanitize-html`, `fast-xml-parser` (flux RSS), `@anthropic-ai/sdk` + `zod`
-  (rédaction assistée, serveur uniquement).
+  (rédaction assistée et déclinaison réseaux, serveur uniquement ; erreurs de
+  l'API traduites par `lib/anthropic-erreurs.ts`).
 - Le `.env.local` de `web_affiliations` pointe **déjà** vers CG Link — ne pas le
   modifier. Les clés restent dans `.env.local` (jamais dans ce fichier ni sur GitHub).
 - **Next.js 16** : le middleware s'appelle `proxy.ts` (verrou de `/suivi-actions`).

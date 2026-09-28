@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Share2 } from "lucide-react";
+import { STATUT_PUBLIE } from "../../../../../lib/articles";
 import { getSuperAdmin, getSupabaseServer } from "../../../../../lib/supabase-server";
 import { SuppressionArticle } from "../../BoutonsArticle";
 import FormulaireArticle, { type ArticleEnregistre } from "../../FormulaireArticle";
@@ -43,6 +45,17 @@ export default async function ModifierArticlePage({
             <span className="font-bold text-militant-bordeaux">L&apos;article est enregistré, mais pas l&apos;image de couverture.</span>{" "}
             Choisissez-la à nouveau puis enregistrez. Si le problème persiste, reconnectez-vous.
           </p>
+        </div>
+      )}
+      {article.statut === STATUT_PUBLIE && (
+        <div className="mx-auto mb-6 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border border-militant-ardoise px-4 py-3">
+          <p className="text-sm">Article publié : déclinez-le en posts Facebook, Instagram, TikTok et YouTube.</p>
+          <Link
+            href={`/suivi-actions/articles/${article.id}/reseaux`}
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-militant-bordeaux px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2"
+          >
+            <Share2 size={16} aria-hidden /> Décliner pour les réseaux
+          </Link>
         </div>
       )}
       <FormulaireArticle key={article.id} article={article} />

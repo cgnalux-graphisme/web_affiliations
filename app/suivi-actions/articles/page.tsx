@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle, ExternalLink, Eye, FileText, Globe, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckCircle, ExternalLink, Eye, FileText, Globe, Pencil, Plus, Share2, Trash2 } from "lucide-react";
 import { STATUT_PUBLIE, dateArticle } from "../../../lib/articles";
 import { getSuperAdmin, getSupabaseServer } from "../../../lib/supabase-server";
 import { BoutonPublication, SuppressionArticle } from "./BoutonsArticle";
@@ -106,7 +106,7 @@ export default async function ListeArticlesPage({
             <span>Date</span>
             <span>Article</span>
             <span>Statut</span>
-            <span className="w-[16rem]">Gestion</span>
+            <span className="w-[22rem]">Gestion</span>
           </div>
           <ul className="mt-6 divide-y divide-militant-ardoise border-y border-militant-ardoise md:mt-0">
             {articles.map((a) => {
@@ -162,7 +162,7 @@ export default async function ListeArticlesPage({
                       </span>
                     )}
                   </p>
-                  <div className="flex flex-wrap items-start gap-2 md:w-[16rem] md:justify-end">
+                  <div className="flex flex-wrap items-start gap-2 md:w-[22rem] md:justify-end">
                     <Link
                       href={`/suivi-actions/articles/${a.id}/modifier`}
                       aria-label={`Modifier : ${a.titre}`}
@@ -170,6 +170,16 @@ export default async function ListeArticlesPage({
                     >
                       <Pencil size={14} aria-hidden /> Modifier
                     </Link>
+                    {publie && (
+                      <Link
+                        href={`/suivi-actions/articles/${a.id}/reseaux`}
+                        aria-label={`Décliner pour les réseaux : ${a.titre}`}
+                        title="Décliner pour les réseaux"
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border-2 border-militant-charbon px-3.5 py-1.5 text-sm font-bold transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
+                      >
+                        <Share2 size={14} aria-hidden /> Réseaux
+                      </Link>
+                    )}
                     <BoutonPublication article={cible} />
                     <SuppressionArticle article={cible} compact />
                   </div>
