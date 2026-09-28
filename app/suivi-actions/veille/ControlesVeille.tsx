@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle, EyeOff, Loader2, PenLine, RefreshCw, RotateCcw } from "lucide-react";
 import { getSupabaseAuth } from "../../../lib/supabase";
@@ -25,29 +26,70 @@ export function FiltresVeille({
   source,
   statut,
   nombres,
+  tous,
+  nbPertinents,
+  nbTotal,
 }: {
   sources: { id: string; nom: string }[];
   source: string;
   statut: string;
   nombres: Record<StatutVeille, number>;
+  tous: boolean;
+  nbPertinents: number;
+  nbTotal: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [enCours, demarrer] = useTransition();
 
-  function aller(maj: { source?: string; statut?: string }) {
+  function aller(maj: { source?: string; statut?: string; tous?: boolean }) {
     const p = new URLSearchParams();
     const s = maj.source ?? source;
     const st = maj.statut ?? statut;
     if (s) p.set("source", s);
     if (st) p.set("statut", st);
+    if (maj.tous ?? tous) p.set("pertinence", "tous");
     demarrer(() => router.push(p.size ? `${pathname}?${p}` : pathname));
   }
 
   const onglets = [{ valeur: "", label: "Tous" }, ...STATUTS_VEILLE.map((s) => ({ valeur: s, label: LIBELLES_STATUT[s], n: nombres[s] }))];
 
   return (
-    <div className="mt-6 flex flex-wrap items-end justify-between gap-4" aria-busy={enCours}>
+    <div className="mt-6 space-y-4" aria-busy={enCours}>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-militant-ardoise px-4 py-3">
+        <div role="group" aria-label="Pertinence" className="flex rounded-xl border-2 border-militant-charbon p-0.5">
+          {[
+            { valeur: false, label: "Pertinents" },
+            { valeur: true, label: "Tous" },
+          ].map((o) => (
+            <button
+              key={o.label}
+              type="button"
+              aria-pressed={tous === o.valeur}
+              onClick={() => aller({ tous: o.valeur })}
+              className={`min-h-[36px] rounded-lg px-4 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge ${
+                tous === o.valeur ? "bg-militant-bordeaux text-white" : "hover:bg-militant-charbon hover:text-white"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[15px]">
+          <span className="font-condensed text-2xl font-extrabold tabular-nums text-militant-rouge">{nbPertinents}</span>{" "}
+          <span className="font-semibold">
+            pertinent{nbPertinents > 1 ? "s" : ""} sur {nbTotal}
+          </span>
+          {statut || source ? " (selon les filtres ci-dessous)" : ""}
+        </p>
+        <Link
+          href="/suivi-actions/themes"
+          className="ml-auto text-sm font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
+        >
+          Gérer les mots-clés
+        </Link>
+      </div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
       <div role="group" aria-label="Filtrer par statut" className="flex flex-wrap gap-1.5">
         {onglets.map((o) => {
           const actif = statut === o.valeur;
@@ -85,6 +127,7 @@ export function FiltresVeille({
             </option>
           ))}
         </select>
+      </div>
       </div>
     </div>
   );

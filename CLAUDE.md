@@ -63,6 +63,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
 | `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille : filtres, ignorer, rédiger un article, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
+| `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
 Navigation publique : Accueil · Nos actions · Actualités · Démarches en ligne ·
@@ -107,6 +108,7 @@ Veille (créés côté Supabase avant le 28/09/2026) :
 | Objet | Rôle | Accès |
 |---|---|---|
 | `site_sources` | Flux RSS suivis : `nom`, `url_flux`, `actif` | Super admin |
+| `site_themes` | Mots-clés de pertinence : `mot_cle`, `actif` (pré-remplie) | Super admin |
 | `site_veille` | Articles ramassés : `source_id`, `source_nom`, `titre`, `resume`, `lien` (**index unique**), `date_publication`, `statut` (`nouveau` / `traite` / `ignore`) | Super admin ; écriture du ramassage en service_role |
 
 ### Colonnes de `site_articles`
@@ -217,6 +219,14 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       moment : bouton « Rafraîchir maintenant ». « Rédiger un article » passe l'item
       en `traite` et ouvre `/suivi-actions/articles/nouveau?veille=<id>`
       (titre + lien pré-remplis dans les sources).
+- [x] **Pertinence par mots-clés (sans IA)** — 28/09/2026 : écran Veille filtré
+      par défaut sur « Pertinents » (`?pertinence=tous` pour tout voir),
+      compteur « X pertinents sur Y », mots-clés retenus affichés sur chaque
+      article. Règle (`lib/themes.ts`) : au moins un mot-clé actif dans le titre
+      ou le résumé, insensible à la casse et aux accents, le mot-clé doit
+      **commencer un mot** (« salaire » → « salaires », mais « cp » ↛
+      « capacité »). Filtre d'affichage uniquement : rien n'est effacé, un
+      changement de mots-clés re-filtre tout de suite.
 - Variables d'environnement requises (Vercel **et** `.env.local` pour tester en
   local) : `SUPABASE_SERVICE_ROLE_KEY` (jamais préfixée `NEXT_PUBLIC_`),
   `CRON_SECRET` (chaîne aléatoire d'au moins 16 caractères).
