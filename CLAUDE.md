@@ -250,7 +250,12 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       pour récupérer le texte lu tel quel), `max_uses: 1`, `allowed_domains` =
       domaine de l'article, `max_content_tokens: 30000` ; relance sur
       `pause_turn` (3 fois max). Si la page est illisible (payante, bloquée,
-      supprimée), brouillon à partir du seul flux + avertissement.
+      supprimée), brouillon à partir du seul flux + avertissement. Certains
+      sites **interdisent le robot d'Anthropic** (ex. `rtl.be`, constaté le
+      28/09/2026) : l'API rejette alors toute la demande (400 « not accessible
+      to our user agent ») ; la route relance **sans l'outil de lecture**
+      (brouillon depuis le flux, raison « le site refuse la lecture par les
+      robots d'IA »). Ne pas contourner ce blocage.
       Consigne et post-traitement dans `lib/redaction-ia.ts` : reformuler,
       **aucun fait / chiffre / citation absent de l'article ou du flux**, analyse
       syndicale formulée comme analyse ou question, matière maigre signalée,

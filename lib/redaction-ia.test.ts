@@ -115,4 +115,10 @@ describe("messageSource", () => {
     expect(m).toContain("<lien>https://www.rtbf.be/article/mutuelles-123</lien>");
     expect(m).toContain("(aucun résumé fourni par le flux)");
   });
+
+  it("prévient l'IA quand l'article ne peut pas être lu", () => {
+    expect(messageSource(item, true)).toContain("ne peut pas être lu");
+    expect(messageSource(item)).toContain("Lis d'abord l'article");
+    expect(raisonLecture("site_refuse_ia")).toBe("le site refuse la lecture par les robots d'IA");
+  });
 });

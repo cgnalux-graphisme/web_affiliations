@@ -58,8 +58,11 @@ Règles strictes (non négociables)
 export type ItemSource = { titre: string; resume: string | null; lien: string; source_nom: string | null };
 
 /** Message utilisateur : la source, balisée comme donnée. */
-export function messageSource(item: ItemSource): string {
-  return `Rédige un brouillon d'article à partir de cette source de veille. Lis d'abord l'article à l'adresse indiquée.
+export function messageSource(item: ItemSource, lectureImpossible = false): string {
+  const consigne = lectureImpossible
+    ? "Rédige un brouillon d'article à partir de cette source de veille. L'article d'origine ne peut pas être lu (le site refuse la lecture par les robots d'IA) : utilise uniquement le titre et le résumé du flux, et signale-le dans avertissement."
+    : "Rédige un brouillon d'article à partir de cette source de veille. Lis d'abord l'article à l'adresse indiquée.";
+  return `${consigne}
 
 <source>
 <media>${item.source_nom ?? "inconnu"}</media>
@@ -150,6 +153,7 @@ const RAISONS_LECTURE: Record<string, string> = {
   too_many_requests: "le site limite les lectures automatiques",
   unavailable: "service de lecture indisponible",
   url_too_long: "adresse trop longue",
+  site_refuse_ia: "le site refuse la lecture par les robots d'IA",
 };
 
 export function raisonLecture(code: string | undefined): string {

@@ -111,35 +111,47 @@ export async function POST(request: NextRequest) {
   ];
 
   const client = new Anthropic({ timeout: 240_000 });
-  const messages: Anthropic.MessageParam[] = [{ role: "user", content: messageSource(item) }];
-  const blocsLus: Anthropic.ContentBlock[] = [];
 
-  try {
-    let reponse = await client.messages.parse({
+  /** Lecture de l'article (si l'outil est fourni) puis rédaction ; relance le tour s'il est mis en pause. */
+  async function rediger(avecLecture: boolean) {
+    const messages: Anthropic.MessageParam[] = [{ role: "user", content: messageSource(item, !avecLecture) }];
+    const parametres = {
       model: MODELE_REDACTION,
       max_tokens: 16000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "medium", format: zodOutputFormat(SchemaBrouillon) },
+      thinking: { type: "adaptive" as const },
+      output_config: { effort: "medium" as const, format: zodOutputFormat(SchemaBrouillon) },
       system: CONSIGNE_SYSTEME,
-      tools: outils,
-      messages,
-    });
-    blocsLus.push(...reponse.content);
-
+      ...(avecLecture ? { tools: outils } : {}),
+    };
+    const blocs: Anthropic.ContentBlock[] = [];
+    let reponse = await client.messages.parse({ ...parametres, messages });
+    blocs.push(...reponse.content);
     // Outil côté serveur : l'API peut mettre le tour en pause ; on le relance tel quel.
     for (let i = 0; reponse.stop_reason === "pause_turn" && i < MAX_REPRISES_PAUSE; i++) {
       messages.push({ role: "assistant", content: reponse.content });
-      reponse = await client.messages.parse({
-        model: MODELE_REDACTION,
-        max_tokens: 16000,
-        thinking: { type: "adaptive" },
-        output_config: { effort: "medium", format: zodOutputFormat(SchemaBrouillon) },
-        system: CONSIGNE_SYSTEME,
-        tools: outils,
-        messages,
-      });
-      blocsLus.push(...reponse.content);
+      reponse = await client.messages.parse({ ...parametres, messages });
+      blocs.push(...reponse.content);
     }
+    return { reponse, blocs };
+  }
+
+  try {
+    let lectureRefusee = false;
+    let resultat: Awaited<ReturnType<typeof rediger>>;
+    try {
+      resultat = await rediger(true);
+    } catch (err) {
+      // Site qui interdit la lecture par les robots d'IA (robots.txt) : l'API refuse toute la
+      // demande dès qu'il figure dans allowed_domains. On respecte ce choix et on rédige
+      // à partir du seul flux. Pas de type d'erreur dédié : seul le message distingue ce cas.
+      if (err instanceof Anthropic.BadRequestError && /not accessible to our user agent/i.test(err.message)) {
+        lectureRefusee = true;
+        resultat = await rediger(false);
+      } else {
+        throw err;
+      }
+    }
+    const { reponse, blocs } = resultat;
 
     if (reponse.stop_reason === "refusal") {
       return erreur("L'IA a refusé de rédiger à partir de cet article. Rédigez-le vous-même ou choisissez un autre article.", 422);
@@ -149,7 +161,9 @@ export async function POST(request: NextRequest) {
       return erreur("L'IA a renvoyé une réponse vide ou incomplète. Réessayez.", 502);
     }
 
-    const { lecture, texte } = lectureDepuis(blocsLus);
+    const { lecture, texte } = lectureRefusee
+      ? { lecture: { lu: false, raison: raisonLecture("site_refuse_ia") } as Lecture, texte: "" }
+      : lectureDepuis(blocs);
     const brouillon = construireBrouillon(reponse.parsed_output, item, lecture, texte);
     if (!brouillon.contenu.trim()) {
       return erreur("L'IA a renvoyé un contenu vide. Réessayez.", 502);
