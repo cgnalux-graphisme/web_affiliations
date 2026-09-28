@@ -206,7 +206,18 @@ export default async function VeillePage({
                     ))}
                   </p>
                 )}
-                <ActionsItem id={it.id} titre={it.titre} statut={s} />
+                <ActionsItem
+                  item={{
+                    id: it.id,
+                    titre: it.titre,
+                    statut: s,
+                    resume: it.resume,
+                    lien: it.lien,
+                    source: it.source_nom ?? "Source supprimée",
+                    date: dateArticle(it.date_publication ?? it.created_at),
+                    motsCles: it.motsCles,
+                  }}
+                />
               </li>
             );
           })}

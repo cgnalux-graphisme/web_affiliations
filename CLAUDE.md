@@ -209,7 +209,7 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 ### Phase 2 — Veille + blog
 - [x] **Veille RSS (sans IA)** — 28/09/2026 : sources gérées dans l'admin ;
       `lib/veille-flux.ts` lit RSS 2.0 / Atom / RDF (50 items max par flux,
-      résumé sans HTML, 600 caractères) ; `lib/veille-ramassage.ts` insère en
+      résumé sans HTML, 5 000 caractères max) ; `lib/veille-ramassage.ts` insère en
       `upsert … ignoreDuplicates` sur `lien` avec la clé **service_role**
       (`lib/supabase-service.ts`, serveur uniquement). Route protégée par
       `CRON_SECRET` (en-tête `Authorization: Bearer`) ou session super admin.

@@ -63,9 +63,9 @@ describe("lireFlux", () => {
   });
 
   it("coupe les résumés trop longs", () => {
-    const long = `<rss><channel><item><title>T</title><link>https://a.be/x</link><description>${"mot ".repeat(400)}</description></item></channel></rss>`;
+    const long = `<rss><channel><item><title>T</title><link>https://a.be/x</link><description>${"mot ".repeat(1500)}</description></item></channel></rss>`;
     const [item] = lireFlux(long);
-    expect(item.resume!.length).toBeLessThanOrEqual(601);
+    expect(item.resume!.length).toBeLessThanOrEqual(5001);
     expect(item.resume!.endsWith("…")).toBe(true);
   });
 });

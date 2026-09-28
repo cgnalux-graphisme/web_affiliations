@@ -14,7 +14,8 @@ export type ItemFlux = {
   date_publication: string | null; // ISO
 };
 
-const RESUME_MAX = 600;
+// Résumé complet du flux (affiché en entier dans l'aperçu de la veille) ; garde-fou contre les flux qui mettent tout l'article.
+const RESUME_MAX = 5000;
 export const ITEMS_MAX_PAR_FLUX = 50;
 
 const ENTITES: Record<string, string> = {
