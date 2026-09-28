@@ -391,10 +391,9 @@ reformuler, citer et lier la source, jamais recopier.
   « Registre » du 25/09/2026). Les PDF **C1, C3.2 et Calcul de préavis ne doivent
   pas être modifiés**.
 - Le 28/09/2026 : blog, veille RSS (sources, ramassage quotidien, thématiques)
-  et rédaction assistée par IA en place sur `suivi-actions`. Branche poussée sur
-  GitHub (prévisualisation Vercel) jusqu'au commit `16a26fd` ; les commits de la
-  rédaction assistée (`ba51603` → `a5b4ea8`) sont **locaux, pas encore
-  poussés**. Rien sur `main`, rien en production.
+  et rédaction assistée par IA en place sur `suivi-actions`, **poussée sur
+  GitHub** le 28/09/2026 (déploiement de prévisualisation Vercel). Rien sur
+  `main`, rien en production.
 - `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` et `ANTHROPIC_API_KEY` sont dans
   `.env.local` (vérifié le 28/09/2026). À ajouter aussi dans Vercel
   (Production + Preview) par Fred.
