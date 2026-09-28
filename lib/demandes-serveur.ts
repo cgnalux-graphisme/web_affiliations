@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { demandesLiees, emailNormalise, nissChiffres, type Candidate, type DemandeLiee } from "./demandes-liees";
 import { getSuperAdmin } from "./supabase-server";
 import { getSupabaseService } from "./supabase-service";
 import {
@@ -118,4 +119,63 @@ export async function lireDemande(db: SupabaseClient, type: TypeDemande, id: str
   const { data, error } = await requete(type, db.from(DEMANDES[type].table).select("*").eq("id", id)).maybeSingle();
   if (error) throw new Error(`détail ${type} : ${error.code ?? ""} ${error.message}`);
   return (data as Record<string, unknown> | null) ?? null;
+}
+
+const TYPE_DE_TABLE = {
+  web_affiliations: "affiliation",
+  web_mandats_sepa: "sepa",
+  web_c1: "c1",
+  web_c3_2: "c32",
+} as const satisfies Record<string, TypeDemande>;
+
+/**
+ * Autres demandes de la même personne (même NISS ou même e-mail), dans tous les onglets.
+ * Filtre grossier en base (NISS sous ses deux formes stockées, e-mail), puis rapprochement exact
+ * par demandesLiees(). Ne renvoie que date, type, nom et prénom des demandes trouvées.
+ */
+export async function chercherDemandesLiees(
+  db: SupabaseClient,
+  type: TypeDemande,
+  ligne: Record<string, unknown>
+): Promise<DemandeLiee[]> {
+  const reference: Candidate = {
+    type,
+    id: String(ligne.id),
+    created_at: String(ligne.created_at ?? ""),
+    nom: (ligne.nom as string | null) ?? null,
+    prenom: (ligne.prenom as string | null) ?? null,
+    email: (ligne.email as string | null) ?? null,
+    niss: (ligne.niss as string | null) ?? null,
+  };
+  const niss = nissChiffres(reference.niss);
+  const email = emailNormalise(reference.email);
+  const criteres: string[] = [];
+  if (niss) {
+    // web_affiliations garde le NISS formaté (99.99.99-999.99), les autres tables les 11 chiffres.
+    const formate = `${niss.slice(0, 2)}.${niss.slice(2, 4)}.${niss.slice(4, 6)}-${niss.slice(6, 9)}.${niss.slice(9)}`;
+    criteres.push(`niss.in.(${niss},"${formate}")`);
+  }
+  // Caractères qui casseraient la syntaxe du filtre PostgREST : critère e-mail abandonné.
+  if (email && !/[",()\\]/.test(email)) criteres.push(`email.ilike."${email}"`);
+  if (!criteres.length) return [];
+
+  const tables = Object.keys(TYPE_DE_TABLE) as (keyof typeof TYPE_DE_TABLE)[];
+  const candidates: Candidate[] = [];
+  for (const table of tables) {
+    const colonnes = `id, created_at, nom, prenom, email, niss${table === "web_mandats_sepa" ? ", type_demande" : ""}`;
+    const { data, error } = await db.from(table).select(colonnes).or(criteres.join(",")).limit(50);
+    if (error) throw new Error(`demandes liées ${table} : ${error.code ?? ""} ${error.message}`);
+    for (const l of (data ?? []) as unknown as Record<string, unknown>[]) {
+      candidates.push({
+        type: table === "web_mandats_sepa" && l.type_demande === "changement_compte" ? "changement" : TYPE_DE_TABLE[table],
+        id: String(l.id),
+        created_at: String(l.created_at ?? ""),
+        nom: (l.nom as string | null) ?? null,
+        prenom: (l.prenom as string | null) ?? null,
+        email: (l.email as string | null) ?? null,
+        niss: (l.niss as string | null) ?? null,
+      });
+    }
+  }
+  return demandesLiees(reference, candidates);
 }

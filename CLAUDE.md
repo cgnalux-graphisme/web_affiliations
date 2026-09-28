@@ -209,6 +209,11 @@ signature) :
   étape enregistre dans la table de son formulaire (`web_affiliations`, `web_c1`,
   `web_c3_2`) et **rien ne relie les 3 lignes** (pas d'identifiant de parcours) :
   un dossier de parcours apparaît donc éclaté dans 3 onglets.
+  Palliatif (28/09/2026) : encadré « Autres demandes de la même personne » dans
+  la fiche (`/api/admin/demandes/<type>/<id>/liees`, `lib/demandes-liees.ts`) —
+  même NISS (11 chiffres ; l'affiliation le garde au format `99.99.99-999.99`)
+  ou même e-mail, jamais le nom seul ; « même dossier probable » si moins de
+  24 h d'écart. Déduction : à vérifier avant de rapprocher.
 - Libellés et sections du détail : `lib/demandes-affichage.ts` ; une colonne
   ajoutée plus tard en base apparaît dans « Autres informations ».
 

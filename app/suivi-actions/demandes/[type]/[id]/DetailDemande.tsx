@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, FileText, Loader2, Lock, RefreshCw } from "lucide-react";
+import { ArrowLeft, Download, FileText, Link2, Loader2, Lock, RefreshCw } from "lucide-react";
 import { DEMANDES, dateHeureBruxelles, nomFichierPdf, type TypeDemande } from "../../../../../lib/demandes";
 import { detailDemande } from "../../../../../lib/demandes-affichage";
+import type { DemandeLiee } from "../../../../../lib/demandes-liees";
 
 const BOUTON_PRINCIPAL =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2.5 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50";
@@ -37,6 +38,7 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
   const config = DEMANDES[type];
   const [ligne, setLigne] = useState<Record<string, unknown> | null>(null);
   const [erreur, setErreur] = useState("");
+  const [liees, setLiees] = useState<DemandeLiee[] | null>(null);
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [generation, setGeneration] = useState(false);
@@ -54,6 +56,13 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
       })
       .catch((e: unknown) => {
         if (!ctrl.signal.aborted) setErreur(e instanceof Error ? e.message : "La demande ne peut pas être chargée.");
+      });
+    // Demandes de la même personne (chargées à part : la fiche s'affiche sans les attendre).
+    fetch(`/api/admin/demandes/${type}/${id}/liees`, { signal: ctrl.signal, cache: "no-store" })
+      .then(async (res) => (res.ok ? ((await res.json()) as { liees: DemandeLiee[] }).liees : []))
+      .then(setLiees)
+      .catch(() => {
+        if (!ctrl.signal.aborted) setLiees([]);
       });
     return () => ctrl.abort();
   }, [type, id]);
@@ -129,6 +138,37 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
 
       {ligne && detail && (
         <>
+          {liees && liees.length > 0 && (
+            <section aria-labelledby="titre-liees" className="mt-6 rounded-2xl border-2 border-militant-bordeaux p-5">
+              <h2 id="titre-liees" className="flex items-center gap-2 font-condensed text-2xl font-extrabold uppercase">
+                <Link2 size={20} aria-hidden /> Autres demandes de la même personne
+              </h2>
+              <p className="mt-1 text-sm">
+                Retrouvées par le même NISS ou le même e-mail : c'est une déduction, vérifiez l'identité avant de les rapprocher.
+              </p>
+              <ul className="mt-3 divide-y divide-militant-ardoise">
+                {liees.map((l) => (
+                  <li key={`${l.type}-${l.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5">
+                    <span className="font-condensed text-lg font-bold tabular-nums">{dateHeureBruxelles(l.created_at)}</span>
+                    <Link
+                      href={`/suivi-actions/demandes/${l.type}/${l.id}?retour=${encodeURIComponent(new URL(retour, "http://x").search.slice(1))}`}
+                      className="font-bold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
+                    >
+                      {DEMANDES[l.type].singulier}
+                    </Link>
+                    <span>{[l.nom?.toUpperCase(), l.prenom].filter(Boolean).join(" ")}</span>
+                    <span className="text-sm">{l.raison === "niss" ? "même NISS" : "même e-mail"}</span>
+                    {l.memeDossier && (
+                      <span className="rounded-full bg-militant-bordeaux px-2.5 py-0.5 text-sm font-bold text-white">
+                        Même dossier probable (moins de 24 h d'écart)
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section aria-labelledby="titre-pdf" className="mt-6 rounded-2xl border border-militant-ardoise p-5">
             <h2 id="titre-pdf" className="flex items-center gap-2 font-condensed text-2xl font-extrabold uppercase">
               <FileText size={20} aria-hidden /> PDF de la demande
