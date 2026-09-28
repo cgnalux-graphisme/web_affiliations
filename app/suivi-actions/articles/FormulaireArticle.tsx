@@ -13,6 +13,7 @@ import {
   FileText,
   Globe,
   ImagePlus,
+  Italic,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -100,7 +101,13 @@ function formDepuis(a?: ArticleEnregistre, pre?: PreRemplissage): Form {
 type EtatIA =
   | { etape: "inactif" }
   | { etape: "en_cours" }
-  | { etape: "propose"; avertissement: string | null; suggestionImage: string }
+  | {
+      etape: "propose";
+      avertissement: string | null;
+      suggestionImage: string;
+      articleLu: boolean;
+      reprises: number;
+    }
   | { etape: "erreur"; message: string };
 
 export default function FormulaireArticle({
@@ -166,7 +173,13 @@ export default function FormulaireArticle({
       setSlugManuel(false);
       setErreurs({});
       setVersionEditeur((v) => v + 1);
-      setIa({ etape: "propose", avertissement: b.avertissement, suggestionImage: b.suggestion_image });
+      setIa({
+        etape: "propose",
+        avertissement: b.avertissement,
+        suggestionImage: b.suggestion_image,
+        articleLu: b.article_lu,
+        reprises: b.reprises,
+      });
     } catch {
       setIa({ etape: "erreur", message: "Le serveur ne répond pas. Vérifiez votre connexion et réessayez." });
     }
@@ -680,8 +693,11 @@ function PanneauIA({ ia, onProposer }: { ia: EtatIA; onProposer: () => void }) {
           <div className="min-w-0 flex-1">
             <p className="font-condensed text-2xl font-extrabold leading-tight">{RAPPEL_IA}</p>
             <p className="mt-1 text-sm">
-              Tous les champs sont modifiables. La date et le statut n&apos;ont pas été touchés : l&apos;article reste un
-              brouillon tant que vous ne le publiez pas.
+              {ia.articleLu
+                ? "Rédigé après lecture de l'article d'origine. "
+                : "L'article d'origine n'a pas pu être lu : rédigé à partir du seul résumé du flux. "}
+              Tous les champs sont modifiables ; la date et le statut n&apos;ont pas été touchés (l&apos;article reste un
+              brouillon).
             </p>
           </div>
           <button
@@ -692,14 +708,29 @@ function PanneauIA({ ia, onProposer }: { ia: EtatIA; onProposer: () => void }) {
             <RefreshCw size={15} aria-hidden /> Proposer un autre brouillon
           </button>
         </div>
-        {ia.avertissement && (
-          <p className="flex items-start gap-2 border-t-2 border-white bg-white px-5 py-3 text-sm text-militant-charbon">
-            <AlertTriangle size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
-            <span>
-              <span className="font-bold text-militant-bordeaux">Source maigre : </span>
-              {ia.avertissement}
-            </span>
-          </p>
+        {(ia.reprises > 0 || ia.avertissement) && (
+          <div className="space-y-2 border-t-2 border-white bg-white px-5 py-3 text-sm text-militant-charbon">
+            {ia.reprises > 0 && (
+              <p className="flex items-start gap-2">
+                <Italic size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
+                <span>
+                  <span className="font-bold text-militant-bordeaux">
+                    {ia.reprises} passage{ia.reprises > 1 ? "s" : ""} repris mot pour mot, mis en italique dans le contenu.
+                  </span>{" "}
+                  Reformulez-les, ou gardez-les comme citations (entre guillemets, en citant le média).
+                </span>
+              </p>
+            )}
+            {ia.avertissement && (
+              <p className="flex items-start gap-2">
+                <AlertTriangle size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
+                <span>
+                  <span className="font-bold text-militant-bordeaux">À vérifier : </span>
+                  {ia.avertissement}
+                </span>
+              </p>
+            )}
+          </div>
         )}
       </section>
     );
@@ -712,13 +743,14 @@ function PanneauIA({ ia, onProposer }: { ia: EtatIA; onProposer: () => void }) {
         <p className="min-w-0 flex-1 text-sm">
           {ia.etape === "en_cours" ? (
             <span className="font-semibold">
-              Rédaction du brouillon par l&apos;IA… Comptez 20 secondes à 1 minute. Ne fermez pas la page.
+              L&apos;IA lit l&apos;article d&apos;origine puis rédige le brouillon… Comptez 30 secondes à 2 minutes. Ne
+              fermez pas la page.
             </span>
           ) : (
             <>
-              <span className="font-bold">Rédaction assistée.</span> L&apos;IA propose un brouillon complet à partir de
-              l&apos;article de veille (titre, chapô, points clés, contenu, sources). Vous relisez et corrigez tout avant
-              publication.
+              <span className="font-bold">Rédaction assistée.</span> L&apos;IA lit l&apos;article d&apos;origine et propose
+              un brouillon complet (titre, chapô, points clés, contenu, sources), reformulé ; les passages repris mot pour
+              mot sont mis en italique. Vous relisez et corrigez tout avant publication.
             </>
           )}
         </p>

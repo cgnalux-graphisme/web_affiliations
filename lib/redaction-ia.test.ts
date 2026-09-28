@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { construireBrouillon, messageSource, type ReponseIA } from "./redaction-ia";
+import {
+  construireBrouillon,
+  contientReprise,
+  empreintesSource,
+  marquerReprises,
+  messageSource,
+  raisonLecture,
+  type ReponseIA,
+} from "./redaction-ia";
 
 const item = {
   titre: "Les mutuelles critiquent le gouvernement",
@@ -7,6 +15,10 @@ const item = {
   lien: "https://www.rtbf.be/article/mutuelles-123",
   source_nom: "RTBF Info",
 };
+
+const ARTICLE =
+  "Selon une nouvelle étude publiée ce lundi matin par la Mutualité chrétienne, près d'une personne en invalidité sur trois souhaite reprendre le travail. " +
+  "« Notre travail, c'est d'accompagner, pas de sanctionner », estime la directrice.";
 
 const reponse: ReponseIA = {
   titre: "  Incapacité : les mutuelles  sonnent l'alarme ",
@@ -20,7 +32,7 @@ const reponse: ReponseIA = {
 };
 
 describe("construireBrouillon", () => {
-  const b = construireBrouillon(reponse, item);
+  const b = construireBrouillon(reponse, item, { lu: true }, ARTICLE);
 
   it("nettoie le titre et en déduit l'adresse", () => {
     expect(b.titre).toBe("Incapacité : les mutuelles sonnent l'alarme");
@@ -39,16 +51,61 @@ describe("construireBrouillon", () => {
     expect(b.contenu).toBe("<h2>Ce qui se passe</h2><p>Texte <a>lien</a></p>");
   });
 
-  it("n'avertit pas quand la source suffit", () => {
+  it("n'avertit pas quand l'article est lu et la source suffit", () => {
     expect(b.avertissement).toBeNull();
+    expect(b.article_lu).toBe(true);
     expect(b.suggestion_image).toBe("Une salle d'attente de mutuelle.");
   });
 
-  it("avertit quand la source est trop maigre", () => {
-    expect(construireBrouillon({ ...reponse, source_suffisante: false }, item).avertissement).toMatch(/trop maigre/);
-    expect(construireBrouillon({ ...reponse, avertissement: "Il manque les chiffres." }, item).avertissement).toBe(
-      "Il manque les chiffres."
+  it("avertit quand la source est maigre ou l'article non lu", () => {
+    expect(construireBrouillon({ ...reponse, source_suffisante: false }, item, { lu: true }).avertissement).toMatch(/trop maigre/);
+    const nonLu = construireBrouillon(reponse, item, { lu: false, raison: raisonLecture("url_not_accessible") });
+    expect(nonLu.article_lu).toBe(false);
+    expect(nonLu.avertissement).toMatch(/non lu \(page inaccessible/);
+  });
+
+  it("met en italique une phrase recopiée que l'IA a oublié de marquer", () => {
+    const copie = construireBrouillon(
+      {
+        ...reponse,
+        contenu_html:
+          "<p>Une étude est sortie. Près d'une personne en invalidité sur trois souhaite reprendre le travail. Et après ?</p>",
+      },
+      item,
+      { lu: true },
+      ARTICLE
     );
+    expect(copie.contenu).toBe(
+      "<p>Une étude est sortie. <em>Près d'une personne en invalidité sur trois souhaite reprendre le travail.</em> Et après ?</p>"
+    );
+    expect(copie.reprises).toBe(1);
+  });
+
+  it("signale une reprise dans le chapô", () => {
+    const c = construireBrouillon(
+      { ...reponse, chapo: "Près d'une personne en invalidité sur trois souhaite reprendre le travail, dit l'étude." },
+      item,
+      { lu: true },
+      ARTICLE
+    );
+    expect(c.avertissement).toMatch(/Reprise mot pour mot dans le chapô/);
+  });
+});
+
+describe("marquerReprises", () => {
+  const empreintes = empreintesSource(ARTICLE);
+
+  it("ne touche pas une citation déjà en italique", () => {
+    const html = "<p><em>« Notre travail, c'est d'accompagner, pas de sanctionner »</em>, dit-elle.</p>";
+    expect(marquerReprises(html, empreintes)).toEqual({ html, reprises: 0 });
+  });
+
+  it("ignore les formules courtes communes", () => {
+    expect(contientReprise("Selon une nouvelle étude publiée ce lundi, rien.", empreintes)).toBe(false);
+  });
+
+  it("ne marque rien sans texte source", () => {
+    expect(marquerReprises("<p>Texte</p>", new Set())).toEqual({ html: "<p>Texte</p>", reprises: 0 });
   });
 });
 

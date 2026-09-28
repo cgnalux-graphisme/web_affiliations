@@ -232,9 +232,9 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - **Longueur des résumés = celle du flux** : chaque média fournit ce qu'il veut.
   La RTBF (`highlight_rtbf_info.xml`) n'envoie qu'une accroche d'environ 120
   caractères terminée par « ... », sans `content:encoded` ; Le Soir envoie plus.
-  **Ne pas** aller chercher le texte sur la page de l'article (appel externe,
-  droit d'auteur, paywalls, anti-robots : Le Soir bloque déjà certains
-  clients) — le lien vers l'article d'origine suffit. Une modale « Aperçu » a
+  Le **ramassage** ne va jamais lire la page de l'article (il n'enregistre que
+  le flux) ; seule la rédaction assistée la lit, à la demande (voir ci-dessous).
+  Une modale « Aperçu » a
   été essayée puis retirée le 28/09/2026 (elle n'apportait rien de plus que la
   liste) : ne pas la reproposer. Les items ramassés avant le 28/09/2026 ont un
   résumé coupé à 600 caractères (le ramassage ne réécrit jamais une ligne).
@@ -245,17 +245,28 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       **uniquement serveur** (`app/api/redaction/brouillon`, SDK
       `@anthropic-ai/sdk`, sortie structurée `zod`, réflexion adaptative, effort
       `medium`). La route ne reçoit que l'id de l'item et relit titre / résumé /
-      lien en base. Consigne et post-traitement dans `lib/redaction-ia.ts` :
-      reformuler (droit d'auteur), **aucun fait / chiffre / citation absent de
-      la source**, analyse syndicale formulée comme analyse ou question, source
-      maigre signalée (`avertissement`), texte du flux traité comme donnée (pas
-      comme instruction). Le code recalcule l'adresse depuis le titre, met le
-      lien d'origine en première source, nettoie le HTML. Date et statut
-      restent au formulaire (brouillon). Suggestion de photo affichée, **non
-      enregistrée** (pas de colonne). Rappel « Brouillon IA — à vérifier,
-      corriger et valider avant publication. Recoupez avec la source. »
-      Limite : avec la RTBF (~120 caractères de résumé), l'IA a très peu de
-      matière → brouillons courts et signalés « source maigre ».
+      lien en base. **L'IA lit elle-même l'article d'origine** (choix de Fred,
+      28/09/2026) : outil serveur `web_fetch_20250910` (version de base, choisie
+      pour récupérer le texte lu tel quel), `max_uses: 1`, `allowed_domains` =
+      domaine de l'article, `max_content_tokens: 30000` ; relance sur
+      `pause_turn` (3 fois max). Si la page est illisible (payante, bloquée,
+      supprimée), brouillon à partir du seul flux + avertissement.
+      Consigne et post-traitement dans `lib/redaction-ia.ts` : reformuler,
+      **aucun fait / chiffre / citation absent de l'article ou du flux**, analyse
+      syndicale formulée comme analyse ou question, matière maigre signalée,
+      contenu lu traité comme donnée (pas comme instruction).
+      **Garde-fou droit d'auteur (règle de Fred)** : toute phrase reprise mot
+      pour mot est en **italique** (`<em>`) — Fred la reformule ou la garde
+      comme citation. L'IA en a la consigne, et le **code le vérifie** :
+      comparaison avec le texte réellement lu, toute phrase du contenu qui
+      partage ≥ 8 mots consécutifs avec l'article (`MOTS_REPRISE`) est mise en
+      `<em>` ; une reprise dans le titre, le chapô ou les points clés
+      (texte brut, pas d'italique possible) est signalée en avertissement.
+      Le code recalcule aussi l'adresse depuis le titre, met le lien d'origine
+      en première source, nettoie le HTML. Date et statut restent au
+      formulaire (brouillon). Suggestion de photo affichée, **non enregistrée**
+      (pas de colonne). Rappel « Brouillon IA — à vérifier, corriger et valider
+      avant publication. Recoupez avec la source. »
 - Variables d'environnement requises (Vercel **et** `.env.local` pour tester en
   local) : `SUPABASE_SERVICE_ROLE_KEY` (jamais préfixée `NEXT_PUBLIC_`),
   `CRON_SECRET` (chaîne aléatoire d'au moins 16 caractères),
