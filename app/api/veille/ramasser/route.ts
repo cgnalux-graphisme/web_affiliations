@@ -20,7 +20,7 @@ function appelCron(request: NextRequest): boolean {
 
 /**
  * Ramassage des flux RSS de la veille.
- * GET = Vercel Cron (toutes les 3 heures, voir vercel.json) ; POST = bouton « Rafraîchir maintenant ».
+ * GET = Vercel Cron (une fois par jour à 6 h UTC, voir vercel.json) ; POST = bouton « Rafraîchir maintenant ».
  * Accès : le cron (CRON_SECRET) ou un super admin connecté.
  */
 async function ramasser(request: NextRequest) {

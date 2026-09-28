@@ -19,7 +19,7 @@ export default async function SourcesPage() {
       <div className="border-b-[6px] border-militant-charbon pb-5">
         <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">Sources</h1>
         <p className="mt-2 max-w-2xl text-base">
-          Les flux RSS lus par la veille toutes les 3 heures. Une source désactivée n&apos;est plus lue, mais ses
+          Les flux RSS lus par la veille chaque matin (et à la demande depuis l&apos;écran Veille). Une source désactivée n&apos;est plus lue, mais ses
           articles déjà ramassés restent dans la veille.
         </p>
       </div>

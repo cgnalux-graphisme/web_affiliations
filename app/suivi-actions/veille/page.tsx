@@ -77,7 +77,7 @@ export default async function VeillePage({
           <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">Veille</h1>
           <p className="mt-2 text-base">
             {nombres[VEILLE_NOUVEAU]} nouveau{nombres[VEILLE_NOUVEAU] > 1 ? "x" : ""} à trier. Articles ramassés
-            toutes les 3 heures dans les{" "}
+            chaque matin dans les{" "}
             <Link
               href="/suivi-actions/sources"
               className="font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux"

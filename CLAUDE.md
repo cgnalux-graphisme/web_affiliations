@@ -63,7 +63,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
 | `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille : filtres, ignorer, rédiger un article, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
-| `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron toutes les 3 h, POST = bouton) |
+| `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
 Navigation publique : Accueil · Nos actions · Actualités · Démarches en ligne ·
 Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
@@ -211,8 +211,10 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       `upsert … ignoreDuplicates` sur `lien` avec la clé **service_role**
       (`lib/supabase-service.ts`, serveur uniquement). Route protégée par
       `CRON_SECRET` (en-tête `Authorization: Bearer`) ou session super admin.
-      Cron `vercel.json` : `0 */3 * * *` (**exige un plan Vercel Pro** ; le plan
-      Hobby n'accepte qu'un cron par jour). « Rédiger un article » passe l'item
+      Cron `vercel.json` : `0 6 * * *`, une fois par jour à 6 h UTC (7 h ou 8 h à
+      Bruxelles selon la saison) — compatible plan Hobby, qui n'accepte qu'une
+      exécution par jour et peut la décaler dans l'heure. Ramassage manuel à tout
+      moment : bouton « Rafraîchir maintenant ». « Rédiger un article » passe l'item
       en `traite` et ouvre `/suivi-actions/articles/nouveau?veille=<id>`
       (titre + lien pré-remplis dans les sources).
 - Variables d'environnement requises (Vercel **et** `.env.local` pour tester en
