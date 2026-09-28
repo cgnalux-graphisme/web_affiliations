@@ -61,7 +61,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/articles` | SUPER_ADMIN | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
 | `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article |
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
-| `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille : filtres, ignorer, rédiger un article, rafraîchir |
+| `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
@@ -209,7 +209,8 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 ### Phase 2 — Veille + blog
 - [x] **Veille RSS (sans IA)** — 28/09/2026 : sources gérées dans l'admin ;
       `lib/veille-flux.ts` lit RSS 2.0 / Atom / RDF (50 items max par flux,
-      résumé sans HTML, 5 000 caractères max) ; `lib/veille-ramassage.ts` insère en
+      résumé sans HTML, 5 000 caractères max, affiché **en entier** dans la
+      liste de la veille) ; `lib/veille-ramassage.ts` insère en
       `upsert … ignoreDuplicates` sur `lien` avec la clé **service_role**
       (`lib/supabase-service.ts`, serveur uniquement). Route protégée par
       `CRON_SECRET` (en-tête `Authorization: Bearer`) ou session super admin.
@@ -227,6 +228,15 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       **commencer un mot** (« salaire » → « salaires », mais « cp » ↛
       « capacité »). Filtre d'affichage uniquement : rien n'est effacé, un
       changement de mots-clés re-filtre tout de suite.
+- **Longueur des résumés = celle du flux** : chaque média fournit ce qu'il veut.
+  La RTBF (`highlight_rtbf_info.xml`) n'envoie qu'une accroche d'environ 120
+  caractères terminée par « ... », sans `content:encoded` ; Le Soir envoie plus.
+  **Ne pas** aller chercher le texte sur la page de l'article (appel externe,
+  droit d'auteur, paywalls, anti-robots : Le Soir bloque déjà certains
+  clients) — le lien vers l'article d'origine suffit. Une modale « Aperçu » a
+  été essayée puis retirée le 28/09/2026 (elle n'apportait rien de plus que la
+  liste) : ne pas la reproposer. Les items ramassés avant le 28/09/2026 ont un
+  résumé coupé à 600 caractères (le ramassage ne réécrit jamais une ligne).
 - Variables d'environnement requises (Vercel **et** `.env.local` pour tester en
   local) : `SUPABASE_SERVICE_ROLE_KEY` (jamais préfixée `NEXT_PUBLIC_`),
   `CRON_SECRET` (chaîne aléatoire d'au moins 16 caractères).
@@ -292,7 +302,7 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 
 ---
 
-## État au 25/09/2026
+## État au 28/09/2026
 - Tout le travail est sur la branche **`suivi-actions`** : rien sur `main`, rien
   déployé. À relire puis fusionner quand Fred valide.
 - À faire par Fred : **supprimer** le projet Supabase `accg-nalux-site`
@@ -303,10 +313,15 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - PDF **Affiliation** et **Mandat SEPA** passés à la charte du site (proposition
   « Registre » du 25/09/2026). Les PDF **C1, C3.2 et Calcul de préavis ne doivent
   pas être modifiés**.
-- Blog en place le 28/09/2026 (branche `suivi-actions`) ; branche poussée sur
-  GitHub pour un déploiement de prévisualisation Vercel (pas de production).
+- Le 28/09/2026 : blog (Actualités), veille RSS (sources, ramassage quotidien,
+  thématiques / pertinence par mots-clés) en place sur `suivi-actions`, poussée
+  sur GitHub pour un déploiement de **prévisualisation** Vercel (pas de
+  production, rien sur `main`).
+- `SUPABASE_SERVICE_ROLE_KEY` et `CRON_SECRET` sont dans `.env.local` (vérifié le
+  28/09/2026). À ajouter aussi dans Vercel (Production + Preview) par Fred.
 - Pistes suivantes : « Trouver votre contact » (phase 4, avec l'assistant),
-  veille automatique (phase 2), derniers articles sur l'accueil, mentions légales.
+  rédaction assistée depuis la veille (phase 2, IA), derniers articles sur
+  l'accueil, mentions légales, publication réseaux (phase 3).
 
 ---
 
