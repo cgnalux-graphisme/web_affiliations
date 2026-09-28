@@ -476,7 +476,7 @@ export default function FormulaireArticle({
         )}
         {!article && preRemplissage && ia.etape === "inactif" && (
           <p className="mt-3 border-l-4 border-militant-rouge pl-3 text-sm">
-            Pré-rempli depuis la veille : titre repris de l&apos;article d&apos;origine et lien ajouté aux sources.
+            Pré-rempli depuis Scan News : titre repris de l&apos;article d&apos;origine et lien ajouté aux sources.
             Reformulez avec vos propres mots avant de publier.
           </p>
         )}

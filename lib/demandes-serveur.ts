@@ -203,3 +203,33 @@ export async function lireEnvois(
   }
   return { envois: (data ?? []) as EnvoiMail[], tableAbsente: false };
 }
+
+export type ResumeDemandes = Record<TypeDemande, { total: number; semaine: number; derniere: string | null }>;
+
+/**
+ * Chiffres du tableau de bord : par type, total, reçues ces 7 derniers jours, date de la dernière.
+ * Aucune donnée personnelle (requêtes « head » + une date). Serveur uniquement, après vérification super admin.
+ */
+export async function resumerDemandes(db: SupabaseClient): Promise<ResumeDemandes> {
+  const ilYa7Jours = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const entrees = await Promise.all(
+    TYPES_DEMANDE.map(async (t) => {
+      const table = DEMANDES[t].table;
+      const [total, semaine, derniere] = await Promise.all([
+        requete(t, db.from(table).select("id", { count: "exact", head: true })),
+        requete(t, db.from(table).select("id", { count: "exact", head: true })).gte("created_at", ilYa7Jours),
+        requete(t, db.from(table).select("created_at")).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (total.error || semaine.error || derniere.error) throw new Error(`résumé ${t} : lecture impossible`);
+      return [
+        t,
+        {
+          total: total.count ?? 0,
+          semaine: semaine.count ?? 0,
+          derniere: ((derniere.data as { created_at?: string } | null)?.created_at as string | undefined) ?? null,
+        },
+      ] as const;
+    })
+  );
+  return Object.fromEntries(entrees) as ResumeDemandes;
+}

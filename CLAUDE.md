@@ -54,7 +54,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/contact` | public | Nos 4 bureaux : adresses, téléphones, horaires (été en juillet-août), statut « ouvert maintenant » |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
 | `/login` | public | Connexion (identifiants CG Link) |
-| `/suivi-actions` | SUPER_ADMIN | Liste de toutes les actions (publiées ou non) |
+| `/suivi-actions` | SUPER_ADMIN | **Tableau de bord** : une tuile par domaine (Scan News, Démarches affiliés, Actions syndicales, Publications) avec les chiffres clés ; chaque tuile ouvre sa section |
+| `/suivi-actions/actions` | SUPER_ADMIN | Liste de toutes les actions (publiées ou non) — avant le 28/09/2026, elle était à `/suivi-actions` |
 | `/suivi-actions/nouvelle` | SUPER_ADMIN | Encoder une action |
 | `/suivi-actions/<id>/modifier` | SUPER_ADMIN | Modifier / supprimer une action |
 | `/suivi-actions/rapport` | SUPER_ADMIN | Rapport d'activité PDF (congrès) |
@@ -64,7 +65,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article ; `?veille=<id>` pré-remplit depuis la veille et affiche le panneau de rédaction assistée |
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
 | `/suivi-actions/articles/<id>/reseaux` | SUPER_ADMIN | Déclinaison d'un article publié en posts Facebook, Instagram, TikTok, YouTube : générer, modifier, enregistrer, copier |
-| `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
+| `/suivi-actions/veille` | SUPER_ADMIN | **Scan News › Le fil** : articles ramassés (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
 | `/suivi-actions/parametres` | SUPER_ADMIN | Paramètres : adresses internes qui reçoivent chaque envoi automatique des formulaires (ajouter, activer / désactiver, supprimer) |
@@ -80,9 +81,23 @@ Navigation publique : Accueil · Nos actions · Actualités · Démarches en lig
 Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
 ligne » (pas un onglet par formulaire). Rubrique à venir : « Trouver votre
 contact » (permanent et juriste par secteur / commission paritaire). Toute la
-gestion (actions, articles, veille, sources, thématiques) vit sous
+gestion (actions, articles, Scan News, demandes, paramètres) vit sous
 `/suivi-actions/…` pour profiter du même verrou super admin (proxy + layout +
-chaque page) ; liens dans la barre latérale (`app/suivi-actions/LiensAdmin.tsx`).
+chaque page).
+
+**Menu de l'espace admin** (`app/suivi-actions/MenuAdmin.tsx`, refonte du
+28/09/2026) : Tableau de bord, puis sections titrées — **Actions syndicales**
+(Toutes les actions · Nouvelle action · Rapport d'activité), **Publications**
+(Articles · Écrire un article), **Scan News** (Le fil · Sources · Thématiques),
+**Démarches affiliés** (Demandes) — et, séparés en pied : Paramètres des envois,
+compte connecté, Se déconnecter. Mobile : bouton « Menu ». Lien actif = barre
+rouge sur un rail ardoise.
+
+**Nom « Scan News »** (ex-« veille ») partout à l'écran : **Scan News** = la
+section ; **Le fil** = son écran de consultation des articles ramassés. Les
+écrans de la section portent le repère « Scan News » au-dessus de leur titre
+(`RepereSection.tsx`). Le code, les tables (`site_veille`…) et les adresses
+(`/suivi-actions/veille`, `/api/veille/ramasser`) gardent « veille ».
 
 **L'affiliation est la démarche la plus importante** : grande tuile bordeaux en
 tête de la grille des démarches (`app/TuilesDemarches.tsx`) et bouton

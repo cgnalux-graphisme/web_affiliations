@@ -7,9 +7,10 @@ import { getSuperAdmin, getSupabaseServer } from "../../../lib/supabase-server";
 import { LIBELLES_STATUT, STATUTS_VEILLE, VEILLE_NOUVEAU, type StatutVeille } from "../../../lib/veille";
 import { motsClesTrouves, preparerCorrespondance } from "../../../lib/themes";
 import { ActionsItem, BoutonRamassage, FiltresVeille } from "./ControlesVeille";
+import RepereSection from "../RepereSection";
 
 export const metadata: Metadata = {
-  title: "Veille — Espace admin ACCG Nalux",
+  title: "Le fil — Scan News — Espace admin ACCG Nalux",
   robots: { index: false, follow: false },
 };
 
@@ -90,7 +91,8 @@ export default async function VeillePage({
     <div className="mx-auto max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-[6px] border-militant-charbon pb-5">
         <div>
-          <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">Veille</h1>
+          <RepereSection />
+          <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">Le fil</h1>
           <p className="mt-2 text-base">
             {nombres[VEILLE_NOUVEAU]} nouveau{nombres[VEILLE_NOUVEAU] > 1 ? "x" : ""} à trier. Articles ramassés
             chaque matin dans les{" "}
@@ -142,7 +144,7 @@ export default async function VeillePage({
 
       {erreur ? (
         <p role="alert" className="mt-8 border-l-[6px] border-militant-bordeaux py-2 pl-4 text-lg">
-          La veille ne peut pas être chargée. Rechargez la page ; si le problème persiste, reconnectez-vous.
+          Le fil ne peut pas être chargé. Rechargez la page ; si le problème persiste, reconnectez-vous.
         </p>
       ) : items.length === 0 ? (
         <div className="mt-10 border-l-[6px] border-militant-rouge py-2 pl-5">

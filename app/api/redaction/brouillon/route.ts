@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     consignes?: unknown;
   };
   const veilleId = typeof corps.veilleId === "string" && UUID.test(corps.veilleId) ? corps.veilleId : null;
-  if (!veilleId) return erreur("Article de veille manquant.", 400);
+  if (!veilleId) return erreur("Article de Scan News manquant.", 400);
   const extrait = typeof corps.extrait === "string" ? corps.extrait.trim() : "";
   if (extrait.length > EXTRAIT_MAX) {
     return erreur(`Le texte collé est trop long (${extrait.length} caractères, ${EXTRAIT_MAX} maximum). Gardez les passages utiles.`, 413);
@@ -83,15 +83,15 @@ export async function POST(request: NextRequest) {
     .select("titre, resume, lien, source_nom")
     .eq("id", veilleId)
     .maybeSingle();
-  if (error) return erreur("L'article de veille ne peut pas être lu. Reconnectez-vous puis réessayez.", 500);
-  if (!data) return erreur("Cet article de veille n'existe plus.", 404);
+  if (error) return erreur("L'article de Scan News ne peut pas être lu. Reconnectez-vous puis réessayez.", 500);
+  if (!data) return erreur("Cet article de Scan News n'existe plus.", 404);
   const item = data as ItemSource;
 
   let domaine: string;
   try {
     domaine = new URL(item.lien).hostname;
   } catch {
-    return erreur("Le lien de cet article de veille n'est pas valide.", 422);
+    return erreur("Le lien de cet article de Scan News n'est pas valide.", 422);
   }
 
   // Version de base de web_fetch : elle renvoie le texte lu tel quel, ce qui permet au code

@@ -29,11 +29,11 @@ function valider(s: Saisie, sources: Source[], idCourant?: string): Erreurs {
 function messageErreur(code: string | undefined, action: string): string {
   if (code === CODE_ACCES_REFUSE || code === "PGRST116") return "Votre session a expiré. Reconnectez-vous puis réessayez.";
   if (code === "23505") return "Ce flux est déjà dans la liste.";
-  if (code === "23503") return "Cette source a déjà des articles dans la veille : désactivez-la plutôt que de la supprimer.";
+  if (code === "23503") return "Cette source a déjà des articles dans le fil : désactivez-la plutôt que de la supprimer.";
   return `La source n'a pas pu être ${action}. Réessayez ; si le problème persiste, reconnectez-vous.`;
 }
 
-/** Liste des sources de la veille : ajout, modification, activation, suppression. */
+/** Liste des sources de Scan News : ajout, modification, activation, suppression. */
 export default function GestionSources({ sources }: { sources: Source[] }) {
   const router = useRouter();
   const [ajout, setAjout] = useState<Saisie>({ nom: "", url: "" });

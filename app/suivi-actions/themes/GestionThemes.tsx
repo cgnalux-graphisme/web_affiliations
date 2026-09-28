@@ -21,7 +21,7 @@ function messageErreur(code: string | undefined, action: string): string {
   return `Le mot-clé n'a pas pu être ${action}. Réessayez ; si le problème persiste, reconnectez-vous.`;
 }
 
-/** Liste des mots-clés de la veille : ajout (plusieurs à la fois), activation, suppression. */
+/** Liste des mots-clés de Scan News : ajout (plusieurs à la fois), activation, suppression. */
 export default function GestionThemes({ themes }: { themes: Theme[] }) {
   const router = useRouter();
   const [saisie, setSaisie] = useState("");
@@ -129,7 +129,7 @@ export default function GestionThemes({ themes }: { themes: Theme[] }) {
           {actifs > 1 ? "s" : ""}
         </h2>
         {actifs === 0 && themes.length > 0 && (
-          <Message texte="Aucun mot-clé actif : la veille n'affiche aucun article pertinent." />
+          <Message texte="Aucun mot-clé actif : le fil n'affiche aucun article pertinent." />
         )}
         {themes.length === 0 ? (
           <p className="mt-4 text-lg">Aucun mot-clé pour l&apos;instant. Ajoutez les thèmes suivis par la centrale ci-dessus.</p>

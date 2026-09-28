@@ -61,7 +61,7 @@ export default function SuppressionAction({
       return;
     }
 
-    router.push(`/suivi-actions?supprimee=${encodeURIComponent(titre)}`);
+    router.push(`/suivi-actions/actions?supprimee=${encodeURIComponent(titre)}`);
     router.refresh();
   }
 

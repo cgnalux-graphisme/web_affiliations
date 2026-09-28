@@ -16,11 +16,11 @@ export type Lisibilite = { lisible: "oui" | "non" | "inconnu"; explication: stri
 export async function GET(request: NextRequest) {
   if (!(await getSuperAdmin())) return NextResponse.json({ erreur: "Accès refusé." }, { status: 401 });
   const veilleId = request.nextUrl.searchParams.get("veilleId") ?? "";
-  if (!UUID.test(veilleId)) return NextResponse.json({ erreur: "Article de veille manquant." }, { status: 400 });
+  if (!UUID.test(veilleId)) return NextResponse.json({ erreur: "Article de Scan News manquant." }, { status: 400 });
 
   const supabase = await getSupabaseServer();
   const { data } = await supabase.from("site_veille").select("lien").eq("id", veilleId).maybeSingle();
-  if (!data) return NextResponse.json({ erreur: "Cet article de veille n'existe plus." }, { status: 404 });
+  if (!data) return NextResponse.json({ erreur: "Cet article de Scan News n'existe plus." }, { status: 404 });
 
   let url: URL;
   try {

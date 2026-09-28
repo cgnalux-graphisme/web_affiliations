@@ -357,7 +357,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
       setVideosAjoutees(bilanVideos.ajoutees);
 
       if (action && bilan.erreurs.length === 0) {
-        router.push(`/suivi-actions?modifiee=${ligne.id}`);
+        router.push(`/suivi-actions/actions?modifiee=${ligne.id}`);
         router.refresh();
         return;
       }
@@ -466,7 +466,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
                 <Plus size={16} /> Encoder une autre action
               </button>
             )}
-            <Link href="/suivi-actions" className={BOUTON_SECONDAIRE}>
+            <Link href="/suivi-actions/actions" className={BOUTON_SECONDAIRE}>
               <List size={16} /> Retour à la liste
             </Link>
           </div>
@@ -482,7 +482,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
     <div className="max-w-2xl mx-auto space-y-5">
       <header className="border-b-[6px] border-militant-charbon pb-4">
         <Link
-          href="/suivi-actions"
+          href="/suivi-actions/actions"
           className="inline-flex items-center gap-1 text-sm font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
         >
           <ArrowLeft size={15} /> Toutes les actions
