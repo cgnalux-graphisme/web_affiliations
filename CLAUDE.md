@@ -361,9 +361,17 @@ reformuler, citer et lier la source, jamais recopier.
 - Lien des posts : `SITE_URL` (ex. `https://accg-nalux.com`, variable facultative,
   serveur) sinon l'adresse par laquelle l'admin consulte le site (la preview
   donnerait un lien de preview : définir `SITE_URL` avant usage réel).
-- Passer par un **outil-pont** (Ayrshare / Metricool / Buffer — à choisir) plutôt
-  que coder chaque réseau.
-- Fred valide chaque post avant publication. Pas de copier/coller manuel.
+- [ ] **Brancher la déclinaison aux futurs outils de génération** (visuels et
+      vidéo, phase 4) : un post = son texte (`site_publications_reseaux`) + son
+      visuel ou son extrait vidéo au format du réseau, préparés ensemble depuis
+      l'écran `/suivi-actions/articles/<id>/reseaux`.
+- [ ] **Publication en 1 clic** (à étudier) : envoyer un post validé vers le
+      réseau depuis ce même écran, via un **outil-pont** (Ayrshare / Metricool /
+      Buffer — à choisir) plutôt que coder chaque réseau. À vérifier : coût,
+      réseaux couverts (TikTok, YouTube), comptes de la centrale, programmation.
+      `site_publications_reseaux.statut` (défaut `brouillon`) pourra alors suivre
+      l'état (validé, publié).
+- Fred valide chaque post avant publication. D'ici là : copier / coller.
 
 ### Phase 4 — Plus-values *(plus tard)*
 - **Générateur de visuels** : gabarits auto aux formats réseaux, dans la charte
