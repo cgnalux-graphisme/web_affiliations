@@ -194,7 +194,8 @@ export default async function VeillePage({
                     <span className="sr-only"> (article d&apos;origine, nouvel onglet)</span>
                   </a>
                 </h2>
-                {it.resume && <p className="mt-1.5 line-clamp-3 max-w-3xl text-[15px] leading-relaxed">{it.resume}</p>}
+                {/* Résumé en entier, tel que fourni par le flux RSS (sa longueur dépend du média). */}
+                {it.resume && <p className="mt-1.5 max-w-3xl whitespace-pre-line text-[15px] leading-relaxed">{it.resume}</p>}
                 {it.motsCles.length > 0 && (
                   <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
                     <Tag size={13} className="text-militant-rouge" aria-hidden />
@@ -206,18 +207,7 @@ export default async function VeillePage({
                     ))}
                   </p>
                 )}
-                <ActionsItem
-                  item={{
-                    id: it.id,
-                    titre: it.titre,
-                    statut: s,
-                    resume: it.resume,
-                    lien: it.lien,
-                    source: it.source_nom ?? "Source supprimée",
-                    date: dateArticle(it.date_publication ?? it.created_at),
-                    motsCles: it.motsCles,
-                  }}
-                />
+                <ActionsItem id={it.id} titre={it.titre} statut={s} />
               </li>
             );
           })}

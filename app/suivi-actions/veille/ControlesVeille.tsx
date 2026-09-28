@@ -1,21 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  AlertTriangle,
-  BookOpen,
-  CheckCircle,
-  ExternalLink,
-  EyeOff,
-  Loader2,
-  PenLine,
-  RefreshCw,
-  RotateCcw,
-  Tag,
-  X,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle, EyeOff, Loader2, PenLine, RefreshCw, RotateCcw } from "lucide-react";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import {
   LIBELLES_STATUT,
@@ -145,42 +133,11 @@ export function FiltresVeille({
   );
 }
 
-/** Données d'un item de veille nécessaires aux actions et à l'aperçu. */
-export type ItemVeille = {
-  id: string;
-  titre: string;
-  statut: StatutVeille;
-  resume: string | null;
-  lien: string;
-  source: string;
-  date: string; // jj/mm/aaaa
-  motsCles: string[];
-};
-
-/**
- * « Aperçu », « Rédiger un article », « Ignorer », « Remettre à trier » pour un item de la veille.
- * L'aperçu ouvre une fenêtre avec le résumé complet du flux (déjà en base, aucun appel externe).
- */
-export function ActionsItem({ item }: { item: ItemVeille }) {
-  const { id, titre, statut } = item;
+/** « Rédiger un article », « Ignorer », « Remettre à trier » pour un item de la veille. */
+export function ActionsItem({ id, titre, statut }: { id: string; titre: string; statut: StatutVeille }) {
   const router = useRouter();
   const [enCours, setEnCours] = useState<"rediger" | "statut" | null>(null);
   const [erreur, setErreur] = useState("");
-  const [ouvert, setOuvert] = useState(false);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const d = dialogRef.current;
-    if (!d) return;
-    if (ouvert && !d.open) {
-      d.showModal();
-      document.documentElement.style.overflow = "hidden"; // pas de défilement de la liste derrière
-    }
-    if (!ouvert && d.open) d.close();
-    return () => {
-      document.documentElement.style.overflow = "";
-    };
-  }, [ouvert]);
 
   async function changerStatut(nouveau: StatutVeille): Promise<boolean> {
     const { data, error } = await getSupabaseAuth().from("site_veille").update({ statut: nouveau }).eq("id", id).select("id");
@@ -197,7 +154,6 @@ export function ActionsItem({ item }: { item: ItemVeille }) {
     setErreur("");
     // L'item est marqué traité, puis le formulaire d'article s'ouvre pré-rempli.
     if (statut === VEILLE_TRAITE || (await changerStatut(VEILLE_TRAITE))) {
-      setOuvert(false);
       router.push(`/suivi-actions/articles/nouveau?veille=${id}`);
       return;
     }
@@ -207,146 +163,53 @@ export function ActionsItem({ item }: { item: ItemVeille }) {
   async function basculer(nouveau: StatutVeille) {
     setEnCours("statut");
     setErreur("");
-    if (await changerStatut(nouveau)) {
-      setOuvert(false);
-      router.refresh();
-    }
+    if (await changerStatut(nouveau)) router.refresh();
     setEnCours(null);
   }
-
-  const boutons = (
-    <>
-      <button
-        type="button"
-        onClick={rediger}
-        disabled={enCours !== null}
-        aria-label={`Rédiger un article à partir de : ${titre}`}
-        className={statut === VEILLE_NOUVEAU ? BOUTON_PRINCIPAL : BOUTON_SECONDAIRE}
-      >
-        {enCours === "rediger" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <PenLine size={15} aria-hidden />}
-        Rédiger un article
-      </button>
-      {statut === VEILLE_NOUVEAU ? (
-        <button
-          type="button"
-          onClick={() => basculer(VEILLE_IGNORE)}
-          disabled={enCours !== null}
-          aria-label={`Ignorer : ${titre}`}
-          className={BOUTON_SECONDAIRE}
-        >
-          {enCours === "statut" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <EyeOff size={15} aria-hidden />}
-          Ignorer
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => basculer(VEILLE_NOUVEAU)}
-          disabled={enCours !== null}
-          aria-label={`Remettre à trier : ${titre}`}
-          className={`${BOUTON} border-transparent hover:border-militant-charbon`}
-        >
-          {enCours === "statut" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <RotateCcw size={15} aria-hidden />}
-          Remettre à trier
-        </button>
-      )}
-    </>
-  );
-
-  const messageErreur = erreur && (
-    <p role="alert" className="mt-2 flex items-start gap-1.5 text-sm font-semibold text-militant-bordeaux">
-      <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
-      {erreur}
-    </p>
-  );
 
   return (
     <div className="mt-3">
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setOuvert(true)}
-          aria-haspopup="dialog"
-          aria-label={`Aperçu : ${titre}`}
-          className={BOUTON_SECONDAIRE}
+          onClick={rediger}
+          disabled={enCours !== null}
+          aria-label={`Rédiger un article à partir de : ${titre}`}
+          className={statut === VEILLE_NOUVEAU ? BOUTON_PRINCIPAL : BOUTON_SECONDAIRE}
         >
-          <BookOpen size={15} aria-hidden /> Aperçu
+          {enCours === "rediger" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <PenLine size={15} aria-hidden />}
+          Rédiger un article
         </button>
-        {boutons}
-      </div>
-      {!ouvert && messageErreur}
-
-      <dialog
-        ref={dialogRef}
-        aria-labelledby={`apercu-titre-${id}`}
-        onClose={() => setOuvert(false)}
-        // Clic en dehors de la fenêtre (sur le voile) : fermeture.
-        onClick={(e) => e.target === dialogRef.current && setOuvert(false)}
-        className="m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl overflow-hidden rounded-2xl border-2 border-militant-charbon bg-white p-0 text-militant-charbon shadow-[0_24px_60px_-12px_rgba(34,34,34,0.35)] backdrop:bg-white/80"
-      >
-        {ouvert && (
-          <div className="flex max-h-[90vh] flex-col border-t-[6px] border-militant-rouge">
-            <div className="flex items-start gap-3 px-5 pt-5 sm:px-7 sm:pt-6">
-              <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold">
-                <span className="font-condensed text-lg font-bold tabular-nums text-militant-bordeaux">{item.date}</span>
-                <span className="h-4 w-[3px] bg-militant-rouge" aria-hidden />
-                <span>{item.source}</span>
-                {statut !== VEILLE_NOUVEAU && (
-                  <span className="rounded-full border-2 border-militant-ardoise px-2.5 text-xs font-bold">
-                    {LIBELLES_STATUT[statut]}
-                  </span>
-                )}
-              </p>
-              <button
-                type="button"
-                onClick={() => setOuvert(false)}
-                aria-label="Fermer l'aperçu"
-                className="-mr-2 -mt-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
-              >
-                <X size={22} aria-hidden />
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 sm:px-7">
-              <h2
-                id={`apercu-titre-${id}`}
-                className="mt-2 break-words font-condensed text-3xl font-extrabold leading-[1.05] sm:text-4xl"
-              >
-                {titre}
-              </h2>
-              {item.resume ? (
-                <p className="mt-4 whitespace-pre-line text-[17px] leading-relaxed">{item.resume}</p>
-              ) : (
-                <p className="mt-4 text-[17px]">Ce flux ne fournit pas de résumé pour cet article.</p>
-              )}
-              {item.motsCles.length > 0 && (
-                <p className="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
-                  <Tag size={13} className="text-militant-rouge" aria-hidden />
-                  <span className="font-semibold">Retenu pour :</span>
-                  {item.motsCles.map((m) => (
-                    <span key={m} className="rounded-full border border-militant-ardoise px-2 py-0.5 font-semibold">
-                      {m}
-                    </span>
-                  ))}
-                </p>
-              )}
-              <a
-                href={item.lien}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 inline-flex min-h-[44px] items-center gap-1.5 font-bold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
-              >
-                Lire l&apos;article d&apos;origine <ExternalLink size={15} aria-hidden />
-                <span className="sr-only"> (nouvel onglet)</span>
-              </a>
-            </div>
-
-            <div className="border-t border-militant-ardoise px-5 py-4 sm:px-7">
-              <div className="flex flex-wrap gap-2">{boutons}</div>
-              {messageErreur}
-            </div>
-          </div>
+        {statut === VEILLE_NOUVEAU ? (
+          <button
+            type="button"
+            onClick={() => basculer(VEILLE_IGNORE)}
+            disabled={enCours !== null}
+            aria-label={`Ignorer : ${titre}`}
+            className={BOUTON_SECONDAIRE}
+          >
+            {enCours === "statut" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <EyeOff size={15} aria-hidden />}
+            Ignorer
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => basculer(VEILLE_NOUVEAU)}
+            disabled={enCours !== null}
+            aria-label={`Remettre à trier : ${titre}`}
+            className={`${BOUTON} border-transparent hover:border-militant-charbon`}
+          >
+            {enCours === "statut" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <RotateCcw size={15} aria-hidden />}
+            Remettre à trier
+          </button>
         )}
-      </dialog>
+      </div>
+      {erreur && (
+        <p role="alert" className="mt-2 flex items-start gap-1.5 text-sm font-semibold text-militant-bordeaux">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
+          {erreur}
+        </p>
+      )}
     </div>
   );
 }
