@@ -337,8 +337,11 @@ reformuler, citer et lier la source, jamais recopier.
 #### Variables d'environnement (Vercel Production + Preview **et** `.env.local` — en place depuis le 28/09/2026)
 - `SUPABASE_SERVICE_ROLE_KEY` (ramassage ; jamais préfixée `NEXT_PUBLIC_`).
 - `CRON_SECRET` (chaîne aléatoire ≥ 16 caractères).
-- `ANTHROPIC_API_KEY` (rédaction assistée ; jamais préfixée `NEXT_PUBLIC_`,
-  jamais importée dans un composant client).
+- `ANTHROPIC_API_KEY` (rédaction assistée **et** déclinaison réseaux ; jamais
+  préfixée `NEXT_PUBLIC_`, jamais importée dans un composant client). Configurée
+  et fonctionnelle : appels réels réussis le 28/09/2026 depuis `.env.local`.
+- `SITE_URL` (facultative, serveur) : adresse publique du site pour le lien des
+  posts réseaux (ex. `https://accg-nalux.com`). **Pas encore définie.**
 
 ### Phase 3 — Publication réseaux
 - [x] **Déclinaison par l'IA** (28/09/2026, `suivi-actions`) : depuis un article
@@ -426,19 +429,23 @@ reformuler, citer et lier la source, jamais recopier.
 - PDF **Affiliation** et **Mandat SEPA** passés à la charte du site (proposition
   « Registre » du 25/09/2026). Les PDF **C1, C3.2 et Calcul de préavis ne doivent
   pas être modifiés**.
-- Le 28/09/2026 : blog, veille RSS (sources, ramassage quotidien, thématiques)
-  et rédaction assistée par IA en place sur `suivi-actions`, **poussée sur
-  GitHub** le 28/09/2026 (déploiement de prévisualisation Vercel). Rien sur
-  `main`, rien en production.
-- `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` et `ANTHROPIC_API_KEY` sont dans
-  `.env.local` (vérifié le 28/09/2026) **et ajoutées dans Vercel par Fred le
+- **En place sur `suivi-actions` le 28/09/2026, commité et poussé sur GitHub**
+  (déploiement de prévisualisation Vercel) : blog, veille RSS (sources,
+  ramassage quotidien, thématiques), **rédaction assistée par IA** (tunnel en 5
+  étapes, garde-fou droit d'auteur) et **déclinaison réseaux** (Facebook,
+  Instagram, TikTok, YouTube, sans publication automatique). Rien sur `main`,
+  rien en production.
+- `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` et `ANTHROPIC_API_KEY` sont
+  **configurées** dans `.env.local` (vérifié le 28/09/2026 ; la clé Anthropic
+  répond, testée sur la déclinaison réseaux) **et ajoutées dans Vercel par Fred le
   28/09/2026** (déclaré par Fred, non vérifiable depuis Claude Code sans accès
   Vercel). Une variable ajoutée ou modifiée dans Vercel ne s'applique qu'aux
   **déploiements suivants** : redéployer la preview si besoin.
-- Le 28/09/2026 : déclinaison des articles pour les réseaux (phase 3, sans
-  publication automatique) sur `suivi-actions`.
-- Pistes suivantes : publication directe sur les réseaux (phase 3, outil-pont), images (génération /
-  gabarits, plus tard), derniers articles sur l'accueil, « Trouver votre
+- Avant un usage réel de la déclinaison réseaux : définir `SITE_URL` dans
+  Vercel, sinon les posts générés depuis la preview pointent vers la preview.
+- Pistes suivantes : brancher la déclinaison aux futurs outils de visuels et de
+  vidéo, publication en 1 clic (phase 3, outil-pont, à étudier), images
+  (génération / gabarits, plus tard), derniers articles sur l'accueil, « Trouver votre
   contact » (phase 4, avec l'assistant), mentions légales.
 
 ---
