@@ -64,6 +64,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
+| `/api/image-distante` | SUPER_ADMIN | Télécharge une image glissée depuis une autre page web (POST `{ url }`) |
 | `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 à partir d'un item de veille (POST `{ veilleId }`) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
@@ -272,6 +273,20 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       Le garde-fou italique compare avec l'article lu **et** le texte collé.
       Limites dans `lib/redaction-limites.ts` (fichier sans dépendance,
       importable côté navigateur).
+      **Ligne éditoriale de la consigne (Fred, 28/09/2026)** : vulgariser en
+      restant **professionnel**, et **surtout** écrire avec la **vision et la
+      critique constructive syndicales** — au nom de la centrale (« nous »),
+      impact concret pour les travailleurs, qui gagne / qui paie / qui est
+      oublié, ce qui pose problème et pourquoi, ce qui va dans le bon sens,
+      pistes et exigences de principe. Jamais de revendication chiffrée,
+      d'action ou de position officielle FGTB absentes de la source.
+- **Image de couverture : glisser-déposer** (fichier de l'ordinateur ou image
+  tirée d'une autre page web). Une image web n'arrive que sous forme
+  d'adresse : `/api/image-distante` la télécharge côté serveur (super admin,
+  http(s), **adresses publiques uniquement, chaque redirection revérifiée**
+  — `lib/adresse-publique.ts` contre les requêtes vers le réseau interne —,
+  images ≤ 20 Mo). Rappel affiché : photo de la centrale ou banque libre, une
+  photo de presse est protégée.
       Consigne et post-traitement dans `lib/redaction-ia.ts` : reformuler,
       **aucun fait / chiffre / citation absent de l'article ou du flux**, analyse
       syndicale formulée comme analyse ou question, matière maigre signalée,
