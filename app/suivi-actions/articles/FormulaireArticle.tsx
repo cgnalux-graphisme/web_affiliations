@@ -61,7 +61,13 @@ const CHAPO_MAX = 400;
 // RLS : écriture réservée aux super admins → refus si la session a expiré.
 const CODE_ACCES_REFUSE = "42501";
 
-function formDepuis(a?: ArticleEnregistre): Form {
+/** Pré-remplissage d'un nouvel article (depuis un item de la veille). */
+export type PreRemplissage = { titre: string; sources: string };
+
+function formDepuis(a?: ArticleEnregistre, pre?: PreRemplissage): Form {
+  if (!a && pre) {
+    return { ...formDepuis(), titre: pre.titre, slug: slugifier(pre.titre), sources: pre.sources };
+  }
   return {
     titre: a?.titre ?? "",
     slug: a?.slug ?? "",
@@ -75,9 +81,15 @@ function formDepuis(a?: ArticleEnregistre): Form {
 }
 
 /** Formulaire d'article : création (sans `article`) ou modification. */
-export default function FormulaireArticle({ article }: { article?: ArticleEnregistre }) {
+export default function FormulaireArticle({
+  article,
+  preRemplissage,
+}: {
+  article?: ArticleEnregistre;
+  preRemplissage?: PreRemplissage;
+}) {
   const router = useRouter();
-  const [form, setForm] = useState<Form>(() => formDepuis(article));
+  const [form, setForm] = useState<Form>(() => formDepuis(article, preRemplissage));
   // Un nouvel article suit son titre ; un article existant garde son adresse (liens déjà partagés).
   const [slugManuel, setSlugManuel] = useState(Boolean(article));
   const [couverture, setCouverture] = useState<Couverture>(() =>
@@ -277,6 +289,12 @@ export default function FormulaireArticle({ article }: { article?: ArticleEnregi
               <Eye size={15} aria-hidden /> Aperçu de la version enregistrée
             </Link>
           </div>
+        )}
+        {!article && preRemplissage && (
+          <p className="mt-3 border-l-4 border-militant-rouge pl-3 text-sm">
+            Pré-rempli depuis la veille : titre repris de l&apos;article d&apos;origine et lien ajouté aux sources.
+            Reformulez avec vos propres mots avant de publier.
+          </p>
         )}
       </header>
 

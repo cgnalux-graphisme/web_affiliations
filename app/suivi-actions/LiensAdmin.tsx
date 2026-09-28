@@ -9,6 +9,8 @@ const LIENS: { href: string; label: string; sousPages?: boolean }[] = [
   { href: "/suivi-actions/rapport", label: "Rapport d'activité" },
   { href: "/suivi-actions/articles", label: "Articles", sousPages: true },
   { href: "/suivi-actions/articles/nouveau", label: "Écrire un article" },
+  { href: "/suivi-actions/veille", label: "Veille" },
+  { href: "/suivi-actions/sources", label: "Sources de la veille" },
 ];
 
 export default function LiensAdmin() {

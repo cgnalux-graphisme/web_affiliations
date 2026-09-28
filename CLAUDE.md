@@ -61,6 +61,9 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/articles` | SUPER_ADMIN | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
 | `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article |
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
+| `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille : filtres, ignorer, rédiger un article, rafraîchir |
+| `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
+| `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron toutes les 3 h, POST = bouton) |
 
 Navigation publique : Accueil · Nos actions · Actualités · Démarches en ligne ·
 Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
@@ -98,6 +101,13 @@ Blog (créés côté Supabase avant le 28/09/2026, aucune migration dans le dép
 | `site_articles` | Articles du blog | Super admin (lecture/écriture) |
 | `site_articles_public` | Vue : articles publiés (sans `statut`, `created_at`, `updated_at`) | Lecture publique |
 | Bucket `blog-images` | Images de couverture (public en lecture) | Écriture super admin |
+
+Veille (créés côté Supabase avant le 28/09/2026) :
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_sources` | Flux RSS suivis : `nom`, `url_flux`, `actif` | Super admin |
+| `site_veille` | Articles ramassés : `source_id`, `source_nom`, `titre`, `resume`, `lien` (**index unique**), `date_publication`, `statut` (`nouveau` / `traite` / `ignore`) | Super admin ; écriture du ramassage en service_role |
 
 ### Colonnes de `site_articles`
 `titre`, `slug` (adresse `/blog/<slug>`), `chapo` (accroche), `points_cles`
@@ -195,6 +205,19 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
       bilan en chiffres, graphiques, chronologie détaillée avec photo principale
 
 ### Phase 2 — Veille + blog
+- [x] **Veille RSS (sans IA)** — 28/09/2026 : sources gérées dans l'admin ;
+      `lib/veille-flux.ts` lit RSS 2.0 / Atom / RDF (50 items max par flux,
+      résumé sans HTML, 600 caractères) ; `lib/veille-ramassage.ts` insère en
+      `upsert … ignoreDuplicates` sur `lien` avec la clé **service_role**
+      (`lib/supabase-service.ts`, serveur uniquement). Route protégée par
+      `CRON_SECRET` (en-tête `Authorization: Bearer`) ou session super admin.
+      Cron `vercel.json` : `0 */3 * * *` (**exige un plan Vercel Pro** ; le plan
+      Hobby n'accepte qu'un cron par jour). « Rédiger un article » passe l'item
+      en `traite` et ouvre `/suivi-actions/articles/nouveau?veille=<id>`
+      (titre + lien pré-remplis dans les sources).
+- Variables d'environnement requises (Vercel **et** `.env.local` pour tester en
+  local) : `SUPABASE_SERVICE_ROLE_KEY` (jamais préfixée `NEXT_PUBLIC_`),
+  `CRON_SECRET` (chaîne aléatoire d'au moins 16 caractères).
 - [x] **Blog (structure, sans IA)** — 28/09/2026 : gestion admin (liste, éditeur
       riche, image de couverture, sources, brouillon / publié, date, aperçu),
       pages `/blog` et `/blog/<slug>`, lien « Actualités ». Contenu HTML nettoyé
@@ -351,7 +374,8 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 
 ## Rappels techniques
 - Stack : Next.js 16 (App Router, Node 24), Supabase, Vercel, Resend (envoi
-  d'e-mails), Tailwind 3, `@react-pdf/renderer`, Vitest.
+  d'e-mails), Tailwind 3, `@react-pdf/renderer`, Vitest, Tiptap (éditeur),
+  `sanitize-html`, `fast-xml-parser` (flux RSS).
 - Le `.env.local` de `web_affiliations` pointe **déjà** vers CG Link — ne pas le
   modifier. Les clés restent dans `.env.local` (jamais dans ce fichier ni sur GitHub).
 - **Next.js 16** : le middleware s'appelle `proxy.ts` (verrou de `/suivi-actions`).
