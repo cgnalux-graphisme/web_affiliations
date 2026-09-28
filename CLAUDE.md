@@ -64,6 +64,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/veille` | SUPER_ADMIN | Articles ramassés par la veille (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
+| `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 à partir d'un item de veille (POST `{ veilleId }`) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
 Navigation publique : Accueil · Nos actions · Actualités · Démarches en ligne ·
@@ -237,9 +238,29 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
   été essayée puis retirée le 28/09/2026 (elle n'apportait rien de plus que la
   liste) : ne pas la reproposer. Les items ramassés avant le 28/09/2026 ont un
   résumé coupé à 600 caractères (le ramassage ne réécrit jamais une ligne).
+- [x] **Rédaction assistée par IA** — 28/09/2026 : bouton « Brouillon IA » sur
+      chaque item de veille (ouvre le formulaire et lance la proposition) et
+      « Proposer un brouillon avec l'IA » dans le formulaire d'article ouvert
+      depuis la veille. Modèle **`claude-sonnet-5`** (choix de Fred), appel
+      **uniquement serveur** (`app/api/redaction/brouillon`, SDK
+      `@anthropic-ai/sdk`, sortie structurée `zod`, réflexion adaptative, effort
+      `medium`). La route ne reçoit que l'id de l'item et relit titre / résumé /
+      lien en base. Consigne et post-traitement dans `lib/redaction-ia.ts` :
+      reformuler (droit d'auteur), **aucun fait / chiffre / citation absent de
+      la source**, analyse syndicale formulée comme analyse ou question, source
+      maigre signalée (`avertissement`), texte du flux traité comme donnée (pas
+      comme instruction). Le code recalcule l'adresse depuis le titre, met le
+      lien d'origine en première source, nettoie le HTML. Date et statut
+      restent au formulaire (brouillon). Suggestion de photo affichée, **non
+      enregistrée** (pas de colonne). Rappel « Brouillon IA — à vérifier,
+      corriger et valider avant publication. Recoupez avec la source. »
+      Limite : avec la RTBF (~120 caractères de résumé), l'IA a très peu de
+      matière → brouillons courts et signalés « source maigre ».
 - Variables d'environnement requises (Vercel **et** `.env.local` pour tester en
   local) : `SUPABASE_SERVICE_ROLE_KEY` (jamais préfixée `NEXT_PUBLIC_`),
-  `CRON_SECRET` (chaîne aléatoire d'au moins 16 caractères).
+  `CRON_SECRET` (chaîne aléatoire d'au moins 16 caractères),
+  `ANTHROPIC_API_KEY` (jamais préfixée `NEXT_PUBLIC_`, jamais importée dans un
+  composant client).
 - [x] **Blog (structure, sans IA)** — 28/09/2026 : gestion admin (liste, éditeur
       riche, image de couverture, sources, brouillon / publié, date, aperçu),
       pages `/blog` et `/blog/<slug>`, lien « Actualités ». Contenu HTML nettoyé
@@ -320,8 +341,8 @@ Appliqués directement dans la base CG Link : aucune migration dans ce dépôt.
 - `SUPABASE_SERVICE_ROLE_KEY` et `CRON_SECRET` sont dans `.env.local` (vérifié le
   28/09/2026). À ajouter aussi dans Vercel (Production + Preview) par Fred.
 - Pistes suivantes : « Trouver votre contact » (phase 4, avec l'assistant),
-  rédaction assistée depuis la veille (phase 2, IA), derniers articles sur
-  l'accueil, mentions légales, publication réseaux (phase 3).
+  déclinaison réseaux (phase 3), images de couverture (plus tard), derniers
+  articles sur l'accueil, mentions légales.
 
 ---
 
@@ -402,7 +423,8 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 ## Rappels techniques
 - Stack : Next.js 16 (App Router, Node 24), Supabase, Vercel, Resend (envoi
   d'e-mails), Tailwind 3, `@react-pdf/renderer`, Vitest, Tiptap (éditeur),
-  `sanitize-html`, `fast-xml-parser` (flux RSS).
+  `sanitize-html`, `fast-xml-parser` (flux RSS), `@anthropic-ai/sdk` + `zod`
+  (rédaction assistée, serveur uniquement).
 - Le `.env.local` de `web_affiliations` pointe **déjà** vers CG Link — ne pas le
   modifier. Les clés restent dans `.env.local` (jamais dans ce fichier ni sur GitHub).
 - **Next.js 16** : le middleware s'appelle `proxy.ts` (verrou de `/suivi-actions`).

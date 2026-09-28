@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { AlertTriangle, CheckCircle, EyeOff, Loader2, PenLine, RefreshCw, RotateCcw } from "lucide-react";
+import { AlertTriangle, CheckCircle, EyeOff, Loader2, PenLine, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import {
   LIBELLES_STATUT,
@@ -136,7 +136,7 @@ export function FiltresVeille({
 /** « Rédiger un article », « Ignorer », « Remettre à trier » pour un item de la veille. */
 export function ActionsItem({ id, titre, statut }: { id: string; titre: string; statut: StatutVeille }) {
   const router = useRouter();
-  const [enCours, setEnCours] = useState<"rediger" | "statut" | null>(null);
+  const [enCours, setEnCours] = useState<"rediger" | "ia" | "statut" | null>(null);
   const [erreur, setErreur] = useState("");
 
   async function changerStatut(nouveau: StatutVeille): Promise<boolean> {
@@ -149,12 +149,13 @@ export function ActionsItem({ id, titre, statut }: { id: string; titre: string; 
     return true;
   }
 
-  async function rediger() {
-    setEnCours("rediger");
+  async function rediger(avecIA = false) {
+    setEnCours(avecIA ? "ia" : "rediger");
     setErreur("");
-    // L'item est marqué traité, puis le formulaire d'article s'ouvre pré-rempli.
+    // L'item est marqué traité, puis le formulaire d'article s'ouvre pré-rempli
+    // (avec l'IA : le brouillon est proposé dès l'ouverture du formulaire).
     if (statut === VEILLE_TRAITE || (await changerStatut(VEILLE_TRAITE))) {
-      router.push(`/suivi-actions/articles/nouveau?veille=${id}`);
+      router.push(`/suivi-actions/articles/nouveau?veille=${id}${avecIA ? "&ia=1" : ""}`);
       return;
     }
     setEnCours(null);
@@ -172,10 +173,20 @@ export function ActionsItem({ id, titre, statut }: { id: string; titre: string; 
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={rediger}
+          onClick={() => rediger(true)}
+          disabled={enCours !== null}
+          aria-label={`Proposer un brouillon avec l'IA à partir de : ${titre}`}
+          className={statut === VEILLE_NOUVEAU ? BOUTON_PRINCIPAL : BOUTON_SECONDAIRE}
+        >
+          {enCours === "ia" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Sparkles size={15} aria-hidden />}
+          Brouillon IA
+        </button>
+        <button
+          type="button"
+          onClick={() => rediger()}
           disabled={enCours !== null}
           aria-label={`Rédiger un article à partir de : ${titre}`}
-          className={statut === VEILLE_NOUVEAU ? BOUTON_PRINCIPAL : BOUTON_SECONDAIRE}
+          className={BOUTON_SECONDAIRE}
         >
           {enCours === "rediger" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <PenLine size={15} aria-hidden />}
           Rédiger un article

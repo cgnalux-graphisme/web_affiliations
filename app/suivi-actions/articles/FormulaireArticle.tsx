@@ -3,7 +3,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, Clock, Eye, FileText, Globe, ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowLeft,
+  Camera,
+  Clock,
+  Eye,
+  FileText,
+  Globe,
+  ImagePlus,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import { dateFrToIso, formatDateFr } from "../../../lib/dates";
 import { preparerPhoto } from "../../../lib/photos";
@@ -23,6 +37,7 @@ import {
   tempsLecture,
   type StatutArticle,
 } from "../../../lib/articles";
+import type { Brouillon } from "../../../lib/redaction-ia";
 import EditeurTexte from "./EditeurTexte";
 import { rafraichirBlog } from "./revalidation";
 
@@ -81,12 +96,25 @@ function formDepuis(a?: ArticleEnregistre, pre?: PreRemplissage): Form {
 }
 
 /** Formulaire d'article : création (sans `article`) ou modification. */
+/** État de la rédaction assistée (brouillon proposé par l'IA à partir d'un item de veille). */
+type EtatIA =
+  | { etape: "inactif" }
+  | { etape: "en_cours" }
+  | { etape: "propose"; avertissement: string | null; suggestionImage: string }
+  | { etape: "erreur"; message: string };
+
 export default function FormulaireArticle({
   article,
   preRemplissage,
+  veilleId,
+  iaAuChargement,
 }: {
   article?: ArticleEnregistre;
   preRemplissage?: PreRemplissage;
+  /** Item de veille à l'origine de l'article : active « Proposer un brouillon avec l'IA ». */
+  veilleId?: string;
+  /** Lance la proposition dès l'ouverture (bouton « Brouillon IA » de la veille). */
+  iaAuChargement?: boolean;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<Form>(() => formDepuis(article, preRemplissage));
@@ -101,6 +129,57 @@ export default function FormulaireArticle({
   const [erreurEnvoi, setErreurEnvoi] = useState("");
   const { acquire, release } = useOnceSubmit();
   const champFichier = useRef<HTMLInputElement>(null);
+  const [ia, setIa] = useState<EtatIA>({ etape: "inactif" });
+  // L'éditeur riche ne relit sa valeur qu'à sa création : on le recrée après un brouillon IA.
+  const [versionEditeur, setVersionEditeur] = useState(0);
+  const iaLancee = useRef(false);
+
+  async function proposerBrouillon(confirme = false) {
+    if (!veilleId || ia.etape === "en_cours") return;
+    const dejaRedige = Boolean(form.contenu.trim() || form.chapo.trim() || form.pointsCles.trim());
+    if (dejaRedige && !confirme && !window.confirm("Le brouillon de l'IA remplacera le titre, le chapô, les points clés, le contenu et les sources déjà saisis. Continuer ?")) {
+      return;
+    }
+    setIa({ etape: "en_cours" });
+    try {
+      const reponse = await fetch("/api/redaction/brouillon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ veilleId }),
+      });
+      const json = (await reponse.json().catch(() => ({}))) as { brouillon?: Brouillon; erreur?: string };
+      if (!reponse.ok || !json.brouillon) {
+        setIa({ etape: "erreur", message: json.erreur ?? "La génération du brouillon a échoué. Réessayez." });
+        return;
+      }
+      const b = json.brouillon;
+      // Date et statut restent gérés par le formulaire : le brouillon IA n'y touche pas.
+      setForm((f) => ({
+        ...f,
+        titre: b.titre,
+        slug: b.slug,
+        chapo: b.chapo,
+        pointsCles: b.points_cles,
+        contenu: b.contenu,
+        sources: b.sources,
+      }));
+      setSlugManuel(false);
+      setErreurs({});
+      setVersionEditeur((v) => v + 1);
+      setIa({ etape: "propose", avertissement: b.avertissement, suggestionImage: b.suggestion_image });
+    } catch {
+      setIa({ etape: "erreur", message: "Le serveur ne répond pas. Vérifiez votre connexion et réessayez." });
+    }
+  }
+
+  // Ouverture depuis « Brouillon IA » de la veille : une seule proposition, puis l'adresse est nettoyée
+  // (un rechargement de la page ne relance pas l'IA).
+  useEffect(() => {
+    if (!iaAuChargement || !veilleId || iaLancee.current) return;
+    iaLancee.current = true;
+    router.replace(`/suivi-actions/articles/nouveau?veille=${veilleId}`, { scroll: false });
+    proposerBrouillon(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Libère l'aperçu local de l'image quand il est remplacé ou à la sortie.
   const apercu = couverture?.file ? couverture.apercu : null;
@@ -290,13 +369,15 @@ export default function FormulaireArticle({
             </Link>
           </div>
         )}
-        {!article && preRemplissage && (
+        {!article && preRemplissage && ia.etape === "inactif" && (
           <p className="mt-3 border-l-4 border-militant-rouge pl-3 text-sm">
             Pré-rempli depuis la veille : titre repris de l&apos;article d&apos;origine et lien ajouté aux sources.
             Reformulez avec vos propres mots avant de publier.
           </p>
         )}
       </header>
+
+      {veilleId && <PanneauIA ia={ia} onProposer={() => proposerBrouillon()} />}
 
       <form onSubmit={enregistrer} noValidate className="overflow-hidden rounded-2xl border border-militant-ardoise bg-white">
         {/* ── TITRE ── */}
@@ -418,6 +499,7 @@ export default function FormulaireArticle({
             Des sous-titres toutes les quelques lignes et des paragraphes courts : le lecteur parcourt avant de lire.
           </p>
           <EditeurTexte
+            key={versionEditeur}
             valeur={form.contenu}
             onChange={(html) => set("contenu", html)}
             idLibelle="libelle-contenu"
@@ -434,6 +516,15 @@ export default function FormulaireArticle({
         <TitreSection>4. Image de couverture</TitreSection>
         <div className="space-y-3 px-6 py-6">
           <p className="text-xs">Format paysage de préférence. L&apos;image est réduite automatiquement avant l&apos;envoi.</p>
+          {ia.etape === "propose" && ia.suggestionImage && (
+            <p className="flex items-start gap-2.5 rounded-xl border-2 border-dashed border-militant-ardoise px-4 py-3 text-sm">
+              <Camera size={17} className="mt-0.5 shrink-0 text-militant-rouge" aria-hidden />
+              <span>
+                <span className="font-bold">Suggestion de photo (IA, non enregistrée) : </span>
+                {ia.suggestionImage}
+              </span>
+            </p>
+          )}
           {imageAffichee ? (
             <div className="space-y-3">
               {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local ou image du bucket */}
@@ -538,6 +629,12 @@ export default function FormulaireArticle({
         </div>
 
         <div className="space-y-3 px-6 pb-6">
+          {ia.etape === "propose" && (
+            <p className="flex items-start gap-2 rounded-xl border-2 border-militant-bordeaux px-4 py-3 text-sm font-semibold">
+              <Sparkles size={16} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
+              {RAPPEL_IA}
+            </p>
+          )}
           {erreurEnvoi && (
             <div role="alert" className="flex items-start gap-2.5 rounded-xl border-2 border-militant-bordeaux bg-white px-4 py-3 text-sm">
               <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden />
@@ -571,6 +668,83 @@ export default function FormulaireArticle({
 }
 
 // ── Sous-composants ──────────────────────────────────────────────────────────
+const RAPPEL_IA = "Brouillon IA — à vérifier, corriger et valider avant publication. Recoupez avec la source.";
+
+/** Bouton « Proposer un brouillon avec l'IA », indicateur, rappel et erreurs. */
+function PanneauIA({ ia, onProposer }: { ia: EtatIA; onProposer: () => void }) {
+  if (ia.etape === "propose") {
+    return (
+      <section aria-live="polite" className="overflow-hidden rounded-2xl bg-militant-bordeaux text-white">
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-3 px-5 py-4">
+          <Sparkles size={22} className="mt-0.5 shrink-0" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="font-condensed text-2xl font-extrabold leading-tight">{RAPPEL_IA}</p>
+            <p className="mt-1 text-sm">
+              Tous les champs sont modifiables. La date et le statut n&apos;ont pas été touchés : l&apos;article reste un
+              brouillon tant que vous ne le publiez pas.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onProposer}
+            className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-xl border-2 border-white px-3.5 py-1.5 text-sm font-bold transition-colors hover:bg-white hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <RefreshCw size={15} aria-hidden /> Proposer un autre brouillon
+          </button>
+        </div>
+        {ia.avertissement && (
+          <p className="flex items-start gap-2 border-t-2 border-white bg-white px-5 py-3 text-sm text-militant-charbon">
+            <AlertTriangle size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
+            <span>
+              <span className="font-bold text-militant-bordeaux">Source maigre : </span>
+              {ia.avertissement}
+            </span>
+          </p>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section aria-live="polite" className="rounded-2xl border-2 border-militant-bordeaux px-5 py-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <Sparkles size={22} className="shrink-0 text-militant-bordeaux" aria-hidden />
+        <p className="min-w-0 flex-1 text-sm">
+          {ia.etape === "en_cours" ? (
+            <span className="font-semibold">
+              Rédaction du brouillon par l&apos;IA… Comptez 20 secondes à 1 minute. Ne fermez pas la page.
+            </span>
+          ) : (
+            <>
+              <span className="font-bold">Rédaction assistée.</span> L&apos;IA propose un brouillon complet à partir de
+              l&apos;article de veille (titre, chapô, points clés, contenu, sources). Vous relisez et corrigez tout avant
+              publication.
+            </>
+          )}
+        </p>
+        <button
+          type="button"
+          onClick={onProposer}
+          disabled={ia.etape === "en_cours"}
+          className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-militant-bordeaux px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
+        >
+          {ia.etape === "en_cours" ? (
+            <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden />
+          ) : (
+            <Sparkles size={16} aria-hidden />
+          )}
+          {ia.etape === "en_cours" ? "Rédaction en cours…" : "Proposer un brouillon avec l'IA"}
+        </button>
+      </div>
+      {ia.etape === "erreur" && (
+        <p role="alert" className="mt-3 flex items-start gap-1.5 text-sm font-semibold text-militant-bordeaux">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
+          {ia.message}
+        </p>
+      )}
+    </section>
+  );
+}
 const BOUTON_SECONDAIRE =
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-militant-charbon bg-white px-4 py-2 text-sm font-bold transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50";
 

@@ -11,17 +11,19 @@ export const metadata: Metadata = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Nouvel article ; avec ?veille=<id>, pré-rempli depuis un item de la veille (titre + lien en source). */
-export default async function NouvelArticlePage({ searchParams }: { searchParams: Promise<{ veille?: string }> }) {
-  const { veille } = await searchParams;
+export default async function NouvelArticlePage({ searchParams }: { searchParams: Promise<{ veille?: string; ia?: string }> }) {
+  const { veille, ia } = await searchParams;
   if (!(await getSuperAdmin())) {
     redirect(`/login?next=${encodeURIComponent(`/suivi-actions/articles/nouveau${veille ? `?veille=${veille}` : ""}`)}`);
   }
 
   let preRemplissage: PreRemplissage | undefined;
+  let veilleId: string | undefined;
   if (veille && UUID.test(veille)) {
     const supabase = await getSupabaseServer();
     const { data } = await supabase.from("site_veille").select("titre, lien, source_nom").eq("id", veille).maybeSingle();
     if (data) {
+      veilleId = veille;
       preRemplissage = {
         titre: data.titre,
         sources: data.source_nom ? `${data.source_nom} – ${data.lien}` : data.lien,
@@ -29,5 +31,12 @@ export default async function NouvelArticlePage({ searchParams }: { searchParams
     }
   }
 
-  return <FormulaireArticle key={veille ?? "vide"} preRemplissage={preRemplissage} />;
+  return (
+    <FormulaireArticle
+      key={veille ?? "vide"}
+      preRemplissage={preRemplissage}
+      veilleId={veilleId}
+      iaAuChargement={Boolean(veilleId) && ia === "1"}
+    />
+  );
 }
