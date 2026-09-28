@@ -222,10 +222,10 @@ signature) :
 
 Migration **demandée par Fred** le 28/09/2026 :
 `supabase/migrations/20260928120000_site_destinataires_envois_mails.sql`
-(première migration du dépôt, idempotente). **À exécuter par Fred dans l'éditeur
-SQL de Supabase** : tant qu'elle ne l'est pas, les envois partent vers les
-adresses par défaut (`DESTINATAIRES_DEFAUT`, `lib/envois.ts`), l'écran
-Paramètres et l'historique affichent « pas encore activé ».
+(première migration du dépôt, idempotente), **exécutée par Fred le 28/09/2026**
+(vérifié : 9 adresses en place, `anon` refusé sur les deux tables). Si la table
+devenait illisible, les envois repartiraient vers `DESTINATAIRES_DEFAUT`
+(`lib/envois.ts`).
 
 | Objet | Rôle | Accès |
 |---|---|---|
@@ -501,9 +501,8 @@ reformuler, citer et lier la source, jamais recopier.
 ## État au 28/09/2026
 - Tout le travail est sur la branche **`suivi-actions`** : rien sur `main`, rien
   déployé. À relire puis fusionner quand Fred valide.
-- À faire par Fred : **exécuter** la migration
-  `supabase/migrations/20260928120000_site_destinataires_envois_mails.sql`
-  dans l'éditeur SQL de Supabase (paramètres des envois + historique).
+- Migration des envois exécutée le 28/09/2026. À tester par Fred : un envoi
+  réel (SEPA, C1) doit apparaître dans l'historique de la demande.
 - À faire par Fred : **supprimer** le projet Supabase `accg-nalux-site`
   (dashboard).
 - Bureaux (`lib/bureaux.ts`) repris de l'ancien site le 25/09/2026 : Libramont
