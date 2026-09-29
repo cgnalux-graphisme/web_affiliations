@@ -121,7 +121,7 @@
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
 }
-.article-contenu a:hover { color: #AA0F33; }
+.article-contenu a:hover { color: #931510; }
 .article-contenu ul, .article-contenu ol { padding-left: 1.75rem; }
 .article-contenu li + li { margin-top: 0.4em; }
 .article-contenu li > p { margin: 0; }

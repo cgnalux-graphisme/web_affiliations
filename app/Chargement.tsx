@@ -75,7 +75,7 @@ export function EcranChargement({ texte = "Chargement…", compact = false }: { 
             cx="25"
             cy="25"
             r={R}
-            stroke="#AA0F33"
+            stroke="#931510"
             strokeWidth="7"
             strokeLinecap="round"
             strokeDasharray="90 126"

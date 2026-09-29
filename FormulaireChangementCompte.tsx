@@ -400,7 +400,7 @@ const pdfStyles = StyleSheet.create({
     borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     borderLeftWidth: 3,
-    borderLeftColor: "#AA0F33",
+    borderLeftColor: "#931510",
     borderLeftStyle: "solid",
     borderRadius: 3,
     paddingTop: 6,
@@ -584,7 +584,7 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure, dateDocument }: {
           <View style={pdfStyles.section}>
             <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>3</Text>  Créancier SEPA</Text>
             <View style={pdfStyles.sepaBox}>
-              <Text style={[pdfStyles.infoBoxTitle, { color: "#AA0F33", fontSize: 7.5 }]}>
+              <Text style={[pdfStyles.infoBoxTitle, { color: "#931510", fontSize: 7.5 }]}>
                 Informations créancier SEPA
               </Text>
               <View style={pdfStyles.twoCol}>
@@ -631,7 +631,7 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure, dateDocument }: {
           <View style={pdfStyles.section}>
             <Text style={pdfStyles.sectionTitle}><Text style={{ color: "#E32119" }}>5</Text>  Autorisation</Text>
             <View style={pdfStyles.sepaBox}>
-              <Text style={[pdfStyles.infoBoxTitle, { color: "#AA0F33", fontSize: 7.5 }]}>
+              <Text style={[pdfStyles.infoBoxTitle, { color: "#931510", fontSize: 7.5 }]}>
                 Mandat de domiciliation
               </Text>
               <Text style={{ fontSize: 7, color: "#222222", lineHeight: 1.5 }}>

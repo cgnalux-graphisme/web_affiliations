@@ -2,7 +2,7 @@ import Link from "next/link";
 import { forms, transferJourney } from "./forms";
 
 const TUILE =
-  "flex flex-col gap-2 rounded-2xl border border-militant-ardoise bg-white p-6 transition-shadow hover:border-militant-bordeaux hover:shadow-[inset_0_0_0_1px_#AA0F33] focus:outline-none focus-visible:ring-4 focus-visible:ring-militant-rouge";
+  "flex flex-col gap-2 rounded-2xl border border-militant-ardoise bg-white p-6 transition-shadow hover:border-militant-bordeaux hover:shadow-[inset_0_0_0_1px_#931510] focus:outline-none focus-visible:ring-4 focus-visible:ring-militant-rouge";
 
 /**
  * Grille des démarches en ligne. L'affiliation est la démarche principale : grande

@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 
 // ── Palette stricte du site ACCG Nalux ───────────────────────────────────────
 const ROUGE = "#E32119";
-const BORDEAUX = "#AA0F33";
+const BORDEAUX = "#931510";
 const CHARBON = "#222222";
 const BLANC = "#FFFFFF";
 const ARDOISE = "#7C90A0";

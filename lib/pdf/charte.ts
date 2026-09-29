@@ -3,7 +3,7 @@ import { Font } from "@react-pdf/renderer";
 /** Palette stricte du site, pour les documents PDF générés. */
 export const PDF_COULEURS = {
   rouge: "#E32119",
-  bordeaux: "#AA0F33",
+  bordeaux: "#931510",
   charbon: "#222222",
   blanc: "#FFFFFF",
   ardoise: "#7C90A0",

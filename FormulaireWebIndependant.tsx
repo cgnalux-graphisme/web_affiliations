@@ -1389,7 +1389,7 @@ const pdfStyles = PDFStyleSheet.create({
   // ── Encadré cotisation (compact) ──────────────────────────────────────────
   cotisationBox: {
     borderWidth: 1.5,
-    borderColor: "#AA0F33",
+    borderColor: "#931510",
     borderStyle: "solid",
     paddingTop: 5,
     paddingBottom: 5,
@@ -1403,7 +1403,7 @@ const pdfStyles = PDFStyleSheet.create({
     fontFamily: "Barlow Condensed",
     fontWeight: 800,
     fontSize: 17,
-    color: "#AA0F33",
+    color: "#931510",
     marginRight: 8,
   },
   cotisationCatLabel: {
@@ -1501,7 +1501,7 @@ const pdfStyles = PDFStyleSheet.create({
     borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     borderLeftWidth: 3,
-    borderLeftColor: "#AA0F33",
+    borderLeftColor: "#931510",
     borderLeftStyle: "solid",
     borderRadius: 3,
     paddingTop: 6,
@@ -1524,7 +1524,7 @@ const pdfStyles = PDFStyleSheet.create({
     borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     borderLeftWidth: 3,
-    borderLeftColor: "#AA0F33",
+    borderLeftColor: "#931510",
     borderLeftStyle: "solid",
     borderRadius: 3,
     paddingTop: 6,
@@ -1549,7 +1549,7 @@ const pdfStyles = PDFStyleSheet.create({
   mentionBadgeOk: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#AA0F33",
+    borderColor: "#931510",
     borderStyle: "solid",
     borderRadius: 2,
     paddingTop: 1,
@@ -1561,7 +1561,7 @@ const pdfStyles = PDFStyleSheet.create({
   },
   mentionBadgeOkText: {
     fontSize: 6,
-    color: "#AA0F33",
+    color: "#931510",
     fontFamily: "Barlow", fontWeight: 600,
   },
   mentionContent: { flex: 1 },
@@ -1994,7 +1994,7 @@ function AffiliationDocument({
             {/* ── Domiciliation : informations créancier + échéancier ── */}
             {data.modePaiement === "domiciliation" && (
               <View style={pdfStyles.sepaBox}>
-                <PDFText style={[pdfStyles.infoBoxTitle, { color: "#AA0F33", fontSize: 7.5 }]}>
+                <PDFText style={[pdfStyles.infoBoxTitle, { color: "#931510", fontSize: 7.5 }]}>
                   Informations créancier SEPA
                 </PDFText>
                 <PdfRow label="Créancier :"                   value="Centrale Générale FGTB Namur-Luxembourg" />
@@ -2053,7 +2053,7 @@ function AffiliationDocument({
                   <PDFText style={{ fontSize: 7, color: "#222222", fontFamily: "Barlow", fontWeight: 600, width: "35%" }}>
                     Total à payer :
                   </PDFText>
-                  <PDFText style={{ fontSize: 11, fontFamily: "Barlow", fontWeight: 600, color: "#AA0F33" }}>
+                  <PDFText style={{ fontSize: 11, fontFamily: "Barlow", fontWeight: 600, color: "#931510" }}>
                     {paiement2025.montant.toFixed(2)} €
                   </PDFText>
                   <PDFText style={{ fontSize: 6.5, color: "#222222", marginLeft: 4, marginTop: 2 }}>

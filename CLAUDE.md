@@ -515,7 +515,7 @@ reformuler, citer et lier la source, jamais recopier.
   rubrique (`chargerArticle(slug, categorie)`, `lib/articles-public.ts`).
   **Pastille** (`Pastille`, `app/blog/CartesArticles.tsx`) en haut à gauche de la
   photo et en tête de la page de détail : « Actualité » fond rouge `#E32119`,
-  « On vous explique » fond bordeaux `#AA0F33`, texte blanc — le texte est
+  « On vous explique » fond bordeaux `#931510`, texte blanc — le texte est
   toujours présent (la couleur n'est qu'un renfort). Filtre : sélecteur à
   segments (aplat rouge qui glisse, fondu de la liste au changement d'onglet
   seulement), **jamais de `<select>` ni de cases à cocher** ; l'adresse suit le
@@ -701,9 +701,17 @@ reformuler, citer et lier la source, jamais recopier.
 Maquettes de référence : page de maquettes claude.ai « Propositions design ACCG
 Nalux » (rangée D pour le site, rangée « PDF » pour les documents) :
 https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
-- **Palette stricte** : `#E32119` rouge, `#AA0F33` bordeaux, `#222222` charbon,
+- **Palette stricte** : `#E32119` rouge, `#931510` bordeaux, `#222222` charbon,
   `#FFFFFF` blanc, `#7C90A0` ardoise. Dans le code : couleurs Tailwind
   `militant-rouge`, `militant-bordeaux`, `militant-charbon`, `militant-ardoise`.
+  Bordeaux = `#931510` depuis le 29/09/2026 (avant : `#AA0F33`, demande de Fred).
+  Contrastes vérifiés : blanc sur bordeaux **8,9:1** (AAA, avant 7,4:1) ; bordeaux
+  sur blanc 8,9:1 ; rouge / bordeaux 1,9:1 (pastilles « Actualité » / « On vous
+  explique » : le texte les distingue) ; filet blanc 35 % sur bordeaux 2,2:1
+  (décoratif). Seul recul : charbon / bordeaux 1,8:1 (avant 2,1:1) → ne jamais
+  distinguer une information par ces deux seules couleurs (survol bordeaux →
+  charbon des boutons = simple renfort, le texte reste blanc ; camembert du
+  rapport : filets blancs entre les parts + légende).
 - **Limiter les fonds noirs** : le noir est politiquement associé à l'extrême
   droite, que la centrale combat. Le charbon sert au texte, aux filets et aux petits
   détails (survol de bouton, puce), **jamais aux grandes surfaces** (barres,
@@ -746,7 +754,7 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   automatiques). `cg.namurluxembourg@accg.be` est obsolète.
 - **Graphiques** (rapport PDF…) : couleurs libres, à valider (daltonisme,
   contraste), **hors vert et bleu** réservés à la CSC et à Synova. Camembert des
-  types : `#222222` `#E32119` `#7C90A0` `#B8720F` `#AA0F33` `#9C6FB3`.
+  types : `#222222` `#E32119` `#7C90A0` `#B8720F` `#931510` `#9C6FB3`.
 - **Couche de compatibilité** (`tailwind.config.ts`) : les anciennes classes
   `red-*`, `gray-*`, `slate-*`, `blue-*`, `green-*`, `emerald-*`, `amber-*` des
   anciens formulaires sont **remappées sur la palette** (teintes claires → blanc,

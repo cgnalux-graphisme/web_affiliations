@@ -193,7 +193,7 @@ function OuvertureParDefaut({ action }: { action?: Action }) {
       {action && (
         <Link
           href={`/actions#${ancreUne(action.id)}`}
-          className="group flex flex-col overflow-hidden rounded-2xl border border-militant-ardoise bg-white transition-shadow hover:border-militant-bordeaux hover:shadow-[inset_0_0_0_1px_#AA0F33] focus:outline-none focus-visible:ring-4 focus-visible:ring-militant-rouge lg:col-span-4"
+          className="group flex flex-col overflow-hidden rounded-2xl border border-militant-ardoise bg-white transition-shadow hover:border-militant-bordeaux hover:shadow-[inset_0_0_0_1px_#931510] focus:outline-none focus-visible:ring-4 focus-visible:ring-militant-rouge lg:col-span-4"
         >
           <div className="relative aspect-[3/2] bg-militant-ardoise">
             {action.photo && (

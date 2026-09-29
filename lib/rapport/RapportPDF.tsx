@@ -7,7 +7,7 @@ import { partsCamembert, type ActionRapport, type Bilan } from "./bilan";
 // ── Palette stricte et typographie ────────────────────────────────────────────
 const C = {
   rouge: "#E32119",
-  bordeaux: "#AA0F33",
+  bordeaux: "#931510",
   charbon: "#222222",
   blanc: "#FFFFFF",
   ardoise: "#7C90A0",
