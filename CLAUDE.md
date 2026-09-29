@@ -362,7 +362,7 @@ exception : la migration des envois, voir plus haut, demandée par Fred).
 - [x] Base de données prête (tables `site_*` dans CG Link)
 - [ ] Supprimer le projet Supabase doublon `accg-nalux-site`
 - [~] Partie publique du site : accueil, `/demarches`, `/actions`, `/actualites`
-      (blog + « On vous explique »), `/contact` faits ; **manquent** présentation, mentions légales, vie privée
+      (blog + « On vous explique »), `/contact` et pages légales (à faire valider) faits ; **manque** la présentation
 - [ ] « Trouver votre contact » → voir Phase 4, lié à l'assistant-aiguilleur
 - [x] Refonte graphique « direction D » (éditorial + modulaire, sans fond noir) —
       voir Conventions > Design
