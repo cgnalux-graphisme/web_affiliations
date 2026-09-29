@@ -296,17 +296,6 @@
   to { opacity: 1; transform: none; }
 }
 .consentement-entree { animation: consentement-entree 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 0.4s both; }
-/* Rouvert par « Gérer les cookies » : tout de suite, avec un halo rouge pour attirer l'œil (le pop-up est loin du bouton). */
-@keyframes consentement-halo {
-  0% { box-shadow: 0 0 0 0 rgba(227, 33, 25, 0.55); }
-  100% { box-shadow: 0 0 0 16px rgba(227, 33, 25, 0); }
-}
-.consentement-rappel {
-  animation:
-    consentement-entree 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both,
-    consentement-halo 0.9s ease-out 0.3s 2;
-}
 @media (prefers-reduced-motion: reduce) {
-  .consentement-entree,
-  .consentement-rappel { animation: none; }
+  .consentement-entree { animation: none; }
 }

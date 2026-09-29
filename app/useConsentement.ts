@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CLE_CONSENTEMENT,
   EVENEMENT_CHOIX,
-  EVENEMENT_REGLAGES,
+  TOUT_REFUSE,
   creerChoix,
   lireChoix,
+  type Autorisations,
+  type Categorie,
   type ChoixCookies,
 } from "../lib/consentement";
 
@@ -18,9 +20,9 @@ function lire(): ChoixCookies | null {
   }
 }
 
-/** Enregistre le choix et prévient tous les composants de la page. */
-export function enregistrerChoix(cartes: boolean) {
-  const choix = creerChoix(cartes);
+/** Enregistre le choix complet et prévient tous les composants de la page. */
+export function enregistrerChoix(autorisations: Autorisations) {
+  const choix = creerChoix(autorisations);
   try {
     localStorage.setItem(CLE_CONSENTEMENT, JSON.stringify(choix));
   } catch {
@@ -29,9 +31,10 @@ export function enregistrerChoix(cartes: boolean) {
   window.dispatchEvent(new CustomEvent<ChoixCookies>(EVENEMENT_CHOIX, { detail: choix }));
 }
 
-/** Rouvre le pop-up de consentement (liens « Gérer les cookies »). */
-export function ouvrirReglagesCookies() {
-  window.dispatchEvent(new Event(EVENEMENT_REGLAGES));
+/** Autorise une catégorie sans toucher aux autres (bouton « Afficher les cartes », « Autoriser et lire »). */
+export function autoriser(categorie: Categorie) {
+  const actuel = lire() ?? TOUT_REFUSE;
+  enregistrerChoix({ cartes: actuel.cartes, videos: actuel.videos, [categorie]: true });
 }
 
 /**
@@ -55,6 +58,5 @@ export function useConsentement() {
     };
   }, []);
 
-  const accepterCartes = useCallback(() => enregistrerChoix(true), []);
-  return { ...etat, cartesAutorisees: etat.choix?.cartes === true, accepterCartes };
+  return { ...etat, autorise: (c: Categorie) => etat.choix?.[c] === true };
 }

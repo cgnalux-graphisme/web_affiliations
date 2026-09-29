@@ -137,22 +137,33 @@ Un cookie est un petit fichier déposé sur votre appareil par un site que vous 
 façon. Cette politique couvre les trois. Notre usage est volontairement minimal : pas de
 publicité, pas de mesure d'audience, pas de revente de données.
 
+**Réglages et liste des cookies**
+Voici tout ce que le site peut enregistrer sur votre appareil. Activez ou désactivez chaque
+élément soumis à votre accord : votre choix est enregistré immédiatement.
+(Sur le site : panneau de réglages, un interrupteur par élément. Liste tenue dans
+`ELEMENTS_COOKIES`, `lib/consentement.ts`.)
+
+Avec votre accord (désactivés tant que vous ne les activez pas) :
+- Cookies Google Maps — Google — cookies et stockage de Google — durée fixée par Google :
+  afficher les cartes de nos 4 bureaux sur la page Contact ;
+- Cookies YouTube — Google (YouTube) — cookies et stockage de YouTube — durée fixée par
+  Google : lire les vidéos de nos actions sur la page Nos actions.
+
+Indispensables (toujours actifs, ils ne demandent pas votre accord) :
+- `accg-consentement` — ce site — stockage local — 6 mois : retenir vos choix de cookies ;
+- `bandeau-mobilisation-ferme` — ce site — stockage de session — jusqu'à la fermeture de
+  l'onglet : ne plus afficher le bandeau de mobilisation que vous avez fermé ;
+- `fgtb_transfer_journey` — ce site — stockage de session — jusqu'à la fermeture de
+  l'onglet : garder votre progression dans le parcours de transfert ;
+- `sb-…-auth-token` — ce site (Supabase) — cookie — jusqu'à la déconnexion, au plus
+  400 jours : garder connectés les membres de l'équipe à l'espace réservé ; jamais déposé
+  pour les visiteurs.
+
 **Qui est responsable ?**
 La Centrale Générale FGTB Namur-Luxembourg, Rue Fonteny Maroy 13, 6800 Libramont-Chevigny
 (voir les mentions légales).
 
-**1. Indispensables — toujours actifs**
-Ils sont nécessaires au fonctionnement du site et ne demandent pas votre accord.
-- Votre choix de cookies (`accg-consentement`, stockage local, 6 mois) : retenir votre choix
-  pour ne pas vous le redemander à chaque page ;
-- Bandeau de mobilisation refermé (`bandeau-mobilisation-ferme`, stockage de session,
-  jusqu'à la fermeture de l'onglet) : ne plus afficher le bandeau que vous avez fermé ;
-- Parcours de transfert (`fgtb_transfer_journey`, stockage de session, jusqu'à la fermeture
-  de l'onglet) : garder votre progression d'une étape à l'autre du parcours ;
-- Session des administrateurs (`sb-…-auth-token`, cookie, jusqu'à la déconnexion et au plus
-  400 jours) : uniquement pour les membres de l'équipe connectés à l'espace réservé.
-
-**2. Cartes Google Maps — avec votre accord**
+**Cartes Google Maps — avec votre accord**
 La page Contact peut afficher une carte pour chacun de nos bureaux. Ces cartes sont fournies
 par Google : en les affichant, Google peut déposer ses propres cookies et lire des
 informations sur votre appareil. Leur nom, leur durée et leur usage sont fixés par Google :
@@ -160,10 +171,11 @@ https://policies.google.com/technologies/cookies?hl=fr
 Sans votre accord, aucune carte n'est chargée et aucune donnée n'est envoyée à Google : un
 plan décoratif s'affiche à la place, avec l'adresse et un lien « Itinéraire ».
 
-**3. Vidéos YouTube — à votre demande**
-Les vidéos de nos actions sont intégrées en mode « sans cookie » (youtube-nocookie.com) :
-rien n'est chargé depuis le lecteur YouTube tant que vous ne cliquez pas sur une vidéo. En
-lançant la lecture, YouTube (Google) peut stocker des informations sur votre appareil.
+**Vidéos YouTube — avec votre accord**
+Les vidéos de nos actions sont intégrées en mode « sans cookie » (youtube-nocookie.com).
+Sans votre accord, ni l'aperçu ni le lecteur ne sont chargés depuis YouTube. Avec votre
+accord, l'aperçu s'affiche et le lecteur se charge quand vous cliquez sur une vidéo :
+YouTube (Google) peut alors stocker des informations sur votre appareil.
 
 **Pas de publicité, pas de statistiques**
 Nous n'utilisons aucun cookie publicitaire, aucun outil de mesure d'audience et aucun
@@ -172,16 +184,18 @@ simples liens. Si nous ajoutions un jour un outil de mesure d'audience, il serai
 votre accord préalable.
 
 **Votre accord**
-À votre première visite, une fenêtre vous demande si vous acceptez les cartes Google Maps.
-Refuser est aussi simple qu'accepter et ne vous prive d'aucun service : les adresses, les
-horaires et les itinéraires restent disponibles. Votre choix est conservé 6 mois, puis vous
-est redemandé. Vous pouvez le modifier ou retirer votre accord à tout moment via le lien
-« Gérer les cookies », en bas de chaque page.
+À votre première visite, une fenêtre vous propose de tout refuser ou de tout accepter.
+Refuser est aussi simple qu'accepter et ne vous prive d'aucun service essentiel : les
+adresses, les horaires et les itinéraires restent disponibles. Votre choix est conservé
+6 mois, puis vous est redemandé.
+> Changer d'avis : vous pouvez modifier chaque choix ou retirer votre accord à tout moment,
+> dans les réglages ci-dessus. Le lien « Gérer les cookies », en bas de chaque page, vous y
+> amène.
 
 **Supprimer les cookies**
-Retirer votre accord empêche le chargement des cartes, mais n'efface pas les cookies que
-Google a déjà déposés : vous pouvez les supprimer dans les réglages de votre navigateur
-(Chrome, Firefox, Edge, Safari…), qui permettent aussi de bloquer les cookies.
+Retirer votre accord empêche le chargement des cartes et des vidéos, mais n'efface pas les
+cookies que Google a déjà déposés : vous pouvez les supprimer dans les réglages de votre
+navigateur (Chrome, Firefox, Edge, Safari…), qui permettent aussi de bloquer les cookies.
 
 **Questions**
 Pour toute question sur les cookies ou vos données : notre délégué à la protection des

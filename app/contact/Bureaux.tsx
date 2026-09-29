@@ -16,7 +16,7 @@ import {
   type Jour,
   type Periode,
 } from "../../lib/bureaux";
-import { useConsentement } from "../useConsentement";
+import { autoriser, useConsentement } from "../useConsentement";
 
 const PERIODES: { id: Periode; libelle: string; detail: string }[] = [
   { id: "annee", libelle: "Toute l'année", detail: "septembre à juin" },
@@ -210,13 +210,14 @@ function CarteBureau({
 }
 
 /**
- * Carte Google Maps, affichée directement si le visiteur a accepté les cartes (pop-up de consentement,
- * app/ConsentementCookies.tsx). Sinon, ou avant la lecture du choix : aucune requête vers Google, un plan
- * stylisé tient la place, avec « Afficher les cartes » (= accepter, pour les 4 cartes). En niveaux de gris
+ * Carte Google Maps, affichée directement si le visiteur a accepté les cartes (pop-up de consentement ou
+ * réglages de /cookies). Sinon, ou avant la lecture du choix : aucune requête vers Google, un plan stylisé
+ * tient la place, avec « Afficher les cartes » (= accepter les cartes seulement, pour les 4). En niveaux de gris
  * pour rester dans la palette (le vert et le bleu sont réservés à la CSC et à Synova).
  */
 function Carte({ bureau: b, rang }: { bureau: Bureau; rang: number }) {
-  const { pret, cartesAutorisees: affichee, accepterCartes } = useConsentement();
+  const { pret, autorise } = useConsentement();
+  const affichee = autorise("cartes");
   const [chargee, setChargee] = useState(false);
 
   return (
@@ -244,7 +245,7 @@ function Carte({ bureau: b, rang }: { bureau: Bureau; rang: number }) {
             <div className="liste-fondu absolute inset-0 flex flex-col items-center justify-end gap-2 p-4 text-center">
               <button
                 type="button"
-                onClick={accepterCartes}
+                onClick={() => autoriser("cartes")}
                 className="inline-flex min-h-[44px] items-center gap-2 rounded-full border-2 border-militant-charbon bg-white px-5 font-bold shadow-[0_6px_20px_-8px_rgba(34,34,34,0.5)] transition-transform duration-200 hover:-translate-y-0.5 hover:border-militant-bordeaux hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
               >
                 <MapPin size={18} className="text-militant-rouge" aria-hidden />

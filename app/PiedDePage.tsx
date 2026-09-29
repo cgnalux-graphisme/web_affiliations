@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, Mail, MessageCircle, Phone } from "lucide-react";
-import BoutonReglagesCookies from "./BoutonReglagesCookies";
 import RevelationPied from "./RevelationPied";
 import { RESEAUX } from "./ReseauxSociaux";
 
@@ -197,7 +196,12 @@ export default function PiedDePage() {
                 ))}
                 <li className="flex items-center">
                   <span aria-hidden className="mx-2.5 h-1 w-1 rounded-full bg-militant-ardoise/60" />
-                  <BoutonReglagesCookies className="inline-flex min-h-[36px] items-center rounded-sm transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 focus-visible:ring-offset-militant-charbon" />
+                  <Link
+                    href="/cookies#reglages"
+                    className="inline-flex min-h-[36px] items-center rounded-sm transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 focus-visible:ring-offset-militant-charbon"
+                  >
+                    Gérer les cookies
+                  </Link>
                 </li>
               </ul>
             </nav>

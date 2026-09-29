@@ -89,18 +89,22 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/api/reseaux/declinaison` | SUPER_ADMIN | Posts réseaux proposés par Claude Sonnet 5 (POST `{ articleId, reseau? }` ; sans `reseau` = les 4) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
-**Consentement aux cookies** (29/09/2026, demande de Fred : cartes affichées directement) : pop-up à
-l'ouverture du site (`app/ConsentementCookies.tsx`, dans le layout), non bloquant, en bas à gauche,
-**réduit au strict minimum** (Fred, 29/09/2026) : icône + « Vos cookies, vos choix », petit lien
-« En savoir plus », « Refuser » et
-« Tout accepter » (valide toutes les catégories d'un coup), même bouton bordeaux pour les deux. Une
-seule catégorie soumise à l'accord : **cartes Google Maps**. Choix dans le stockage local
-(`accg-consentement`, `lib/consentement.ts`), valable 6 mois, redemandé si `VERSION_CONSENTEMENT`
-change (à augmenter si une catégorie est ajoutée). Rouvert par « Gérer les cookies » (pied de page,
-bouton de `/cookies`, `app/BoutonReglagesCookies.tsx`). Masqué dans l'admin et sur `/login`.
-Hook `useConsentement()` (`app/useConsentement.ts`). **Rien de tiers ne se charge avant l'accord.**
-Tout nouveau service tiers (statistiques, carte, widget) = passer par ce consentement et mettre à
-jour la politique cookies.
+**Consentement aux cookies** (29/09/2026, demandes de Fred) : deux catégories soumises à l'accord,
+**cartes Google Maps** (`/contact`) et **vidéos YouTube** (`/actions` : sans accord, ni miniature ni
+lecteur ; « Autoriser YouTube et lire » = accord vidéos seulement). Choix dans le stockage local
+(`accg-consentement`, `lib/consentement.ts`, `{ cartes, videos }`), valable 6 mois, redemandé si
+`VERSION_CONSENTEMENT` change (à augmenter si une catégorie est ajoutée ; 2 depuis l'ajout des vidéos).
+- **Pop-up** (`app/ConsentementCookies.tsx`, dans le layout) **réduit au strict minimum** : icône +
+  « Vos cookies, vos choix », petit lien « En savoir plus » (→ `/cookies#reglages`), « Refuser » et
+  « Tout accepter » (toutes les catégories d'un coup), même bouton bordeaux pour les deux. Seulement
+  tant qu'aucun choix n'est fait ; masqué sur `/cookies`, dans l'admin et sur `/login`.
+- **Réglages détaillés** sur `/cookies#reglages` (`app/cookies/ReglagesCookies.tsx`) : chaque élément
+  stocké (nom, rôle, fournisseur, type, durée) avec son interrupteur, enregistré dès qu'on le bascule ;
+  indispensables verrouillés « Toujours actif » ; « Tout refuser » / « Tout accepter ». Liste unique :
+  `ELEMENTS_COOKIES` (`lib/consentement.ts`). « Gérer les cookies » (pied de page) mène à ces réglages.
+- Hook `useConsentement()` / `autoriser()` / `enregistrerChoix()` (`app/useConsentement.ts`).
+  **Rien de tiers ne se charge avant l'accord.** Tout nouveau service tiers ou tout nouvel élément
+  stocké = l'ajouter à `ELEMENTS_COOKIES` (et à une catégorie si besoin) et à `PAGES-LEGALES.md`.
 
 Navigation publique (ordre du 29/09/2026) : Accueil · Actualités (une seule entrée
 pour le blog et « On vous explique », active aussi sur `/blog/…` et
