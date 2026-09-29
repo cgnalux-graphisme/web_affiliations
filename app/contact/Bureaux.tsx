@@ -16,6 +16,7 @@ import {
   type Jour,
   type Periode,
 } from "../../lib/bureaux";
+import { useConsentement } from "../useConsentement";
 
 const PERIODES: { id: Periode; libelle: string; detail: string }[] = [
   { id: "annee", libelle: "Toute l'année", detail: "septembre à juin" },
@@ -209,12 +210,13 @@ function CarteBureau({
 }
 
 /**
- * Carte Google Maps chargée au clic seulement : avant, aucune requête vers Google (pas de cookie,
- * cf. politique cookies). Un plan stylisé aux couleurs du site tient la place. Carte affichée en
- * niveaux de gris pour rester dans la palette (le vert et le bleu sont réservés à la CSC et à Synova).
+ * Carte Google Maps, affichée directement si le visiteur a accepté les cartes (pop-up de consentement,
+ * app/ConsentementCookies.tsx). Sinon, ou avant la lecture du choix : aucune requête vers Google, un plan
+ * stylisé tient la place, avec « Afficher les cartes » (= accepter, pour les 4 cartes). En niveaux de gris
+ * pour rester dans la palette (le vert et le bleu sont réservés à la CSC et à Synova).
  */
 function Carte({ bureau: b, rang }: { bureau: Bureau; rang: number }) {
-  const [affichee, setAffichee] = useState(false);
+  const { pret, cartesAutorisees: affichee, accepterCartes } = useConsentement();
   const [chargee, setChargee] = useState(false);
 
   return (
@@ -222,7 +224,9 @@ function Carte({ bureau: b, rang }: { bureau: Bureau; rang: number }) {
       {affichee ? (
         <>
           {!chargee && (
-            <p className="absolute inset-0 grid place-items-center text-[15px] font-semibold">Chargement de la carte…</p>
+            <p className="absolute inset-0 grid place-items-center text-[15px] font-semibold">
+              Chargement de la carte…
+            </p>
           )}
           <iframe
             src={lienCarteIntegree(b)}
@@ -236,20 +240,21 @@ function Carte({ bureau: b, rang }: { bureau: Bureau; rang: number }) {
       ) : (
         <>
           <PlanStylise rang={rang} />
-          <div className="absolute inset-0 flex flex-col items-center justify-end gap-2 p-4 text-center">
-            <button
-              type="button"
-              onClick={() => setAffichee(true)}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-full border-2 border-militant-charbon bg-white px-5 font-bold shadow-[0_6px_20px_-8px_rgba(34,34,34,0.5)] transition-transform duration-200 hover:-translate-y-0.5 hover:border-militant-bordeaux hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-            >
-              <MapPin size={18} className="text-militant-rouge" aria-hidden />
-              Afficher la carte
-              <span className="sr-only"> du bureau de {b.ville}</span>
-            </button>
-            <p className="rounded bg-white/85 px-2 py-0.5 text-[13px] font-semibold">
-              Carte Google Maps, chargée seulement si vous cliquez.
-            </p>
-          </div>
+          {pret && (
+            <div className="liste-fondu absolute inset-0 flex flex-col items-center justify-end gap-2 p-4 text-center">
+              <button
+                type="button"
+                onClick={accepterCartes}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full border-2 border-militant-charbon bg-white px-5 font-bold shadow-[0_6px_20px_-8px_rgba(34,34,34,0.5)] transition-transform duration-200 hover:-translate-y-0.5 hover:border-militant-bordeaux hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              >
+                <MapPin size={18} className="text-militant-rouge" aria-hidden />
+                Afficher les cartes
+              </button>
+              <p className="rounded bg-white/85 px-2 py-0.5 text-[13px] font-semibold">
+                Google Maps : en les affichant, vous acceptez les cookies de Google.
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -300,7 +305,10 @@ function Pastille({ ouvert }: { ouvert: boolean }) {
 function SelecteurPeriode({ valeur, onChange }: { valeur: Periode; onChange: (p: Periode) => void }) {
   const boutons = useRef<Map<Periode, HTMLButtonElement>>(new Map());
   const piste = useRef<HTMLDivElement>(null);
-  const [indicateur, setIndicateur] = useState<{ x: number; largeur: number } | null>(null);
+  const [indicateur, setIndicateur] = useState<{
+    x: number;
+    largeur: number;
+  } | null>(null);
   const [anime, setAnime] = useState(false);
 
   useLayoutEffect(() => {
@@ -333,7 +341,14 @@ function SelecteurPeriode({ valeur, onChange }: { valeur: Periode; onChange: (p:
         className={`${anime ? "segment-indicateur" : ""} absolute bottom-1 left-0 top-1 rounded-xl bg-militant-bordeaux ${
           indicateur ? "opacity-100" : "opacity-0"
         }`}
-        style={indicateur ? { width: indicateur.largeur, transform: `translateX(${indicateur.x}px)` } : undefined}
+        style={
+          indicateur
+            ? {
+                width: indicateur.largeur,
+                transform: `translateX(${indicateur.x}px)`,
+              }
+            : undefined
+        }
       />
       {PERIODES.map((p) => {
         const actif = p.id === valeur;

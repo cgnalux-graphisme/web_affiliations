@@ -68,6 +68,25 @@ export default function ViePriveePage() {
         />
       </Section>
 
+      <Section titre="Formulaire de contact">
+        <p>
+          Quand vous nous écrivez via le formulaire de la page Contact, nous recevons votre nom, votre adresse e-mail, le
+          sujet et votre message. Ils servent uniquement à vous répondre (base juridique : notre intérêt légitime à
+          répondre aux demandes qui nous sont adressées). Ils ne sont pas enregistrés sur le site : ils nous parviennent
+          par e-mail, via notre prestataire d&apos;envoi d&apos;e-mails, et sont conservés dans notre messagerie le temps
+          nécessaire au traitement de votre demande et à son suivi.
+        </p>
+      </Section>
+
+      <Section titre="Cartes Google Maps">
+        <p>
+          Si vous acceptez l&apos;affichage des cartes (voir la politique cookies), les cartes de la page Contact sont
+          chargées depuis les serveurs de Google, qui reçoit alors votre adresse IP et des informations techniques sur
+          votre navigateur. Google agit alors selon sa propre politique de confidentialité :{" "}
+          <LienExterne href="https://policies.google.com/privacy?hl=fr">https://policies.google.com/privacy?hl=fr</LienExterne>
+        </p>
+      </Section>
+
       <Section titre="Partage des données">
         <p>
           Vos données peuvent être partagées, uniquement lorsque c&apos;est nécessaire, avec : les autres sections

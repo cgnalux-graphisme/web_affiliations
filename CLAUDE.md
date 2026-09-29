@@ -54,9 +54,9 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/blog/<slug>` | public | Un article : pastille « Actualité », encart « En bref », chapô, image, contenu, sources |
 | `/on-vous-explique/<slug>` | public | Une explication : même mise en page, pastille « On vous explique » |
 | `/demarches` | public | Toutes les démarches en ligne (tuiles, l'affiliation en tête) |
-| `/contact` | public | (29/09/2026) **Nos bureaux** (4 bureaux de `lib/bureaux.ts` : bascule année / été, statut « ouvert maintenant » + « Ferme à… / Ouvre… » (`prochainChangement()`), résumé « En ce moment », Appeler, Itinéraire, **carte Google Maps chargée au clic seulement**, en niveaux de gris ; la phrase correspondante de la politique cookies a été validée par Fred le 29/09/2026) · **Nous joindre** (e-mail + copier, WhatsApp, réseaux de `app/ReseauxSociaux.tsx`) · **formulaire de contact** |
+| `/contact` | public | (29/09/2026) **Nos bureaux** (4 bureaux de `lib/bureaux.ts` : bascule année / été, statut « ouvert maintenant » + « Ferme à… / Ouvre… » (`prochainChangement()`), résumé « En ce moment », Appeler, Itinéraire, **cartes Google Maps affichées directement si le visiteur a accepté les cookies**, sinon plan décoratif + « Afficher les cartes » (= accepter), en niveaux de gris) · **Nous joindre** (e-mail + copier, WhatsApp, réseaux de `app/ReseauxSociaux.tsx`) · **formulaire de contact** |
 | `/api/contact` | public | Formulaire de contact (POST `{ nom, email, sujet, message, site_web }`) → un e-mail Resend vers `cg.nalux@accg.be`, « Répondre à » = le visiteur. Validation `lib/contact.ts` (partagée navigateur / serveur) ; champ piège `site_web` rempli = réponse « succès » sans envoi ; **rien d'enregistré**, contenu jamais journalisé |
-| `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **À faire valider** par le service juridique / DPO de la FGTB avant mise en ligne. Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
+| `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026 ; politique cookies réécrite et vie privée complétée — formulaire de contact, Google Maps — le même jour) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **À faire valider** par le service juridique / DPO de la FGTB avant mise en ligne. Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
 | `/login` | public | Connexion (identifiants CG Link) |
 | `/suivi-actions` | SUPER_ADMIN | **Tableau de bord** : une tuile par domaine (Scan News, Démarches affiliés, Actions syndicales, Publications) avec les chiffres clés ; chaque tuile ouvre sa section |
@@ -88,6 +88,17 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/api/redaction/note` | SUPER_ADMIN | Note FGTB (multipart, champ `fichier`) → texte extrait, vulgarisé par Claude Sonnet 5, fichier archivé dans `notes-sources` |
 | `/api/reseaux/declinaison` | SUPER_ADMIN | Posts réseaux proposés par Claude Sonnet 5 (POST `{ articleId, reseau? }` ; sans `reseau` = les 4) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
+
+**Consentement aux cookies** (29/09/2026, demande de Fred : cartes affichées directement) : pop-up à
+l'ouverture du site (`app/ConsentementCookies.tsx`, dans le layout), non bloquant, en bas à gauche ;
+« Refuser » et « Accepter » identiques (même bouton bordeaux), « Personnaliser » (interrupteurs). Une
+seule catégorie soumise à l'accord : **cartes Google Maps**. Choix dans le stockage local
+(`accg-consentement`, `lib/consentement.ts`), valable 6 mois, redemandé si `VERSION_CONSENTEMENT`
+change (à augmenter si une catégorie est ajoutée). Rouvert par « Gérer les cookies » (pied de page,
+bouton de `/cookies`, `app/BoutonReglagesCookies.tsx`). Masqué dans l'admin et sur `/login`.
+Hook `useConsentement()` (`app/useConsentement.ts`). **Rien de tiers ne se charge avant l'accord.**
+Tout nouveau service tiers (statistiques, carte, widget) = passer par ce consentement et mettre à
+jour la politique cookies.
 
 Navigation publique (ordre du 29/09/2026) : Accueil · Actualités (une seule entrée
 pour le blog et « On vous explique », active aussi sur `/blog/…` et

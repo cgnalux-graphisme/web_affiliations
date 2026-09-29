@@ -4,6 +4,7 @@ import { barlow, condensed } from "./fonts";
 import { forms, transferJourney } from "./forms";
 import { chargerMobilisationActive } from "../lib/mobilisations-public";
 import BandeauMobilisation from "./BandeauMobilisation";
+import ConsentementCookies from "./ConsentementCookies";
 import NavigationSite from "./NavigationSite";
 import PiedDePage from "./PiedDePage";
 
@@ -47,6 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NavigationSite liens={liens} cta={{ href: "/affiliation", label: "S'affilier" }} />
         <div className="flex flex-1 flex-col">{children}</div>
         <PiedDePage />
+        <ConsentementCookies />
       </body>
     </html>
   );

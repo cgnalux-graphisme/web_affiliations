@@ -290,3 +290,12 @@
   .contact-coche-cercle,
   .contact-coche-trait { animation: none; stroke-dashoffset: 0; }
 }
+/* Pop-up de consentement aux cookies : monte à l'ouverture du site. */
+@keyframes consentement-entree {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+.consentement-entree { animation: consentement-entree 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 0.4s both; }
+@media (prefers-reduced-motion: reduce) {
+  .consentement-entree { animation: none; }
+}
