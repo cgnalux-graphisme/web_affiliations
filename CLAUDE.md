@@ -56,7 +56,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/demarches` | public | Toutes les démarches en ligne (tuiles, l'affiliation en tête) |
 | `/contact` | public | (29/09/2026) **Nos bureaux** (4 bureaux de `lib/bureaux.ts` : bascule année / été, statut « ouvert maintenant » + « Ferme à… / Ouvre… » (`prochainChangement()`), résumé « En ce moment », Appeler, Itinéraire, **cartes Google Maps affichées directement si le visiteur a accepté les cookies**, sinon plan décoratif + « Afficher les cartes » (= accepter), en niveaux de gris) · **Nous joindre** (e-mail + copier, WhatsApp, réseaux de `app/ReseauxSociaux.tsx`) · **formulaire de contact** |
 | `/api/contact` | public | Formulaire de contact (POST `{ nom, email, sujet, message, site_web }`) → un e-mail Resend vers `cg.nalux@accg.be`, « Répondre à » = le visiteur. Validation `lib/contact.ts` (partagée navigateur / serveur) ; champ piège `site_web` rempli = réponse « succès » sans envoi ; **rien d'enregistré**, contenu jamais journalisé |
-| `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026 ; politique cookies réécrite et vie privée complétée — formulaire de contact, Google Maps — le même jour) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **Validés par Fred le 29/09/2026** (une relecture par le juridique / DPO de la FGTB reste conseillée). Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
+| `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026 ; politique cookies réécrite et vie privée complétée — formulaire de contact, Google Maps — le même jour) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **Validés par Fred le 29/09/2026.** Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
 | `/login` | public | Connexion (identifiants CG Link) |
 | `/suivi-actions` | SUPER_ADMIN | **Tableau de bord** : une tuile par domaine (Scan News, Démarches affiliés, Actions syndicales, Publications) avec les chiffres clés ; chaque tuile ouvre sa section |
@@ -91,7 +91,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 
 **Consentement aux cookies** (29/09/2026, demande de Fred : cartes affichées directement) : pop-up à
 l'ouverture du site (`app/ConsentementCookies.tsx`, dans le layout), non bloquant, en bas à gauche,
-**réduit au strict minimum** (Fred, 29/09/2026) : une phrase + « En savoir plus », « Refuser » et
+**réduit au strict minimum** (Fred, 29/09/2026) : icône + « Vos cookies, vos choix », petit lien
+« En savoir plus », « Refuser » et
 « Tout accepter » (valide toutes les catégories d'un coup), même bouton bordeaux pour les deux. Une
 seule catégorie soumise à l'accord : **cartes Google Maps**. Choix dans le stockage local
 (`accg-consentement`, `lib/consentement.ts`), valable 6 mois, redemandé si `VERSION_CONSENTEMENT`
@@ -703,8 +704,7 @@ reformuler, citer et lier la source, jamais recopier.
   - **Accueil réordonné** : mobilisation ou ouverture habituelle · 4 dernières
     publications · démarches · dernières actions passées.
   - **Pages légales** `/mentions-legales`, `/vie-privee`, `/cookies` (texte de
-    `PAGES-LEGALES.md`) — **validées par Fred le 29/09/2026** (relecture
-    juridique / DPO FGTB conseillée).
+    `PAGES-LEGALES.md`) — **validées par Fred le 29/09/2026**.
   - **Page Contact refaite** (bureaux, cartes, canaux, formulaire Resend) et
     **pop-up de consentement aux cookies** (cartes Google Maps).
   - **Pied de page refait** sur fond charbon (seule exception à la règle des fonds
@@ -714,8 +714,7 @@ reformuler, citer et lier la source, jamais recopier.
 - Pistes suivantes : brancher la déclinaison aux futurs outils de visuels et de
   vidéo, publication en 1 clic (phase 3, outil-pont, à étudier), images
   (génération / gabarits, plus tard), page de présentation de la centrale,
-  « Trouver votre contact » (phase 4, avec l'assistant), relecture juridique
-  des pages légales (conseillée).
+  « Trouver votre contact » (phase 4, avec l'assistant).
 
 ---
 

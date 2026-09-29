@@ -1,10 +1,9 @@
 # Pages légales — Centrale Générale FGTB Namur-Luxembourg
 
-> **Validé par Fred le 29/09/2026.** Une relecture par le service juridique / le DPO de la FGTB
-> reste conseillée.
+> **Validé par Fred le 29/09/2026.**
 > Ces textes sont des modèles adaptés de la politique de la Centrale Générale fédérale
 > (accg.be), ajustés à la régionale Namur-Luxembourg. Ils relèvent du **droit belge** et
-> du **RGPD**. Toutes les coordonnées sont renseignées ; il reste à faire relire le fond.
+> du **RGPD**. Toutes les coordonnées sont renseignées.
 >
 > Rédigé le 29/09/2026.
 

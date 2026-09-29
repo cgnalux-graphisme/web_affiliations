@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Cookie } from "lucide-react";
 import { EVENEMENT_REGLAGES } from "../lib/consentement";
 import { enregistrerChoix, useConsentement } from "./useConsentement";
 
 /**
- * Pop-up de consentement réduit au strict minimum (demande de Fred, 29/09/2026) : une phrase, « Refuser »
+ * Pop-up de consentement réduit au strict minimum (demande de Fred, 29/09/2026) : « Vos cookies, vos choix »
+ * avec l'icône, un petit lien « En savoir plus », « Refuser »
  * et « Tout accepter » (valide d'un coup toutes les catégories soumises à l'accord), même bouton pour les deux.
  * À l'ouverture du site tant que le visiteur n'a pas choisi (ou après 6 mois) ; non bloquant.
  * Rouvert par « Gérer les cookies » (pied de page, page /cookies). Masqué dans l'admin et sur la connexion.
@@ -46,15 +48,22 @@ export default function ConsentementCookies() {
       aria-label="Cookies"
       className="consentement-entree fixed inset-x-3 bottom-3 z-[60] rounded-2xl border-2 border-militant-charbon bg-white p-4 font-barlow text-militant-charbon shadow-[0_24px_60px_-20px_rgba(34,34,34,0.45)] sm:inset-x-auto sm:bottom-5 sm:left-5 sm:w-[380px]"
     >
-      <p ref={texte} tabIndex={-1} className="text-[15px] leading-snug focus:outline-none">
-        Nous utilisons des cookies pour afficher les cartes Google Maps.{" "}
+      <div className="flex items-center justify-between gap-3">
+        <p
+          ref={texte}
+          tabIndex={-1}
+          className="flex items-center gap-2 font-condensed text-[22px] font-extrabold uppercase leading-none focus:outline-none"
+        >
+          <Cookie size={20} className="shrink-0 self-center text-militant-rouge" aria-hidden />
+          Vos cookies, vos choix
+        </p>
         <Link
           href="/cookies"
-          className="font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
+          className="shrink-0 text-[13px] font-semibold underline decoration-militant-rouge underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
         >
           En savoir plus
         </Link>
-      </p>
+      </div>
       <div className="mt-3 flex gap-2.5">
         <button type="button" onClick={() => choisir(false)} className={bouton}>
           Refuser
