@@ -676,10 +676,31 @@ reformuler, citer et lier la source, jamais recopier.
   `notes-sources` et une note FGTB réelle.
 - Avant un usage réel de la déclinaison réseaux : définir `SITE_URL` dans
   Vercel, sinon les posts générés depuis la preview pointent vers la preview.
+- **Le 29/09/2026 après-midi, sur `suivi-actions`, poussé sur GitHub** :
+  - **Page unifiée `/actualites`** (blog + « On vous explique », pastilles,
+    sélecteur à segments) ; `/blog` et `/on-vous-explique` redirigés ; menu :
+    Accueil · Actualités · Nos actions · Démarches en ligne · Contact.
+  - **Mobilisations** : admin (liste, formulaire, aperçu, « pourquoi » et point 0
+    « Partir de textes existants » par l'IA), **Paramètres du site**
+    (interrupteur de l'accueil), bloc d'accueil avec compte à rebours, page
+    campagne `/mobilisation/<slug>`, bandeau d'alerte sur tout le site. Image hero
+    affichée entière à sa proportion naturelle. Fred a créé et activé une
+    première mobilisation (« Ligne rouge », 09/10/2026) : enregistrement,
+    image et interrupteur fonctionnent.
+  - **Accueil réordonné** : mobilisation ou ouverture habituelle · 4 dernières
+    publications · démarches · dernières actions passées.
+  - **Pages légales** `/mentions-legales`, `/vie-privee`, `/cookies` (texte de
+    `PAGES-LEGALES.md`) — **à faire valider** par le juridique / DPO FGTB avant
+    mise en ligne.
+  - **Pied de page refait** sur fond charbon (seule exception à la règle des fonds
+    sombres), logo blanc, bouton « S'affilier », réseaux sociaux.
+  - **Bordeaux `#931510`** partout (site, PDF, rapport) et **nouveau
+    `logo-cg-rouge.png`**.
 - Pistes suivantes : brancher la déclinaison aux futurs outils de visuels et de
   vidéo, publication en 1 clic (phase 3, outil-pont, à étudier), images
-  (génération / gabarits, plus tard), derniers articles sur l'accueil, « Trouver votre
-  contact » (phase 4, avec l'assistant), mentions légales.
+  (génération / gabarits, plus tard), page de présentation de la centrale,
+  « Trouver votre contact » (phase 4, avec l'assistant), validation des pages
+  légales.
 
 ---
 
