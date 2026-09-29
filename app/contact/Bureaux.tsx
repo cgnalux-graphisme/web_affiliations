@@ -212,8 +212,8 @@ function CarteBureau({
 /**
  * Carte Google Maps, affichée directement si le visiteur a accepté les cartes (pop-up de consentement ou
  * réglages de /cookies). Sinon, ou avant la lecture du choix : aucune requête vers Google, un plan stylisé
- * tient la place, avec « Afficher les cartes » (= accepter les cartes seulement, pour les 4). En niveaux de gris
- * pour rester dans la palette (le vert et le bleu sont réservés à la CSC et à Synova).
+ * tient la place, avec « Afficher les cartes » (= accepter les cartes seulement, pour les 4). Carte en
+ * couleurs d'origine (choix de Fred du 29/09/2026, exception assumée à la règle vert / bleu : contenu de Google).
  */
 function Carte({ bureau: b, rang }: { bureau: Bureau; rang: number }) {
   const { pret, autorise } = useConsentement();
@@ -235,7 +235,7 @@ function Carte({ bureau: b, rang }: { bureau: Bureau; rang: number }) {
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             onLoad={() => setChargee(true)}
-            className={`absolute inset-0 h-full w-full border-0 grayscale transition-opacity duration-500 ${chargee ? "opacity-100" : "opacity-0"}`}
+            className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-500 ${chargee ? "opacity-100" : "opacity-0"}`}
           />
         </>
       ) : (
