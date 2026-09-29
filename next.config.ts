@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
         }))
       : [],
   },
+  // Les listes « Actualités » (/blog) et « On vous explique » sont fusionnées dans /actualites.
+  // Les pages de détail restent à /blog/<slug> et /on-vous-explique/<slug>.
+  async redirects() {
+    return [
+      { source: "/blog", destination: "/actualites?rubrique=actualites", permanent: true },
+      { source: "/on-vous-explique", destination: "/actualites?rubrique=on-vous-explique", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

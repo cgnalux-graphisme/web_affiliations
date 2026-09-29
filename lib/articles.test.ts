@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  cheminActualites,
   cheminImageDepuisUrl,
+  filtreDepuisParam,
   dateArticle,
   lignes,
   lignesSourcesInvalides,
@@ -69,5 +71,19 @@ describe("cheminImageDepuisUrl", () => {
       cheminImageDepuisUrl("https://x.supabase.co/storage/v1/object/public/blog-images/abc/couverture-1.jpg")
     ).toBe("abc/couverture-1.jpg");
     expect(cheminImageDepuisUrl("https://ailleurs.be/a.jpg")).toBeNull();
+  });
+});
+
+describe("filtres de la page unifiée", () => {
+  it("lit le paramètre ?rubrique=", () => {
+    expect(filtreDepuisParam("actualites")).toBe("article");
+    expect(filtreDepuisParam("on-vous-explique")).toBe("explication");
+    expect(filtreDepuisParam(null)).toBe("tout");
+    expect(filtreDepuisParam("n-importe-quoi")).toBe("tout");
+  });
+  it("compose l'adresse filtrée", () => {
+    expect(cheminActualites()).toBe("/actualites");
+    expect(cheminActualites("article")).toBe("/actualites?rubrique=actualites");
+    expect(cheminActualites("explication")).toBe("/actualites?rubrique=on-vous-explique");
   });
 });

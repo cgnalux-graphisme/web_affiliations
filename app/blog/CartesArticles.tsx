@@ -1,11 +1,27 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clock } from "lucide-react";
-import { RUBRIQUES, cheminPublic, dateArticle, tempsLecture, type Categorie } from "../../lib/articles";
+import { RUBRIQUES, categorieDe, cheminPublic, dateArticle, tempsLecture, type Categorie } from "../../lib/articles";
 import type { ArticlePublic } from "../../lib/articles-public";
 
+/**
+ * Rubrique d'une publication, posée sur la photo ou en tête de page : « Actualité » en rouge vif,
+ * « On vous explique » en bordeaux. Le texte est toujours là (la couleur n'est qu'un renfort).
+ */
+export function Pastille({ categorie, className = "" }: { categorie: Categorie; className?: string }) {
+  const fond = categorie === "explication" ? "bg-militant-bordeaux" : "bg-militant-rouge";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-[14px] font-bold leading-none tracking-[0.01em] text-white ${fond} ${className}`}
+    >
+      {RUBRIQUES[categorie].pastille}
+    </span>
+  );
+}
+
 /** La dernière publication, en grand. */
-export function ArticleALaUne({ article: a, categorie = "article" }: { article: ArticlePublic; categorie?: Categorie }) {
+export function ArticleALaUne({ article: a }: { article: ArticlePublic }) {
+  const categorie = categorieDe(a.categorie);
   return (
     <article className="group relative grid gap-6 border-t-[6px] border-militant-charbon pt-6 lg:grid-cols-12 lg:gap-10">
       <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-militant-ardoise lg:col-span-7">
@@ -19,6 +35,7 @@ export function ArticleALaUne({ article: a, categorie = "article" }: { article: 
             className="object-cover"
           />
         )}
+        <Pastille categorie={categorie} className="absolute left-4 top-4 shadow-[0_2px_10px_rgba(34,34,34,0.25)]" />
       </div>
       <div className="flex flex-col justify-center lg:col-span-5">
         <Meta article={a} grand />
@@ -39,7 +56,8 @@ export function ArticleALaUne({ article: a, categorie = "article" }: { article: 
   );
 }
 
-export function CarteArticle({ article: a, categorie = "article" }: { article: ArticlePublic; categorie?: Categorie }) {
+export function CarteArticle({ article: a }: { article: ArticlePublic }) {
+  const categorie = categorieDe(a.categorie);
   return (
     <article className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-militant-ardoise bg-white transition-colors hover:border-militant-bordeaux">
       <div className="relative aspect-[16/9] bg-militant-ardoise">
@@ -52,8 +70,13 @@ export function CarteArticle({ article: a, categorie = "article" }: { article: A
             className="object-cover"
           />
         )}
+        <Pastille categorie={categorie} className="absolute left-3 top-3 shadow-[0_2px_10px_rgba(34,34,34,0.25)]" />
       </div>
-      <div className="flex flex-1 flex-col border-t-[6px] border-militant-rouge px-5 pb-6 pt-4">
+      <div
+        className={`flex flex-1 flex-col border-t-[6px] px-5 pb-6 pt-4 ${
+          categorie === "explication" ? "border-militant-bordeaux" : "border-militant-rouge"
+        }`}
+      >
         <Meta article={a} />
         <h3 className="mt-2 break-words font-condensed text-[28px] font-extrabold leading-none">
           <Link
@@ -71,7 +94,7 @@ export function CarteArticle({ article: a, categorie = "article" }: { article: A
 
 /** Date de publication et temps de lecture. */
 function Meta({ article: a, grand }: { article: ArticlePublic; grand?: boolean }) {
-  const minutes = tempsLecture(a.chapo, a.points_cles, a.contenu);
+  const minutes = a.minutes ?? tempsLecture(a.chapo, a.points_cles, a.contenu);
   return (
     <p className={`flex flex-wrap items-center gap-x-3 gap-y-1 font-condensed font-bold ${grand ? "text-2xl" : "text-xl"}`}>
       <time dateTime={a.date_publication} className="tabular-nums text-militant-rouge">

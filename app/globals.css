@@ -169,3 +169,20 @@
 @media (prefers-reduced-motion: reduce) {
   .en-bref-filet { animation: none; }
 }
+/* Page /actualites : l'aplat du sélecteur à segments glisse, la liste refiltrée apparaît en fondu. */
+.segment-indicateur {
+  transition:
+    transform 0.38s cubic-bezier(0.3, 0.9, 0.3, 1),
+    width 0.38s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+@keyframes liste-fondu {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.liste-fondu {
+  animation: liste-fondu 0.32s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .segment-indicateur { transition: none; }
+  .liste-fondu { animation: none; }
+}

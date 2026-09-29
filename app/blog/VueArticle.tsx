@@ -4,6 +4,7 @@ import { ArrowLeft, Clock, ExternalLink } from "lucide-react";
 import {
   CATEGORIE_EXPLICATION,
   RUBRIQUES,
+  cheminActualites,
   dateArticle,
   lignes,
   lireReferences,
@@ -13,6 +14,7 @@ import {
   type Reference,
 } from "../../lib/articles";
 import { nettoyerContenu } from "../../lib/articles-html";
+import { Pastille } from "./CartesArticles";
 
 export type ArticleAffiche = {
   titre: string;
@@ -27,7 +29,8 @@ export type ArticleAffiche = {
 /** Page d'un article ou d'une explication (site public, et aperçu dans l'espace admin). */
 export default function VueArticle({ article, categorie = "article" }: { article: ArticleAffiche; categorie?: Categorie }) {
   const rubrique = RUBRIQUES[categorie];
-  const retour = categorie === CATEGORIE_EXPLICATION ? "Toutes les explications" : "Toutes les actualités";
+  const retour = rubrique.retour;
+  const lienRetour = cheminActualites(categorie);
   const points = lignes(article.points_cles);
   // « On vous explique » : une source peut être une simple référence (« Note FGTB 26I107F »), sans lien.
   const sources: Reference[] = categorie === CATEGORIE_EXPLICATION ? lireReferences(article.sources) : lireSources(article.sources);
@@ -38,13 +41,14 @@ export default function VueArticle({ article, categorie = "article" }: { article
     <main className="bg-white font-barlow text-militant-charbon">
       <article className="mx-auto max-w-4xl px-4 pb-24 pt-8 sm:px-6 sm:pt-12 lg:px-8">
         <Link
-          href={rubrique.chemin}
+          href={lienRetour}
           className="inline-flex min-h-[44px] items-center gap-1.5 text-[15px] font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
         >
           <ArrowLeft size={16} aria-hidden /> {retour}
         </Link>
 
         <header className="mt-6">
+          <Pastille categorie={categorie} className="mb-4" />
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-condensed text-2xl font-bold">
             {article.date_publication ? (
               <time dateTime={article.date_publication} className="tabular-nums text-militant-rouge">
@@ -145,7 +149,7 @@ export default function VueArticle({ article, categorie = "article" }: { article
         </aside>
 
         <Link
-          href={rubrique.chemin}
+          href={lienRetour}
           className="mt-10 inline-flex min-h-[44px] items-center gap-1.5 text-[15px] font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
         >
           <ArrowLeft size={16} aria-hidden /> {retour}

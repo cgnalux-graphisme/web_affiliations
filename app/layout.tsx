@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 const liens = [
   { href: "/", label: "Accueil" },
   { href: "/actions", label: "Nos actions" },
-  { href: "/blog", label: "Actualités" },
-  { href: "/on-vous-explique", label: "On vous explique" },
+  // Une seule entrée pour les actualités et « On vous explique » (pages de détail comprises).
+  { href: "/actualites", label: "Actualités", aussi: ["/blog", "/on-vous-explique"] },
   // Les formulaires sont regroupés dans une seule rubrique.
   { href: "/demarches", label: "Démarches en ligne", aussi: [transferJourney.href, ...forms.map((f) => f.href)] },
   { href: "/contact", label: "Contact" },

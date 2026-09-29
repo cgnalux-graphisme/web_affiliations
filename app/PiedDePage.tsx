@@ -13,10 +13,7 @@ export default function PiedDePage() {
               <Link href="/actions" className="hover:text-militant-bordeaux">Nos actions</Link>
             </li>
             <li>
-              <Link href="/blog" className="hover:text-militant-bordeaux">Actualités</Link>
-            </li>
-            <li>
-              <Link href="/on-vous-explique" className="hover:text-militant-bordeaux">On vous explique</Link>
+              <Link href="/actualites" className="hover:text-militant-bordeaux">Actualités</Link>
             </li>
             <li>
               <Link href="/demarches" className="hover:text-militant-bordeaux">Démarches en ligne</Link>

@@ -163,6 +163,10 @@ type Rubrique = {
   nouveau: string;
   tous: string;
   lire: string;
+  /** Pastille des cartes et de la page de détail (texte toujours présent, la couleur n'est qu'un renfort). */
+  pastille: string;
+  /** Lien de retour vers la page unifiée, filtrée sur la rubrique. */
+  retour: string;
 };
 
 export const RUBRIQUES: Record<Categorie, Rubrique> = {
@@ -174,6 +178,8 @@ export const RUBRIQUES: Record<Categorie, Rubrique> = {
     nouveau: "Nouvel article",
     tous: "Tous les articles",
     lire: "Lire l'article",
+    pastille: "Actualité",
+    retour: "Toutes les actualités",
   },
   explication: {
     chemin: "/on-vous-explique",
@@ -183,11 +189,36 @@ export const RUBRIQUES: Record<Categorie, Rubrique> = {
     nouveau: "Nouvelle explication",
     tous: "Toutes les explications",
     lire: "Lire l'explication",
+    pastille: "On vous explique",
+    retour: "Toutes les explications",
   },
 };
 
 export function cheminPublic(categorie: Categorie, slug: string): string {
   return `${RUBRIQUES[categorie].chemin}/${slug}`;
+}
+
+// ── Page publique unifiée /actualites : les deux rubriques mélangées, filtrables ──
+
+export const CHEMIN_ACTUALITES = "/actualites";
+
+/** Filtre de la page unifiée ; `param` = valeur de `?rubrique=` (absente pour « Tout »). */
+export type FiltrePublications = "tout" | Categorie;
+export const FILTRES_PUBLICATIONS: { valeur: FiltrePublications; label: string; param: string | null }[] = [
+  { valeur: "tout", label: "Tout", param: null },
+  { valeur: CATEGORIE_ARTICLE, label: "Actualités", param: "actualites" },
+  { valeur: CATEGORIE_EXPLICATION, label: "On vous explique", param: "on-vous-explique" },
+];
+
+/** `?rubrique=on-vous-explique` → « explication » ; valeur absente ou inconnue → « tout ». */
+export function filtreDepuisParam(param: string | null | undefined): FiltrePublications {
+  return FILTRES_PUBLICATIONS.find((f) => f.param !== null && f.param === param)?.valeur ?? "tout";
+}
+
+/** Adresse de la page unifiée, filtre pré-appliqué (ex. « /actualites?rubrique=actualites »). */
+export function cheminActualites(filtre: FiltrePublications = "tout"): string {
+  const param = FILTRES_PUBLICATIONS.find((f) => f.valeur === filtre)?.param;
+  return param ? `${CHEMIN_ACTUALITES}?rubrique=${param}` : CHEMIN_ACTUALITES;
 }
 
 /** Source affichée : un lien, ou (« On vous explique ») une simple référence, ex. « Note FGTB 26I107F ». */

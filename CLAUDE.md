@@ -48,10 +48,10 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 |---|---|---|
 | `/` | public | Accueil : ouverture, dernière action publiée, démarches, nos actions |
 | `/actions` | public | Vitrine des actions publiées (frise + « unes ») |
-| `/blog` | public | Actualités : dernier article en grand + articles précédents |
-| `/blog/<slug>` | public | Un article : encart « En bref », chapô, image, contenu, sources |
-| `/on-vous-explique` | public | « On vous explique » : notes techniques FGTB vulgarisées (cartes : image, titre, chapô, date), du plus récent au plus ancien |
-| `/on-vous-explique/<slug>` | public | Une explication : même mise en page que le blog, encart « En bref » en haut |
+| `/actualites` | public | **Page unifiée** (29/09/2026) : articles du blog **et** explications mélangés, du plus récent au plus ancien (le plus récent en grand) ; pastille de rubrique sur chaque photo ; sélecteur à segments « Tout · Actualités · On vous explique » filtré dans le navigateur (`?rubrique=actualites` / `on-vous-explique` pré-applique le filtre) |
+| `/blog`, `/on-vous-explique` | public | Redirigées (308, `next.config.ts`) vers `/actualites?rubrique=…` |
+| `/blog/<slug>` | public | Un article : pastille « Actualité », encart « En bref », chapô, image, contenu, sources |
+| `/on-vous-explique/<slug>` | public | Une explication : même mise en page, pastille « On vous explique » |
 | `/demarches` | public | Toutes les démarches en ligne (tuiles, l'affiliation en tête) |
 | `/contact` | public | Nos 4 bureaux : adresses, téléphones, horaires (été en juillet-août), statut « ouvert maintenant » |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
@@ -82,7 +82,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/api/reseaux/declinaison` | SUPER_ADMIN | Posts réseaux proposés par Claude Sonnet 5 (POST `{ articleId, reseau? }` ; sans `reseau` = les 4) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
-Navigation publique : Accueil · Nos actions · Actualités · On vous explique ·
+Navigation publique : Accueil · Nos actions · Actualités (une seule entrée pour le
+blog et « On vous explique », active aussi sur `/blog/…` et `/on-vous-explique/…`) ·
 Démarches en ligne · Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
 ligne » (pas un onglet par formulaire). Rubrique à venir : « Trouver votre
 contact » (permanent et juriste par secteur / commission paritaire). Toute la
@@ -308,8 +309,8 @@ exception : la migration des envois, voir plus haut, demandée par Fred).
 ### Phase 0 — Fondations
 - [x] Base de données prête (tables `site_*` dans CG Link)
 - [ ] Supprimer le projet Supabase doublon `accg-nalux-site`
-- [~] Partie publique du site : accueil, `/demarches`, `/actions`, `/blog`,
-      `/on-vous-explique`, `/contact` faits ; **manquent** présentation, mentions légales, vie privée
+- [~] Partie publique du site : accueil, `/demarches`, `/actions`, `/actualites`
+      (blog + « On vous explique »), `/contact` faits ; **manquent** présentation, mentions légales, vie privée
 - [ ] « Trouver votre contact » → voir Phase 4, lié à l'assistant-aiguilleur
 - [x] Refonte graphique « direction D » (éditorial + modulaire, sans fond noir) —
       voir Conventions > Design
@@ -455,10 +456,19 @@ reformuler, citer et lier la source, jamais recopier.
 #### On vous explique (vulgarisation des notes FGTB, 29/09/2026)
 - Rubrique **sœur du blog** : même table, même formulaire, mêmes pages
   (aperçu, réseaux, suppression), distinguée par `categorie = 'explication'`.
-  **Séparation stricte** : `/blog` et l'écran Articles ne lisent que
-  `categorie = 'article'` ; `/on-vous-explique` et l'écran « On vous explique »
-  que `explication` (`chargerArticles(categorie)`, `chargerArticle(slug,
-  categorie)`, `lib/articles-public.ts`). Libellés et chemins par rubrique :
+  **Côté admin, séparation stricte** : l'écran Articles ne lit que
+  `categorie = 'article'`, l'écran « On vous explique » que `explication`.
+  **Côté public (29/09/2026, demande de Fred)** : une seule liste `/actualites`
+  (`chargerPublications()`, `app/actualites/`) ; les pages de détail restent par
+  rubrique (`chargerArticle(slug, categorie)`, `lib/articles-public.ts`).
+  **Pastille** (`Pastille`, `app/blog/CartesArticles.tsx`) en haut à gauche de la
+  photo et en tête de la page de détail : « Actualité » fond rouge `#E32119`,
+  « On vous explique » fond bordeaux `#AA0F33`, texte blanc — le texte est
+  toujours présent (la couleur n'est qu'un renfort). Filtre : sélecteur à
+  segments (aplat rouge qui glisse, fondu de la liste au changement d'onglet
+  seulement), **jamais de `<select>` ni de cases à cocher** ; l'adresse suit le
+  filtre (`history.replaceState`). Filtres et adresses : `FILTRES_PUBLICATIONS`,
+  `filtreDepuisParam()`, `cheminActualites()` (`lib/articles.ts`). Libellés et chemins par rubrique :
   `RUBRIQUES`, `cheminPublic()`, `categorieDe()` (`lib/articles.ts`). Liste
   admin partagée : `app/suivi-actions/articles/ListePublications.tsx`.
 - **Import** (`PanneauNote.tsx` dans le formulaire, nouvelle explication
