@@ -75,6 +75,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
 | `/suivi-actions/mobilisations` · `/nouvelle` · `/<id>/modifier` · `/<id>/apercu` | SUPER_ADMIN | Mobilisations (manifs, grèves à venir) : créer, modifier, supprimer, interrupteur « mise en avant » (une seule à la fois), aperçu de la page campagne, « pourquoi » rédigé par l'IA |
 | `/suivi-actions/parametres-site` | SUPER_ADMIN | Paramètres du site : interrupteur « Afficher le bloc mobilisation sur l'accueil » (`site_parametres`, clé `accueil_mobilisation`, `on` / `off`) |
+| `/api/mobilisations/analyse` | SUPER_ADMIN | Textes collés (articles, tracts, communiqués) → tous les champs d'une nouvelle mobilisation proposés par Claude Sonnet 5 (POST `{ textes }`), rien n'est enregistré |
 | `/api/mobilisations/pourquoi` | SUPER_ADMIN | « Pourquoi on se mobilise » rédigé par Claude Sonnet 5 depuis les points de Fred (POST `{ points, titre?, date?, lieu?, revendications? }`), rien n'est enregistré |
 | `/suivi-actions/parametres` | SUPER_ADMIN | Paramètres : adresses internes qui reçoivent chaque envoi automatique des formulaires (ajouter, activer / désactiver, supprimer) |
 | `/api/admin/demandes` | SUPER_ADMIN | Liste d'un type de demande (GET `?type=&q=&du=&au=&tri=&page=`) — clé service_role |
@@ -182,6 +183,22 @@ nos comptes. « Pourquoi » par l'IA (`lib/mobilisation-ia.ts`) : texte percutan
 pour convaincre même les réticents, aucun fait / chiffre / revendication / action
 absent des points de Fred, chiffres absents signalés (`nombresAbsents()`), rappel
 « à relire, corriger et valider ».
+
+**Point 0 « Partir de textes existants »** (création seulement, demande de Fred du
+29/09/2026) : Fred colle des textes trouvés un peu partout (articles, tract,
+communiqué, 60 000 caractères max, `ANALYSE_MAX`) ; `/api/mobilisations/analyse`
+(Claude Sonnet 5, sortie structurée, ~20 s, ~1 c.) pré-remplit titre, date, heure,
+lieu, chapô, pourquoi, revendications, infos pratiques et lien d'inscription.
+L'image et la mise en avant restent manuelles ; confirmation avant d'écraser des
+champs remplis ; rien n'est enregistré avant « Enregistrer ». **Garde-fous côté
+code** (`construireAnalyse()`) : date / heure gardées seulement si valides ; lien
+d'inscription gardé **seulement s'il figure tel quel dans les textes** ; chiffres
+absents des textes signalés ; passages repris mot pour mot (≥ 8 mots,
+`contientReprise()`) signalés ; puis mois en toutes lettres convertis
+(`datesEnChiffres()`, « 14 octobre » → « 14/10/2026 », après les contrôles pour
+éviter les fausses alertes). Essai réel du 29/09/2026 sur des textes fictifs :
+tous les champs remplis, chiffre de presse non confirmé écarté par l'IA, reprise
+signalée.
 
 Réseaux sociaux (créé côté Supabase avant le 28/09/2026) :
 

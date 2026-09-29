@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dateMobilisation,
+  datesEnChiffres,
   depuisHorodatage,
   estLeJourJ,
   ligneInfo,
@@ -39,6 +40,15 @@ describe("compte à rebours", () => {
   it("reconnaît le jour J à Bruxelles", () => {
     expect(estLeJourJ("2026-10-14T08:30:00Z", new Date("2026-10-14T20:00:00Z").getTime())).toBe(true);
     expect(estLeJourJ("2026-10-14T08:30:00Z", new Date("2026-10-14T22:30:00Z").getTime())).toBe(false);
+  });
+});
+
+describe("dates en chiffres", () => {
+  it("remplace les mois en toutes lettres", () => {
+    expect(datesEnChiffres("Le mardi 14 octobre, on y va.", "2026")).toBe("Le mardi 14/10/2026, on y va.");
+    expect(datesEnChiffres("Depuis le 1er mai 2025 et le 3 Août", "2026")).toBe("Depuis le 01/05/2025 et le 03/08/2026");
+    expect(datesEnChiffres("Le 14 octobre", null)).toBe("Le 14 octobre");
+    expect(datesEnChiffres("Il y a 3 mois", "2026")).toBe("Il y a 3 mois");
   });
 });
 

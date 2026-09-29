@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, Eye, ImagePlus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ClipboardPaste, Eye, ImagePlus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { IconeChargement } from "../../Chargement";
 import Interrupteur from "../Interrupteur";
 import { BUCKET_BLOG, cheminImageDepuisUrl, slugifier, slugValide } from "../../../lib/articles";
 import { formatDateFr } from "../../../lib/dates";
-import { POINTS_MAX } from "../../../lib/mobilisation-limites";
+import { ANALYSE_MAX, POINTS_MAX } from "../../../lib/mobilisation-limites";
 import {
   CHEMIN_MOBILISATION,
   cheminHero,
@@ -65,6 +65,31 @@ export default function FormulaireMobilisation({ mobilisation }: { mobilisation?
   const [progression, setProgression] = useState("");
   const [erreurEnvoi, setErreurEnvoi] = useState("");
   const champFichier = useRef<HTMLInputElement>(null);
+  const champTitre = useRef<HTMLInputElement>(null);
+
+  /** Pré-remplissage depuis l'analyse IA des textes collés (point 0). L'image et la mise en avant ne bougent pas. */
+  function appliquerAnalyse(a: ChampsAnalyse) {
+    setSlugManuel(false);
+    setErreurs({});
+    setForm((f) => ({
+      ...f,
+      titre: a.titre,
+      slug: slugifier(a.titre),
+      date: a.date,
+      heure: a.heure,
+      lieu: a.lieu,
+      chapo: a.chapo,
+      pourquoi: a.pourquoi,
+      revendications: a.revendications,
+      infos: a.infos_pratiques,
+      lien: a.lien_inscription,
+    }));
+    champTitre.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    champTitre.current?.focus({ preventScroll: true });
+  }
+  const dejaRempli = [form.titre, form.lieu, form.chapo, form.pourquoi, form.revendications, form.infos, form.lien].some((v) =>
+    v.trim()
+  );
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -241,11 +266,20 @@ export default function FormulaireMobilisation({ mobilisation }: { mobilisation?
       </header>
 
       <form onSubmit={enregistrer} noValidate className="overflow-hidden rounded-2xl border border-militant-ardoise bg-white">
+        {!mobilisation && (
+          <>
+            <TitreSection>0. Partir de textes existants</TitreSection>
+            <div className="px-6 py-6">
+              <PanneauAnalyse dejaRempli={dejaRempli} onResultat={appliquerAnalyse} />
+            </div>
+          </>
+        )}
         <TitreSection>1. L&apos;événement</TitreSection>
         <div className="space-y-5 px-6 py-6">
           <Champ id="titre" label="Titre *" erreur={erreurs.titre} aide="Court et frappant : il s'affiche en très grand.">
             <input
               id="titre"
+              ref={champTitre}
               className={champ(erreurs.titre)}
               value={form.titre}
               onChange={(e) => changerTitre(e.target.value)}
@@ -474,6 +508,133 @@ export default function FormulaireMobilisation({ mobilisation }: { mobilisation?
         </div>
       </form>
     </div>
+  );
+}
+
+type ChampsAnalyse = {
+  titre: string;
+  date: string;
+  heure: string;
+  lieu: string;
+  chapo: string;
+  pourquoi: string;
+  revendications: string;
+  infos_pratiques: string;
+  lien_inscription: string;
+};
+
+/**
+ * Point 0 : Fred colle des textes trouvés un peu partout (articles, tracts, communiqués) ; l'IA les analyse
+ * et pré-remplit tous les champs en dessous. Rien n'est enregistré avant son clic sur « Enregistrer ».
+ */
+function PanneauAnalyse({ dejaRempli, onResultat }: { dejaRempli: boolean; onResultat: (a: ChampsAnalyse) => void }) {
+  const [textes, setTextes] = useState("");
+  const [etat, setEtat] = useState<"inactif" | "en_cours" | "fait">("inactif");
+  const [erreur, setErreur] = useState("");
+  const [avertissements, setAvertissements] = useState<string[]>([]);
+
+  async function analyser() {
+    if (textes.trim().length < 80) {
+      setErreur("Collez d'abord un ou plusieurs textes complets : article, tract, communiqué de la FGTB…");
+      return;
+    }
+    if (dejaRempli && !window.confirm("Remplacer les champs déjà remplis par ceux proposés par l'IA ?")) return;
+    setEtat("en_cours");
+    setErreur("");
+    setAvertissements([]);
+    try {
+      const rep = await fetch("/api/mobilisations/analyse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ textes }),
+      });
+      const json = (await rep.json().catch(() => ({}))) as Partial<ChampsAnalyse> & {
+        avertissements?: string[];
+        erreur?: string;
+      };
+      if (!rep.ok || typeof json.titre !== "string") {
+        setErreur(json.erreur ?? "L'analyse a échoué. Réessayez.");
+        setEtat("inactif");
+        return;
+      }
+      onResultat({
+        titre: json.titre,
+        date: json.date ?? "",
+        heure: json.heure ?? "",
+        lieu: json.lieu ?? "",
+        chapo: json.chapo ?? "",
+        pourquoi: json.pourquoi ?? "",
+        revendications: json.revendications ?? "",
+        infos_pratiques: json.infos_pratiques ?? "",
+        lien_inscription: json.lien_inscription ?? "",
+      });
+      setAvertissements(json.avertissements ?? []);
+      setEtat("fait");
+    } catch {
+      setErreur("Le serveur est injoignable. Vérifiez votre connexion et réessayez.");
+      setEtat("inactif");
+    }
+  }
+
+  return (
+    <section aria-labelledby="titre-analyse" className="rounded-2xl border-2 border-militant-bordeaux p-5">
+      <h3 id="titre-analyse" className="flex items-center gap-2 font-condensed text-2xl font-extrabold leading-none">
+        <ClipboardPaste size={20} className="text-militant-rouge" aria-hidden /> Pré-remplir avec l&apos;IA
+      </h3>
+      <p className="mt-2 text-sm">
+        Collez ici tout ce que vous avez trouvé : articles de presse, tract, communiqué de la FGTB, message avec les
+        horaires des bus… L&apos;IA en tire le titre, la date, le lieu, le chapô, le « pourquoi », les revendications,
+        les infos pratiques et le lien d&apos;inscription. Elle reformule et n&apos;invente rien : ce qui manque reste
+        vide.
+      </p>
+      <label htmlFor="textes-colles" className="mt-4 block text-sm font-semibold">
+        Vos textes
+      </label>
+      <textarea
+        id="textes-colles"
+        className={`${champ()} mt-1.5 min-h-[200px] resize-y`}
+        value={textes}
+        onChange={(e) => setTextes(e.target.value)}
+        maxLength={ANALYSE_MAX}
+        rows={9}
+        placeholder="Collez un ou plusieurs textes, les uns à la suite des autres."
+      />
+      <p className="mt-1 text-right text-xs tabular-nums">
+        {textes.length.toLocaleString("fr-BE")} / {ANALYSE_MAX.toLocaleString("fr-BE")} caractères
+      </p>
+      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          onClick={analyser}
+          disabled={etat === "en_cours"}
+          className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2.5 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
+        >
+          {etat === "en_cours" ? <IconeChargement size={16} /> : <Sparkles size={16} aria-hidden />}
+          {etat === "en_cours" ? "Analyse en cours…" : etat === "fait" ? "Relancer l'analyse" : "Analyser et pré-remplir"}
+        </button>
+        <span className="text-xs">Claude Sonnet 5 · 15 à 40 secondes · quelques centimes</span>
+      </div>
+      <div aria-live="polite">
+        {erreur && (
+          <p role="alert" className="mt-3 text-sm font-semibold text-militant-bordeaux">
+            {erreur}
+          </p>
+        )}
+        {etat === "fait" && (
+          <div className="mt-4 border-l-4 border-militant-rouge pl-3 text-sm">
+            <p className="font-bold">
+              Champs pré-remplis par l&apos;IA — vérifiez chaque champ avec vos sources avant d&apos;enregistrer.
+            </p>
+            {avertissements.map((a) => (
+              <p key={a} className="mt-1 flex items-start gap-1.5">
+                <AlertTriangle size={15} className="mt-0.5 shrink-0 text-militant-rouge" aria-hidden /> {a}
+              </p>
+            ))}
+            <p className="mt-1">L&apos;image et la mise en avant restent à choisir vous-même.</p>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

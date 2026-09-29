@@ -122,6 +122,37 @@ export function estLeJourJ(horodatage: string, maintenant: number): boolean {
   return Boolean(a) && a === depuisHorodatage(new Date(maintenant).toISOString()).date;
 }
 
+const MOIS: Record<string, string> = {
+  janvier: "01",
+  fevrier: "02",
+  mars: "03",
+  avril: "04",
+  mai: "05",
+  juin: "06",
+  juillet: "07",
+  aout: "08",
+  septembre: "09",
+  octobre: "10",
+  novembre: "11",
+  decembre: "12",
+};
+
+/**
+ * Convention du site : jamais de mois en toutes lettres. « 14 octobre » → « 14/10/2026 » (année écrite,
+ * sinon `annee`) ; « 1er mai 2027 » → « 01/05/2027 ». Sans année connue, le texte est laissé tel quel.
+ */
+export function datesEnChiffres(texte: string, annee: string | null): string {
+  return texte.replace(
+    /\b(\d{1,2})(?:er)?\s+(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[ûu]t|septembre|octobre|novembre|d[ée]cembre)(?:\s+(\d{4}))?\b/gi,
+    (tout, jour: string, mois: string, an?: string) => {
+      const m = MOIS[mois.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")];
+      const a = an ?? annee;
+      if (!m || !a || Number(jour) < 1 || Number(jour) > 31) return tout;
+      return `${jour.padStart(2, "0")}/${m}/${a}`;
+    }
+  );
+}
+
 // ── Textes ──
 
 /** Paragraphes d'un texte brut (séparés par une ligne vide). */
