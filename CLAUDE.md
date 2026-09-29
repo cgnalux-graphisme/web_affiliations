@@ -482,6 +482,10 @@ reformuler, citer et lier la source, jamais recopier.
   vérifier ») ; liens retirés, HTML nettoyé, adresse depuis le titre. Date et
   statut restent au formulaire (brouillon). Rappel visible : « Vulgarisation IA
   — vérifier la fidélité à la note FGTB avant publication. »
+- **Suggestion de photo** (29/09/2026, demandée par Fred) : l'IA décrit la photo de
+  couverture idéale (scène concrète, prise par la centrale ou banque libre, jamais
+  de photo de presse ni de personne réelle identifiable) ; affichée au-dessus de
+  la zone image comme pour un brouillon d'article, **non enregistrée**.
 - **Archive** : la note d'origine est déposée dans `notes-sources` (service_role)
   et son chemin enregistré dans `document_source` ; la page Modifier affiche un
   lien de téléchargement temporaire (1 h). Un échec d'archivage n'empêche pas

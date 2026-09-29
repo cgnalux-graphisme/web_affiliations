@@ -30,6 +30,11 @@ export const SchemaVulgarisation = z.object({
   reference_note: z
     .string()
     .describe("Référence de la note telle qu'écrite dans le document (ex. « 26I107F »). Chaîne vide si aucune."),
+  suggestion_image: z
+    .string()
+    .describe(
+      "Photo de couverture idéale : ce qu'elle devrait montrer (scène concrète, lieu, personnes au travail), en 1 ou 2 phrases. Texte uniquement."
+    ),
   note_suffisante: z.boolean().describe("false si la note est trop courte, incomplète ou ambiguë pour une vulgarisation fiable."),
   avertissement: z
     .string()
@@ -49,6 +54,7 @@ Ce que tu produis
   3. <h2>${SOUS_TITRES[2]}</h2> — la position de la FGTB telle qu'elle est écrite dans la note ;
   4. <h2>${SOUS_TITRES[3]}</h2> — les effets concrets pour le lecteur, uniquement ceux que la note permet d'établir.
 - reference_note : la référence de la note, recopiée exactement (ex. « 26I107F »), ou une chaîne vide si la note n'en contient pas.
+- suggestion_image : la photo de couverture idéale, décrite en 1 ou 2 phrases. Propose une scène concrète et parlante pour un travailleur (un chantier, un atelier, une fiche de paie, une réunion syndicale, une délégation…), plutôt qu'un symbole abstrait. Elle doit pouvoir être prise par la centrale ou trouvée dans une banque d'images libre de droits : jamais une photo de presse, jamais une personne réelle identifiable citée dans la note, jamais de logo d'une autre organisation.
 
 Langage
 - Langage SIMPLE, niveau grand public : phrases courtes, voix active, mots de tous les jours, exemples concrets tirés de la note.
@@ -125,6 +131,8 @@ export type Vulgarisation = {
   sources: string;
   avertissement: string | null;
   note_suffisante: boolean;
+  /** Description de la photo de couverture idéale (affichée, non enregistrée). */
+  suggestion_image: string;
 };
 
 /** Post-traitement : HTML nettoyé, adresse depuis le titre, référence vérifiée, alertes de fidélité. */
@@ -157,5 +165,6 @@ export function construireVulgarisation(r: ReponseVulgarisation, texteNote: stri
     sources: referenceOk ? `Note FGTB ${reference}` : "",
     avertissement: alertes.length ? alertes.join("\n") : null,
     note_suffisante: r.note_suffisante,
+    suggestion_image: r.suggestion_image.replace(/\s+/g, " ").trim(),
   };
 }

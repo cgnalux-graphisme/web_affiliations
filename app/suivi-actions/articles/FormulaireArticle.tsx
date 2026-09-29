@@ -157,6 +157,8 @@ export default function FormulaireArticle({
   // Note FGTB importée (On vous explique) : chemin de l'archive et rappel de vérification.
   const [documentSource, setDocumentSource] = useState<string | null>(article?.document_source ?? null);
   const [vulgarise, setVulgarise] = useState(false);
+  // Photo de couverture proposée par l'IA pour la note vulgarisée (affichée, non enregistrée).
+  const [suggestionNote, setSuggestionNote] = useState("");
   const [form, setForm] = useState<Form>(() => formDepuis(article, preRemplissage));
   // Un nouvel article suit son titre ; un article existant garde son adresse (liens déjà partagés).
   const [slugManuel, setSlugManuel] = useState(Boolean(article));
@@ -250,6 +252,7 @@ export default function FormulaireArticle({
     setErreurs({});
     setVersionEditeur((n) => n + 1);
     setVulgarise(true);
+    setSuggestionNote(v.suggestion_image);
   }
 
   // Étape 1 : l'IA pourra-t-elle lire l'article ? (vérification gratuite du robots.txt du média)
@@ -711,12 +714,12 @@ export default function FormulaireArticle({
               d&apos;images libre. Une photo de presse trouvée en ligne est protégée par le droit d&apos;auteur.
             </span>
           </p>
-          {ia.etape === "propose" && ia.suggestionImage && (
+          {((ia.etape === "propose" && ia.suggestionImage) || suggestionNote) && (
             <p className="flex items-start gap-2.5 rounded-xl border-2 border-dashed border-militant-ardoise px-4 py-3 text-sm">
               <Camera size={17} className="mt-0.5 shrink-0 text-militant-rouge" aria-hidden />
               <span>
                 <span className="font-bold">Suggestion de photo (IA, non enregistrée) : </span>
-                {ia.suggestionImage}
+                {ia.etape === "propose" && ia.suggestionImage ? ia.suggestionImage : suggestionNote}
               </span>
             </p>
           )}

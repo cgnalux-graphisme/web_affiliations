@@ -26,6 +26,7 @@ describe("vulgarisation-ia", () => {
         points_cles: ["Un", "Deux", "Trois", "Quatre", "Cinq"],
         contenu_html: `${CONTENU}<p><a href="https://x.be">lien</a></p>`,
         reference_note: "Note FGTB 26I107F",
+        suggestion_image: "  Un ouvrier  sur un chantier. ",
         note_suffisante: true,
         avertissement: "",
       },
@@ -37,6 +38,7 @@ describe("vulgarisation-ia", () => {
     expect(v.contenu).not.toContain("<a ");
     expect(v.sources).toBe("Note FGTB 26I107F");
     expect(v.avertissement).toBeNull();
+    expect(v.suggestion_image).toBe("Un ouvrier sur un chantier.");
   });
 
   it("écarte une référence inventée et signale les chiffres douteux", () => {
@@ -47,6 +49,7 @@ describe("vulgarisation-ia", () => {
         points_cles: [],
         contenu_html: CONTENU,
         reference_note: "99X999",
+        suggestion_image: "",
         note_suffisante: false,
         avertissement: "Note courte.",
       },
