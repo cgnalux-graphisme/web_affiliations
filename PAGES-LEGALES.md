@@ -129,7 +129,9 @@ Ces cookies ne nécessitent pas votre consentement.
 **Pas de traçage publicitaire**
 Nous n'utilisons aucun cookie publicitaire ni outil de traçage tiers. Les vidéos YouTube
 intégrées sont chargées en mode « sans cookie » : aucun cookie YouTube n'est déposé tant que
-vous ne lancez pas la lecture. Les boutons de partage sont de simples liens, sans traceur.
+vous ne lancez pas la lecture. Les cartes Google Maps de la page Contact ne sont chargées
+que si vous cliquez sur « Afficher la carte » : Google peut alors déposer ses propres cookies.
+Les boutons de partage sont de simples liens, sans traceur.
 
 **Statistiques**
 À ce jour, nous n'utilisons aucun outil de mesure d'audience. Si nous devions en ajouter un,

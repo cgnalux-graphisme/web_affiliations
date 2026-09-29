@@ -234,3 +234,59 @@
 @media (max-width: 1023px) {
   body:has(.barre-inscription-mobile) .pied-de-page { padding-bottom: 88px; }
 }
+/* ── Page /contact ──
+   À l'ouverture, une seule cascade (.contact-entree, rang dans --i). Le reste répond au visiteur :
+   onde du statut « ouvert », filet rouge sous le champ actif, coche tracée après l'envoi. */
+@keyframes contact-entree {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+.contact-entree {
+  animation: contact-entree 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+@keyframes contact-pouls {
+  from { transform: scale(1); opacity: 0.55; }
+  to { transform: scale(2.8); opacity: 0; }
+}
+.contact-pouls { animation: contact-pouls 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.champ-contact-filet {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: #e32119;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+  pointer-events: none;
+}
+.champ-contact:focus-within .champ-contact-filet { transform: scaleX(1); }
+.contact-envoyer-icone { transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.contact-envoyer:hover .contact-envoyer-icone { transform: translate(3px, -3px); }
+@keyframes contact-trace { to { stroke-dashoffset: 0; } }
+.contact-coche-cercle {
+  stroke-dasharray: 183;
+  stroke-dashoffset: 183;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  animation: contact-trace 0.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.contact-coche-trait {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: contact-trace 0.35s cubic-bezier(0.65, 0, 0.35, 1) 0.5s forwards;
+}
+.contact-succes > :not(svg) { animation: contact-entree 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s both; }
+@media (prefers-reduced-motion: reduce) {
+  .contact-entree,
+  .contact-succes > :not(svg) { animation: none; }
+  .contact-pouls { display: none; }
+  .champ-contact-filet,
+  .contact-envoyer-icone { transition: none; }
+  .contact-envoyer:hover .contact-envoyer-icone { transform: none; }
+  .contact-coche-cercle,
+  .contact-coche-trait { animation: none; stroke-dashoffset: 0; }
+}

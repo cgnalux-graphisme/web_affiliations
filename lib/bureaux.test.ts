@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BUREAUX, estOuvert, horaireLisible, maintenantBruxelles, periodeDuMois } from "./bureaux";
+import { BUREAUX, estOuvert, horaireLisible, lienCarteIntegree, maintenantBruxelles, periodeDuMois, prochainChangement } from "./bureaux";
 
 const namur = BUREAUX.find((b) => b.ville === "Namur")!;
 const marche = BUREAUX.find((b) => b.ville === "Marche-en-Famenne")!;
@@ -29,5 +29,30 @@ describe("bureaux", () => {
     // Jeudi 24/09/2026 07:15 UTC = 09:15 à Bruxelles.
     const b = maintenantBruxelles(new Date("2026-09-24T07:15:00Z"));
     expect(b).toEqual({ jour: "Jeudi", minutes: 9 * 60 + 15, mois: 9 });
+  });
+});
+
+
+describe("prochain changement d'état", () => {
+  const namurB = BUREAUX.find((b) => b.ville === "Namur")!;
+  const marcheB = BUREAUX.find((b) => b.ville === "Marche-en-Famenne")!;
+  const h = (hh: number, mm = 0) => hh * 60 + mm;
+
+  it("dit quand le bureau ferme s'il est ouvert", () => {
+    expect(prochainChangement(namurB, "annee", "Lundi", h(9))).toBe("Ferme à 12:00");
+  });
+  it("dit quand il rouvre le jour même", () => {
+    expect(prochainChangement(namurB, "annee", "Lundi", h(12, 30))).toBe("Ouvre à 13:30");
+  });
+  it("renvoie au lendemain après la fermeture", () => {
+    expect(prochainChangement(namurB, "annee", "Mercredi", h(14))).toBe("Ouvre demain à 08:30");
+  });
+  it("passe le week-end et les jours fermés", () => {
+    expect(prochainChangement(namurB, "annee", "Vendredi", h(15))).toBe("Ouvre lundi à 08:30");
+    expect(prochainChangement(namurB, "annee", null, h(10))).toBe("Ouvre lundi à 08:30");
+    expect(prochainChangement(marcheB, "annee", "Jeudi", h(13))).toBe("Ouvre lundi à 08:30");
+  });
+  it("retire la précision d'étage de l'adresse de la carte", () => {
+    expect(decodeURIComponent(lienCarteIntegree(namurB))).toContain("q=Rue Dewez 40-42, 5000 Namur, Belgique");
   });
 });

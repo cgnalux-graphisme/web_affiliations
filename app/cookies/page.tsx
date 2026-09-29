@@ -31,6 +31,8 @@ export default function CookiesPage() {
         <p>
           Nous n&apos;utilisons aucun cookie publicitaire ni outil de traçage tiers. Les vidéos YouTube intégrées sont
           chargées en mode « sans cookie » : aucun cookie YouTube n&apos;est déposé tant que vous ne lancez pas la lecture.
+          Les cartes Google Maps de la page Contact ne sont chargées que si vous cliquez sur « Afficher la carte » :
+          Google peut alors déposer ses propres cookies.
           Les boutons de partage sont de simples liens, sans traceur.
         </p>
       </Section>

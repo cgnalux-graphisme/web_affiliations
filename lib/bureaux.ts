@@ -137,3 +137,45 @@ export function estOuvert(bureau: Bureau, periode: Periode, jour: Jour | null, m
   if (!jour) return false;
   return bureau.horaires[periode][jour].some(([a, b]) => minutes >= enMinutes(a) && minutes < enMinutes(b));
 }
+
+/**
+ * Prochain changement d'état, pour compléter le badge : « Ferme à 12:00 » si le bureau est ouvert,
+ * sinon « Ouvre à 13:00 » (aujourd'hui), « Ouvre demain à 08:30 » ou « Ouvre lundi à 08:30 ».
+ * Le week-end (jour = null), la prochaine ouverture est cherchée à partir du lundi.
+ */
+export function prochainChangement(bureau: Bureau, periode: Periode, jour: Jour | null, minutes: number): string | null {
+  const horaires = bureau.horaires[periode];
+  if (jour) {
+    const creneaux = horaires[jour];
+    const encours = creneaux.find(([a, b]) => minutes >= enMinutes(a) && minutes < enMinutes(b));
+    if (encours) return `Ferme à ${encours[1]}`;
+    const plusTard = creneaux.find(([a]) => enMinutes(a) > minutes);
+    if (plusTard) return `Ouvre à ${plusTard[0]}`;
+  }
+  const depart = jour ? JOURS_OUVRABLES.indexOf(jour) + 1 : 0;
+  for (let i = 0; i < JOURS_OUVRABLES.length; i++) {
+    const indice = depart + i;
+    const j = JOURS_OUVRABLES[indice % JOURS_OUVRABLES.length];
+    const premier = horaires[j][0];
+    if (!premier) continue;
+    // « demain » seulement d'un jour ouvrable au suivant dans la même semaine (jamais au-dessus du week-end).
+    const quand = jour && indice === depart && indice < JOURS_OUVRABLES.length ? "demain" : j.toLowerCase();
+    return `Ouvre ${quand} à ${premier[0]}`;
+  }
+  return null;
+}
+
+export const WHATSAPP = { affichage: "+32 (0)478 34 11 79", lien: "https://wa.me/32478341179" };
+
+/** Adresse sur une ligne, pour les liens Google Maps. */
+const adresseEnLigne = (b: Bureau) => `${b.adresse[0].replace(/\s*\(.*?\)/, "")}, ${b.adresse[1]}, Belgique`;
+
+/** Itinéraire Google Maps (nouvel onglet). */
+export function lienItineraire(b: Bureau): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresseEnLigne(b))}`;
+}
+
+/** Carte Google Maps intégrable sans clé d'API (chargée seulement à la demande du visiteur). */
+export function lienCarteIntegree(b: Bureau): string {
+  return `https://maps.google.com/maps?q=${encodeURIComponent(adresseEnLigne(b))}&z=16&hl=fr&output=embed`;
+}
