@@ -15,12 +15,25 @@ export default function HeroMobilisation({ m }: { m: MobilisationPublique }) {
     <section aria-labelledby="titre-mobilisation" className="py-8 lg:py-12">
       <div className="relative grid overflow-hidden rounded-2xl bg-militant-bordeaux text-white lg:grid-cols-12">
         <div aria-hidden className="absolute inset-y-0 left-0 z-10 w-2 bg-militant-rouge sm:w-3" />
-        <div className="relative aspect-[16/9] bg-militant-ardoise lg:order-2 lg:col-span-5 lg:aspect-auto">
-          {m.image_hero && (
-            <Image src={m.image_hero} alt="" fill priority sizes="(min-width: 1024px) 520px, 100vw" className="object-cover" />
-          )}
-        </div>
-        <div className="flex flex-col px-6 pb-9 pt-7 sm:px-10 sm:pb-12 sm:pt-10 lg:col-span-7 lg:py-14 lg:pl-14">
+        {m.image_hero && (
+          // Image entière, à sa proportion naturelle (affiche, paysage, carré) : l'encart s'adapte à sa hauteur.
+          <div className="lg:order-2 lg:col-span-5 lg:flex lg:items-center lg:justify-center lg:py-10 lg:pr-10">
+            <Image
+              src={m.image_hero}
+              alt=""
+              width={1200}
+              height={1200}
+              priority
+              sizes="(min-width: 1024px) 480px, 100vw"
+              className="mx-auto block h-auto max-h-[70vh] w-auto max-w-full lg:max-h-[85vh] lg:rounded-xl lg:shadow-[0_8px_30px_rgba(34,34,34,0.35)]"
+            />
+          </div>
+        )}
+        <div
+          className={`flex flex-col px-6 pb-9 pt-7 sm:px-10 sm:pb-12 sm:pt-10 lg:py-14 lg:pl-14 ${
+            m.image_hero ? "lg:col-span-7" : "lg:col-span-12"
+          }`}
+        >
           <p className="flex flex-wrap items-center gap-x-5 gap-y-1.5 font-condensed text-xl font-bold sm:text-2xl">
             {date && (
               <span className="inline-flex items-center gap-2">

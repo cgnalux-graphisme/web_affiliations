@@ -68,7 +68,7 @@ export default function VueMobilisation({ m, apercu = false }: { m: Mobilisation
       <section className="relative overflow-hidden bg-militant-bordeaux text-white">
         <div aria-hidden className="absolute inset-y-0 left-0 w-2 bg-militant-rouge sm:w-3" />
         <div className="mx-auto grid max-w-7xl gap-10 px-5 pb-14 pt-8 sm:px-8 sm:pb-20 sm:pt-12 lg:grid-cols-12 lg:gap-12 lg:px-10 lg:pt-16">
-          <div className="campagne-entree flex flex-col lg:col-span-7">
+          <div className={`campagne-entree flex flex-col ${m.image_hero ? "lg:col-span-7" : "lg:col-span-12"}`}>
             <p className="flex flex-wrap items-center gap-x-5 gap-y-2 font-condensed text-2xl font-bold sm:text-3xl">
               {date && (
                 <span className="inline-flex items-center gap-2">
@@ -103,22 +103,23 @@ export default function VueMobilisation({ m, apercu = false }: { m: Mobilisation
             </div>
           </div>
 
-          <div className="relative -order-1 self-start lg:order-none lg:col-span-5 lg:self-center">
-            {/* Aplat rouge décalé derrière la photo : effet affiche. */}
-            <div aria-hidden className="absolute -bottom-3 -right-3 left-6 top-6 rounded-2xl bg-militant-rouge sm:-bottom-4 sm:-right-4" />
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-militant-ardoise lg:aspect-[4/5]">
-              {m.image_hero && (
+          {m.image_hero && (
+            <div className="-order-1 flex justify-center lg:order-none lg:col-span-5 lg:items-center">
+              {/* Image entière à sa proportion naturelle ; l'aplat rouge décalé suit sa taille : effet affiche. */}
+              <div className="relative mb-3 mr-3 w-fit max-w-full sm:mb-4 sm:mr-4">
+                <div aria-hidden className="absolute -bottom-3 -right-3 left-6 top-6 rounded-2xl bg-militant-rouge sm:-bottom-4 sm:-right-4" />
                 <Image
                   src={m.image_hero}
                   alt=""
-                  fill
+                  width={1200}
+                  height={1200}
                   priority
                   sizes="(min-width: 1024px) 480px, 100vw"
-                  className="object-cover"
+                  className="relative block h-auto max-h-[70vh] w-auto max-w-full rounded-2xl lg:max-h-[85vh]"
                 />
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
