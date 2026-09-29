@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Loader2, Lock, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Search, X } from "lucide-react";
+import { EcranChargement, IconeChargement } from "../../Chargement";
 import { dateFrToIso, formatDateFr } from "../../../lib/dates";
 import {
   DEMANDES,
@@ -195,7 +196,7 @@ export default function ListeDemandes({ initial }: { initial: Filtres }) {
         <p className="text-base">
           {chargement ? (
             <span className="inline-flex items-center gap-2 font-semibold">
-              <Loader2 size={16} className="animate-spin text-militant-rouge" aria-hidden /> Chargement…
+              <IconeChargement size={20} className="text-militant-rouge" /> Chargement…
             </span>
           ) : reponse ? (
             <>
@@ -217,6 +218,8 @@ export default function ListeDemandes({ initial }: { initial: Filtres }) {
           </button>
         )}
       </div>
+
+      {!reponse && chargement && !erreur && <EcranChargement compact texte="Chargement des demandes…" />}
 
       {erreur ? (
         <p role="alert" className="mt-4 border-l-[6px] border-militant-bordeaux py-2 pl-4 text-lg">

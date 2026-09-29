@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
+import { AlertCircle, CheckCircle, Eye, EyeOff, LogIn } from "lucide-react";
+import { IconeChargement } from "../Chargement";
 import { isSuperAdmin } from "../../lib/admin";
 import { getSupabaseAuth } from "../../lib/supabase";
 
@@ -140,7 +141,7 @@ export default function LoginForm({
           disabled={loading}
           className="w-full inline-flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold py-3 rounded-xl text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:ring-offset-2"
         >
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
+          {loading ? <IconeChargement size={16} /> : <LogIn size={16} />}
           {loading ? "Connexion…" : "Se connecter"}
         </button>
       </form>

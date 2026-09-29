@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertCircle, CheckCircle, Download, FileText, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Download, FileText } from "lucide-react";
+import { IconeChargement } from "../../Chargement";
 import { dateFrToIso, formatDateFr, isoToDateFr } from "../../../lib/dates";
 import { trierPhotos } from "../../../lib/photos";
 import { calculerBilan, type ActionRapport } from "../../../lib/rapport/bilan";
@@ -195,7 +196,7 @@ export default function GenerateurRapport() {
           disabled={Boolean(progression)}
           className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-3 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
         >
-          {progression ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} aria-hidden />}
+          {progression ? <IconeChargement size={18} /> : <FileText size={18} aria-hidden />}
           {progression || "Générer le rapport PDF"}
         </button>
         <p className="mt-2 text-center text-xs">

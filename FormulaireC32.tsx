@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import LivraisonFormulaires from "./LivraisonFormulaires";
+import { IconeChargement } from "./app/Chargement";
 import type { C32Data } from "./app/api/fill-c3-2/route";
 import { insererDemande } from "./lib/insertion-demande";
 import { postJson } from "./lib/post-json";
@@ -496,7 +497,7 @@ export default function FormulaireC32({
               disabled={loading}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2 px-5 rounded-xl text-sm"
             >
-              {loading ? "Génération…" : <><FileDown size={15} /> Générer le PDF</>}
+              {loading ? <><IconeChargement size={16} /> Génération…</> : <><FileDown size={15} /> Générer le PDF</>}
             </button>
           )}
         </div>

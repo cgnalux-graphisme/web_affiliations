@@ -15,7 +15,8 @@ import {
   StyleSheet,
   Image as PDFImage,
 } from "@react-pdf/renderer";
-import { FileDown, CheckCircle, Loader2, MapPin } from "lucide-react";
+import { FileDown, CheckCircle, MapPin } from "lucide-react";
+import { IconeChargement } from "./app/Chargement";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type AccordCloture = "avec_cloture" | "sans_cloture" | "";
@@ -218,7 +219,7 @@ function AddressAutocomplete({
           className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors border-gray-300 focus:ring-red-200"
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin pointer-events-none" />
+          <IconeChargement size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-militant-rouge" />
         )}
       </div>
 
@@ -1256,9 +1257,9 @@ export default function FormulaireChangementCompte() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+            className="flex w-full items-center justify-center gap-2 bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
           >
-            {loading ? "Envoi en cours…" : "Envoyer ma demande"}
+            {loading ? <><IconeChargement size={18} /> Envoi en cours…</> : "Envoyer ma demande"}
           </button>
         </div>
       </form>

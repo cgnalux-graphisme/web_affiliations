@@ -679,6 +679,17 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   noir). Pour tout **nouveau** code, utiliser les couleurs `militant-*`.
 - **Motion** : animations sobres, une seule à l'ouverture d'un écran au maximum ;
   toujours respecter `prefers-reduced-motion`.
+- **Chargement : toujours visible** (règle de Fred, 29/09/2026). Indicateur
+  unique du site, inspiré d'un cercle « loop out » (l'arc s'allonge, fait le
+  tour puis se rétracte) : `app/Chargement.tsx`, animations `.chargement-*`
+  dans `app/globals.css` (en mouvement réduit : arc fixe + texte).
+  `IconeChargement` = petite icône dans un bouton ou devant un texte « … en
+  cours » (couleur du texte : blanc sur bouton bordeaux, `text-militant-rouge`
+  ailleurs) ; `EcranChargement` = grand cercle rouge + arc bordeaux intérieur
+  avec un texte, pour une page (`app/loading.tsx`, `app/suivi-actions/loading.tsx`)
+  ou une attente longue (IA, première liste). **Ne plus utiliser `Loader2` ni
+  `animate-spin`** : tout nouveau chargement passe par ces deux composants, avec
+  un texte qui dit ce qui se passe.
 - **Accessibilité** : vrais `<button>` / `<a>` / `<label>`, focus visible,
   cibles tactiles ≥ 44 px, `aria-label` sur les boutons-icônes.
 

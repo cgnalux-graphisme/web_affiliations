@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { FileDown, ChevronRight, ChevronLeft } from "lucide-react";
+import { IconeChargement } from "./app/Chargement";
 import type { C1Data, CohabitantRow } from "./app/api/fill-c1/route";
 import LivraisonFormulaires from "./LivraisonFormulaires";
 import { insererDemande } from "./lib/insertion-demande";
@@ -254,7 +255,7 @@ function AddressAutocomplete({
         autoComplete="off"
       />
       {loading && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">...</span>
+        <IconeChargement size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-militant-rouge" />
       )}
 
       {open && suggestions.length > 0 && (
@@ -1114,7 +1115,7 @@ export default function FormulaireC1({
           ) : (
             <button type="button" onClick={handleSubmit} disabled={loading}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2 px-5 rounded-xl text-sm">
-              {loading ? "Génération…" : <><FileDown size={15} /> Générer le PDF</>}
+              {loading ? <><IconeChargement size={16} /> Génération…</> : <><FileDown size={15} /> Générer le PDF</>}
             </button>
           )}
         </div>

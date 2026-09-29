@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { AlertTriangle, CheckCircle, EyeOff, Loader2, PenLine, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle, EyeOff, PenLine, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
+import { IconeChargement } from "../../Chargement";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import {
   LIBELLES_STATUT,
@@ -110,7 +111,11 @@ export function FiltresVeille({
         })}
       </div>
       <div className="flex items-center gap-2">
-        {enCours && <Loader2 size={16} className="animate-spin" aria-label="Chargement" />}
+        {enCours && (
+          <span role="status" className="inline-flex items-center gap-1.5 text-sm font-semibold">
+            <IconeChargement size={18} className="text-militant-rouge" /> Filtrage…
+          </span>
+        )}
         <label htmlFor="filtre-source" className="text-sm font-semibold">
           Source
         </label>
@@ -178,7 +183,7 @@ export function ActionsItem({ id, titre, statut }: { id: string; titre: string; 
           aria-label={`Proposer un brouillon avec l'IA à partir de : ${titre}`}
           className={statut === VEILLE_NOUVEAU ? BOUTON_PRINCIPAL : BOUTON_SECONDAIRE}
         >
-          {enCours === "ia" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Sparkles size={15} aria-hidden />}
+          {enCours === "ia" ? <IconeChargement size={15} /> : <Sparkles size={15} aria-hidden />}
           Brouillon IA
         </button>
         <button
@@ -188,7 +193,7 @@ export function ActionsItem({ id, titre, statut }: { id: string; titre: string; 
           aria-label={`Rédiger un article à partir de : ${titre}`}
           className={BOUTON_SECONDAIRE}
         >
-          {enCours === "rediger" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <PenLine size={15} aria-hidden />}
+          {enCours === "rediger" ? <IconeChargement size={15} /> : <PenLine size={15} aria-hidden />}
           Rédiger un article
         </button>
         {statut === VEILLE_NOUVEAU ? (
@@ -199,7 +204,7 @@ export function ActionsItem({ id, titre, statut }: { id: string; titre: string; 
             aria-label={`Ignorer : ${titre}`}
             className={BOUTON_SECONDAIRE}
           >
-            {enCours === "statut" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <EyeOff size={15} aria-hidden />}
+            {enCours === "statut" ? <IconeChargement size={15} /> : <EyeOff size={15} aria-hidden />}
             Ignorer
           </button>
         ) : (
@@ -210,7 +215,7 @@ export function ActionsItem({ id, titre, statut }: { id: string; titre: string; 
             aria-label={`Remettre à trier : ${titre}`}
             className={`${BOUTON} border-transparent hover:border-militant-charbon`}
           >
-            {enCours === "statut" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <RotateCcw size={15} aria-hidden />}
+            {enCours === "statut" ? <IconeChargement size={15} /> : <RotateCcw size={15} aria-hidden />}
             Remettre à trier
           </button>
         )}
@@ -261,7 +266,7 @@ export function BoutonRamassage() {
   return (
     <div className="flex max-w-md flex-col items-start gap-2 sm:items-end">
       <button type="button" onClick={lancer} disabled={enCours} className={BOUTON_PRINCIPAL}>
-        <RefreshCw size={15} className={enCours ? "animate-spin motion-reduce:animate-none" : ""} aria-hidden />
+        {enCours ? <IconeChargement size={16} /> : <RefreshCw size={15} aria-hidden />}
         {enCours ? "Lecture des flux…" : "Rafraîchir maintenant"}
       </button>
       <div aria-live="polite" className="text-sm sm:text-right">

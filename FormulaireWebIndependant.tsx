@@ -26,7 +26,6 @@ import {
   CheckCircle,
   AlertCircle,
   PenLine,
-  Loader2,
   RotateCcw,
   Send,
   FileDown,
@@ -44,6 +43,7 @@ import {
   Image as PDFImage,
   pdf,
 } from "@react-pdf/renderer";
+import { IconeChargement } from "./app/Chargement";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. VALIDATION IBAN INTERNATIONALE (algorithme officiel MOD-97)
@@ -1060,8 +1060,7 @@ function AddressAutocomplete({
             transition placeholder:text-gray-400"
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4
-            text-gray-400 animate-spin pointer-events-none" />
+          <IconeChargement size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-militant-rouge" />
         )}
       </div>
 
@@ -2559,7 +2558,7 @@ export default function FormulaireWebIndependant({
               {({ loading: pdfLoading }) =>
                 pdfLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                    <IconeChargement size={16} />
                     Génération du PDF…
                   </>
                 ) : (
@@ -3924,7 +3923,7 @@ export default function FormulaireWebIndependant({
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading
-                  ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Envoi en cours…</>
+                  ? <><IconeChargement size={16} /> Envoi en cours…</>
                   : <><Send className="w-4 h-4" aria-hidden /> Soumettre ma demande</>}
               </button>
             )}

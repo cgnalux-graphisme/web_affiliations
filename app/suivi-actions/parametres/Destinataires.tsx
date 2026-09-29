@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { AlertTriangle, Loader2, Mail, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Mail, Plus, Trash2 } from "lucide-react";
+import { IconeChargement } from "../../Chargement";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import { ENVOIS, INFOS_ENVOIS, emailValide, type Envoi } from "../../../lib/envois";
 
@@ -143,7 +144,7 @@ function CarteEnvoi({
                       autoFocus
                       className={`${BOUTON} border-militant-bordeaux bg-militant-bordeaux text-white hover:border-militant-charbon hover:bg-militant-charbon`}
                     >
-                      {enCours === d.id ? <Loader2 size={14} className="animate-spin" aria-hidden /> : null} Oui
+                      {enCours === d.id ? <IconeChargement size={14} /> : null} Oui
                     </button>
                     <button
                       type="button"
@@ -203,7 +204,7 @@ function CarteEnvoi({
             disabled={enCours !== null || !nouvelle.trim()}
             className={`${BOUTON} border-militant-bordeaux bg-militant-bordeaux text-white hover:border-militant-charbon hover:bg-militant-charbon`}
           >
-            {enCours === "ajout" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Plus size={15} aria-hidden />}
+            {enCours === "ajout" ? <IconeChargement size={15} /> : <Plus size={15} aria-hidden />}
             Ajouter
           </button>
         </form>

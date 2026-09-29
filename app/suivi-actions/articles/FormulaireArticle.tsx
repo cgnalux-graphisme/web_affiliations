@@ -19,7 +19,6 @@ import {
   HelpCircle,
   ImagePlus,
   Italic,
-  Loader2,
   RefreshCw,
   Sparkles,
   X,
@@ -51,6 +50,7 @@ import type { Brouillon } from "../../../lib/redaction-ia";
 import { CONSIGNES_MAX, EXTRAIT_MAX } from "../../../lib/redaction-limites";
 import type { Lisibilite } from "../../api/redaction/lisibilite/route";
 import EditeurTexte from "./EditeurTexte";
+import { IconeChargement } from "../../Chargement";
 import PanneauNote, { RAPPEL_NOTE, type ResultatNote } from "./PanneauNote";
 import { rafraichirBlog } from "./revalidation";
 
@@ -740,7 +740,7 @@ export default function FormulaireArticle({
               <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-white/90 text-[15px] font-bold">
                 {imageEnCours ? (
                   <>
-                    <Loader2 size={28} className="animate-spin text-militant-rouge motion-reduce:animate-none" aria-hidden />
+                    <IconeChargement size={40} className="text-militant-rouge" />
                     Récupération de l&apos;image…
                   </>
                 ) : (
@@ -883,7 +883,7 @@ export default function FormulaireArticle({
             disabled={enCours}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-militant-bordeaux py-3 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50"
           >
-            {enCours && <Loader2 size={16} className="animate-spin" aria-hidden />}
+            {enCours && <IconeChargement size={16} />}
             {enCours
               ? progression || "Enregistrement…"
               : form.statut === STATUT_PUBLIE
@@ -1031,7 +1031,7 @@ function PanneauIA({
             <p className="flex items-start gap-2 text-sm" aria-live="polite">
               {lisibilite.etat === "chargement" ? (
                 <>
-                  <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden />
+                  <IconeChargement size={16} className="mt-0.5 text-militant-rouge" />
                   Vérification en cours…
                 </>
               ) : (
@@ -1145,7 +1145,7 @@ function PanneauIA({
                 className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
               >
                 {enCours ? (
-                  <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden />
+                  <IconeChargement size={16} />
                 ) : ia.etape === "propose" ? (
                   <RefreshCw size={16} aria-hidden />
                 ) : (

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, Loader2, Pencil, Plus, Power, Rss, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, Pencil, Plus, Power, Rss, Trash2, X } from "lucide-react";
+import { IconeChargement } from "../../Chargement";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import { urlFluxValide } from "../../../lib/veille";
 
@@ -144,7 +145,7 @@ export default function GestionSources({ sources }: { sources: Source[] }) {
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button type="submit" disabled={enCours === "ajout"} className={BOUTON_PRINCIPAL}>
-            {enCours === "ajout" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Plus size={15} aria-hidden />}
+            {enCours === "ajout" ? <IconeChargement size={15} /> : <Plus size={15} aria-hidden />}
             Ajouter la source
           </button>
           {message?.id === "ajout" && <Alerte texte={message.texte} />}
@@ -196,7 +197,7 @@ export default function GestionSources({ sources }: { sources: Source[] }) {
                       </Champ>
                       <div className="flex flex-wrap gap-2 sm:col-span-2">
                         <button type="button" onClick={enregistrerEdition} disabled={occupe} className={BOUTON_PRINCIPAL}>
-                          {occupe ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Check size={15} aria-hidden />}
+                          {occupe ? <IconeChargement size={15} /> : <Check size={15} aria-hidden />}
                           Enregistrer
                         </button>
                         <button type="button" onClick={() => setEdition(null)} disabled={occupe} className={BOUTON_SECONDAIRE}>
@@ -232,7 +233,7 @@ export default function GestionSources({ sources }: { sources: Source[] }) {
                           aria-label={`${s.actif ? "Désactiver" : "Activer"} : ${s.nom}`}
                           className={s.actif ? BOUTON_SECONDAIRE : BOUTON_PRINCIPAL}
                         >
-                          {occupe ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Power size={15} aria-hidden />}
+                          {occupe ? <IconeChargement size={15} /> : <Power size={15} aria-hidden />}
                           {s.actif ? "Désactiver" : "Activer"}
                         </button>
                         <button

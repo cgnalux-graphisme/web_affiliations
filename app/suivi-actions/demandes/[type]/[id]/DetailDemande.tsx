@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, CheckCircle, Download, FileText, Link2, Loader2, Lock, Mail, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle, Download, FileText, Link2, Lock, Mail, RefreshCw } from "lucide-react";
+import { EcranChargement, IconeChargement } from "../../../../Chargement";
 import { DEMANDES, dateHeureBruxelles, nomFichierPdf, type TypeDemande } from "../../../../../lib/demandes";
 import { detailDemande } from "../../../../../lib/demandes-affichage";
 import type { DemandeLiee } from "../../../../../lib/demandes-liees";
@@ -144,9 +145,7 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
         </p>
       )}
       {!ligne && !erreur && (
-        <p role="status" className="mt-6 flex items-center gap-2 font-semibold">
-          <Loader2 size={18} className="animate-spin text-militant-rouge" aria-hidden /> Chargement de la demande…
-        </p>
+        <EcranChargement compact texte="Chargement de la demande…" />
       )}
 
       {ligne && detail && (
@@ -192,7 +191,7 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <button type="button" onClick={regenerer} disabled={generation} className={BOUTON_PRINCIPAL}>
-                {generation ? <Loader2 size={18} className="animate-spin" aria-hidden /> : <RefreshCw size={18} aria-hidden />}
+                {generation ? <IconeChargement size={18} /> : <RefreshCw size={18} aria-hidden />}
                 {generation ? "Génération…" : "Régénérer le PDF"}
               </button>
               <button type="button" onClick={telecharger} disabled={generation} className={BOUTON_SECONDAIRE}>
@@ -228,7 +227,7 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
               </p>
             ) : !envois ? (
               <p role="status" className="mt-2 flex items-center gap-2 text-sm">
-                <Loader2 size={15} className="animate-spin text-militant-rouge" aria-hidden /> Chargement…
+                <IconeChargement size={18} className="text-militant-rouge" /> Chargement…
               </p>
             ) : envois.tableAbsente ? (
               <p className="mt-2 text-sm">

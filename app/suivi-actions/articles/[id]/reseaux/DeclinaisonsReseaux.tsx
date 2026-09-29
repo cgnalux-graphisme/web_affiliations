@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, Copy, Loader2, RefreshCw, Save, Sparkles } from "lucide-react";
+import { AlertTriangle, Check, Copy, RefreshCw, Save, Sparkles } from "lucide-react";
+import { EcranChargement, IconeChargement } from "../../../../Chargement";
 import { getSupabaseAuth } from "../../../../../lib/supabase";
 import {
   INFOS_RESEAUX,
@@ -170,7 +171,7 @@ export default function DeclinaisonsReseaux({
               disabled={enCours !== null}
               className={BOUTON_PRINCIPAL}
             >
-              {enCours === "tous" ? <Loader2 size={18} className="animate-spin" aria-hidden /> : <Sparkles size={18} aria-hidden />}
+              {enCours === "tous" ? <IconeChargement size={18} /> : <Sparkles size={18} aria-hidden />}
               {existe ? "Régénérer les 4 versions" : "Décliner pour les réseaux"}
             </button>
           )}
@@ -180,10 +181,10 @@ export default function DeclinaisonsReseaux({
 
       <div aria-live="polite">
         {enCours === "tous" && (
-          <p role="status" className="mt-4 flex items-center gap-2 font-bold">
-            <Loader2 size={18} className="animate-spin text-militant-rouge" aria-hidden />
-            L&apos;IA rédige les 4 versions… comptez 20 secondes à 1 minute.
-          </p>
+          <div className="mt-4 rounded-xl border border-militant-ardoise">
+            <EcranChargement compact texte="L'IA rédige les 4 versions…" />
+            <p className="-mt-6 pb-6 text-center text-sm">Comptez 20 secondes à 1 minute.</p>
+          </div>
         )}
       </div>
       {erreur && (
@@ -329,7 +330,7 @@ function CarteReseau({
       <div className="flex flex-1 flex-col gap-3 px-5 py-4">
         {regeneration && (
           <p role="status" className="flex items-center gap-2 text-sm font-bold">
-            <Loader2 size={16} className="animate-spin text-militant-rouge" aria-hidden /> Génération en cours…
+            <IconeChargement size={18} className="text-militant-rouge" /> Génération en cours…
           </p>
         )}
 
@@ -434,7 +435,7 @@ function CarteReseau({
               disabled={!aModifier || enregistrement || regeneration}
               className={BOUTON_SECONDAIRE}
             >
-              {enregistrement ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Save size={15} aria-hidden />}
+              {enregistrement ? <IconeChargement size={15} /> : <Save size={15} aria-hidden />}
               Enregistrer
             </button>
             {peutGenerer && (
@@ -444,7 +445,7 @@ function CarteReseau({
                 disabled={occupe}
                 className={BOUTON_SECONDAIRE}
               >
-                <RefreshCw size={15} className={regeneration ? "animate-spin" : ""} aria-hidden />
+                {regeneration ? <IconeChargement size={15} /> : <RefreshCw size={15} aria-hidden />}
                 {vide ? "Générer" : "Régénérer"}
               </button>
             )}

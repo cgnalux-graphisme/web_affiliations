@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { CheckCircle, FileDown, Mail, Send } from "lucide-react";
+import { IconeChargement } from "./app/Chargement";
 import type { RefDemande } from "./lib/envois";
 import { postJson } from "./lib/post-json";
 import {
@@ -196,8 +197,8 @@ export default function LivraisonFormulaires({
                   disabled={!serviceAutorise || envoiDejaFait || envoiEnCours !== null}
                   className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed ${boutonPrincipal}`}
                 >
-                  <Send size={16} />
-                  {envoiEnCours === "chomage" ? "Envoi…" : "Envoyer au service chômage"}
+                  {envoiEnCours === "chomage" ? <IconeChargement size={16} /> : <Send size={16} />}
+                  {envoiEnCours === "chomage" ? "Envoi en cours…" : "Envoyer au service chômage"}
                 </button>
               </>
             )}
@@ -239,8 +240,8 @@ export default function LivraisonFormulaires({
                   disabled={envoiDejaFait || envoiEnCours !== null}
                   className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed ${boutonPrincipal}`}
                 >
-                  <Mail size={16} />
-                  {envoiEnCours === "email" ? "Envoi…" : "Envoyer à cette adresse"}
+                  {envoiEnCours === "email" ? <IconeChargement size={16} /> : <Mail size={16} />}
+                  {envoiEnCours === "email" ? "Envoi en cours…" : "Envoyer à cette adresse"}
                 </button>
               </form>
             )}

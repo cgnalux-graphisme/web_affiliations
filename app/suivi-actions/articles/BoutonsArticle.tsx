@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, EyeOff, Globe, Loader2, Trash2 } from "lucide-react";
+import { AlertTriangle, EyeOff, Globe, Trash2 } from "lucide-react";
+import { IconeChargement } from "../../Chargement";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import { BUCKET_BLOG, RUBRIQUES, STATUT_BROUILLON, STATUT_PUBLIE, cheminImageDepuisUrl, type Categorie } from "../../../lib/articles";
 import { rafraichirBlog } from "./revalidation";
@@ -64,7 +65,7 @@ export function BoutonPublication({ article }: { article: ArticleCible }) {
             : `${BOUTON} border-militant-bordeaux bg-militant-bordeaux text-white hover:border-militant-charbon hover:bg-militant-charbon`
         }
       >
-        {enCours ? <Loader2 size={14} className="animate-spin" aria-hidden /> : publie ? <EyeOff size={14} aria-hidden /> : <Globe size={14} aria-hidden />}
+        {enCours ? <IconeChargement size={14} /> : publie ? <EyeOff size={14} aria-hidden /> : <Globe size={14} aria-hidden />}
         {publie ? "Dépublier" : "Publier"}
       </button>
       {erreur && (
@@ -130,7 +131,7 @@ export function SuppressionArticle({ article, compact }: { article: ArticleCible
           autoFocus
           className={`${BOUTON} border-militant-bordeaux bg-militant-bordeaux text-white hover:border-militant-charbon hover:bg-militant-charbon`}
         >
-          {enCours ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Trash2 size={14} aria-hidden />}
+          {enCours ? <IconeChargement size={14} /> : <Trash2 size={14} aria-hidden />}
           {enCours ? "Suppression…" : "Oui, supprimer"}
         </button>
         <button

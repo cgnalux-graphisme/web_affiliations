@@ -19,10 +19,10 @@ import {
   CheckCircle,
   Globe,
   List,
-  Loader2,
   Plus,
   Train,
 } from "lucide-react";
+import { IconeChargement } from "./app/Chargement";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Secteur = { id: string; nom: string };
@@ -617,7 +617,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
                       disabled={ajoutSecteurLoading}
                       className="inline-flex items-center justify-center gap-1.5 shrink-0 bg-militant-bordeaux hover:bg-militant-charbon disabled:opacity-50 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors"
                     >
-                      {ajoutSecteurLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                      {ajoutSecteurLoading ? <IconeChargement size={16} /> : <Plus size={16} />}
                       Ajouter
                     </button>
                   </div>
@@ -801,7 +801,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
               disabled={loading}
               className="w-full inline-flex items-center justify-center gap-2 bg-militant-bordeaux hover:bg-militant-charbon disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
             >
-              {loading && <Loader2 size={16} className="animate-spin" />}
+              {loading && <IconeChargement size={16} />}
               {loading ? progression || "Enregistrement…" : action ? "Enregistrer les modifications" : "Enregistrer l'action"}
             </button>
             <p className="text-xs text-militant-charbon text-center">* Champs obligatoires</p>

@@ -41,6 +41,44 @@
   .une-en-avant { animation-timing-function: steps(1, end); }
 }
 
+/* ── Indicateur de chargement (app/Chargement.tsx) ──
+   Cercle « loop out » : l'arc s'allonge, fait le tour puis se rétracte, pendant que le cercle tourne. */
+@keyframes chargement-rotation {
+  to { transform: rotate(360deg); }
+}
+@keyframes chargement-arc {
+  0% { stroke-dasharray: 1 126; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 90 126; stroke-dashoffset: -30; }
+  100% { stroke-dasharray: 90 126; stroke-dashoffset: -125; }
+}
+.chargement-tour {
+  transform-origin: 50% 50%;
+  animation: chargement-rotation 1.6s linear infinite;
+}
+.chargement-tour-inverse {
+  transform-origin: 50% 50%;
+  animation: chargement-rotation 2.4s linear infinite reverse;
+}
+.chargement-arc {
+  animation: chargement-arc 1.4s ease-in-out infinite;
+}
+.chargement-arc-decale {
+  animation: chargement-arc 1.4s ease-in-out -0.7s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Mouvement coupé : un arc fixe aux trois quarts, le texte dit qu'on charge. */
+  .chargement-tour,
+  .chargement-tour-inverse,
+  .chargement-arc,
+  .chargement-arc-decale {
+    animation: none;
+  }
+  .chargement-arc,
+  .chargement-arc-decale {
+    stroke-dasharray: 94 126;
+  }
+}
+
 /* ── Blog : contenu d'un article (page publique et éditeur de l'espace admin) ── */
 .article-contenu {
   font-size: 1.125rem;

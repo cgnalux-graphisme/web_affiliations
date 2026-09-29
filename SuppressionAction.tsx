@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2 } from "lucide-react";
+import { IconeChargement } from "./app/Chargement";
 import { getSupabaseAuth } from "./lib/supabase";
 import { BUCKET_PHOTOS, cheminDepuisUrl } from "./lib/photos";
 
@@ -105,7 +106,7 @@ export default function SuppressionAction({
               autoFocus
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
             >
-              {enCours ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} aria-hidden />}
+              {enCours ? <IconeChargement size={16} /> : <Trash2 size={16} aria-hidden />}
               {enCours ? "Suppression…" : "Oui, supprimer définitivement"}
             </button>
             <button

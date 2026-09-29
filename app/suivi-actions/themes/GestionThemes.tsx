@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Loader2, Plus, Tag, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, Tag, Trash2 } from "lucide-react";
+import { IconeChargement } from "../../Chargement";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import { decouperMotsCles, normaliser } from "../../../lib/themes";
 
@@ -116,7 +117,7 @@ export default function GestionThemes({ themes }: { themes: Theme[] }) {
             className="w-full rounded-xl border border-militant-ardoise bg-white px-3 py-2.5 text-sm focus:border-militant-charbon focus:outline-none focus:ring-2 focus:ring-militant-rouge"
           />
           <button type="submit" disabled={enCours === "ajout"} className={`${BOUTON_PRINCIPAL} shrink-0`}>
-            {enCours === "ajout" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Plus size={15} aria-hidden />}
+            {enCours === "ajout" ? <IconeChargement size={15} /> : <Plus size={15} aria-hidden />}
             Ajouter
           </button>
         </div>
@@ -163,7 +164,7 @@ export default function GestionThemes({ themes }: { themes: Theme[] }) {
                             : "border-militant-ardoise hover:border-militant-charbon"
                         }`}
                       >
-                        {occupe && <Loader2 size={15} className="animate-spin" aria-hidden />}
+                        {occupe && <IconeChargement size={15} />}
                         {t.actif ? "Actif" : "Désactivé"}
                       </button>
                       {aSupprimer === t.id ? (

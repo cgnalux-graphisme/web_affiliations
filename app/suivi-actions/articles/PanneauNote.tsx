@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, type RefObject } from "react";
-import { AlertTriangle, CheckCircle, FileUp, Loader2, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileUp, Sparkles } from "lucide-react";
+import { EcranChargement, IconeChargement } from "../../Chargement";
 import type { Vulgarisation } from "../../../lib/vulgarisation-ia";
 
 export const RAPPEL_NOTE = "Vulgarisation IA — vérifier la fidélité à la note FGTB avant publication.";
@@ -163,7 +164,7 @@ export default function PanneauNote({
           disabled={!fichier || enCours}
           className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2.5 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50"
         >
-          {enCours ? <Loader2 size={18} className="animate-spin" aria-hidden /> : <Sparkles size={18} aria-hidden />}
+          {enCours ? <IconeChargement size={18} /> : <Sparkles size={18} aria-hidden />}
           {enCours ? "Vulgarisation en cours…" : "Vulgariser la note"}
         </button>
         <p className="text-sm">Claude Sonnet 5 · quelques centimes par note</p>
@@ -171,10 +172,10 @@ export default function PanneauNote({
 
       <div aria-live="polite">
         {etat.etape === "en_cours" && (
-          <p role="status" className="mt-4 flex items-start gap-2 font-semibold">
-            <Loader2 size={18} className="mt-0.5 shrink-0 animate-spin text-militant-rouge" aria-hidden />
-            Lecture de la note puis vulgarisation par l&apos;IA… comptez 30 secondes à 2 minutes selon la longueur.
-          </p>
+          <div className="mt-4 rounded-xl border border-militant-ardoise">
+            <EcranChargement compact texte="Lecture de la note puis vulgarisation par l'IA…" />
+            <p className="-mt-6 pb-6 text-center text-sm">Comptez 30 secondes à 2 minutes selon la longueur de la note.</p>
+          </div>
         )}
         {etat.etape === "erreur" && (
           <p role="alert" className="mt-4 flex items-start gap-2 border-l-[6px] border-militant-bordeaux py-1 pl-3 font-semibold">
