@@ -111,12 +111,13 @@ function CarteBureau({
       <div className="flex flex-1 flex-col gap-6 p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
+            {/* Nom de ville en premier : aligné d'une carte à l'autre, la pastille « Siège social » vient dessous. */}
+            <h3 className="font-condensed text-4xl font-extrabold leading-none">{b.ville}</h3>
             {b.siege && (
-              <p className="mb-2 inline-block rounded-full bg-militant-bordeaux px-3 py-0.5 text-sm font-bold text-white">
+              <p className="mt-2 inline-block rounded-full bg-militant-bordeaux px-3 py-0.5 text-sm font-bold text-white">
                 Siège social
               </p>
             )}
-            <h3 className="font-condensed text-4xl font-extrabold leading-none">{b.ville}</h3>
           </div>
           {maintenant && (
             <div className="text-right">
