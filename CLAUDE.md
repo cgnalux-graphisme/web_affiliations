@@ -715,9 +715,10 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 - **Limiter les fonds noirs** : le noir est politiquement associé à l'extrême
   droite, que la centrale combat. Le charbon sert au texte, aux filets et aux petits
   détails (survol de bouton, puce), **jamais aux grandes surfaces** (barres,
-  bandeaux, pieds de page, grands blocs, barres latérales). Surfaces fortes :
+  bandeaux, grands blocs, barres latérales). Surfaces fortes :
   **bordeaux** avec texte blanc ; sinon fond blanc et filets épais. Emplacements
-  photo vides : ardoise.
+  photo vides : ardoise. **Seule exception : le pied de page**, en charbon
+  (demande explicite de Fred du 29/09/2026, pour ancrer le bas de page).
 - **Lisibilité** : texte courant en charbon sur fond clair ; ardoise réservé aux
   filets, bordures et textes d'exemple (placeholder) — trop pâle pour du petit
   texte sur blanc ; rouge `#E32119` uniquement en grand texte (dates, chiffres,
@@ -730,13 +731,21 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 - **Composants** : tuiles blanches arrondies (16 px) à fin contour ardoise ; tuile
   mise en avant en bordeaux ; bouton principal bordeaux (survol charbon), bouton
   secondaire contour charbon ; badges en contour ; lien actif souligné de rouge ;
-  filet rouge de 4 px sous la barre de navigation et au-dessus du pied de page.
-  **Pied de page** (`app/PiedDePage.tsx`, 29/09/2026) : fond blanc, 4 colonnes
-  (identité + bureaux de Libramont et Namur, e-mail, WhatsApp · Le site ·
-  Démarches · Suivez-nous : Facebook, Instagram, YouTube, TikTok en icônes
-  monochromes, jamais aux couleurs des marques) + barre du bas (© 2026, Mentions
-  légales · Vie privée · Cookies · Espace admin). Mobile : identité puis « Le
-  site » et « Démarches » côte à côte, puis les réseaux.
+  filet rouge de 4 px sous la barre de navigation, 3 px au-dessus du pied de page.
+  **Pied de page** (`app/PiedDePage.tsx`, refait le 29/09/2026) : **fond charbon**,
+  texte blanc, secondaires en ardoise (4,8:1), **logo blanc**. 4 colonnes alignées
+  en haut (identité : bureaux de Libramont et Namur côte à côte, e-mail, WhatsApp ·
+  Le site · Démarches · bouton rouge « S'affilier » puis Suivez-nous : Facebook,
+  Instagram, YouTube, TikTok en icônes rondes monochromes, jamais aux couleurs des
+  marques, remplies de rouge au survol) + barre du bas en ardoise (© 2026 · Mentions
+  légales · Vie privée · Cookies · Espace admin). **Liens : le texte reste blanc au
+  survol** (rouge sur charbon = 3,4:1, trop faible pour du petit texte) ; le rouge
+  vient par un soulignement qui se trace (`.pied-lien-texte`). Colonnes en cascade
+  à l'entrée à l'écran (`RevelationPied.tsx`, une fois, rien en mouvement réduit ni
+  si le pied de page est déjà visible). Mobile : identité, puis « Le site » et
+  « Démarches » côte à côte, puis bouton et réseaux. Page campagne mobile : marge
+  basse sous la barre fixe « Je m'inscris » (`.barre-inscription-mobile`) ; en
+  développement seulement, marge basse pour l'indicateur flottant de Next.js.
   Icônes : `lucide-react` (jamais d'emoji comme icône).
 - **Logos** (`public/`) : `logo-cg-rouge.png` sur fond blanc (usage principal),
   `logo-cg-blanc.png` sur fond bordeaux (connexion, couverture du rapport PDF),

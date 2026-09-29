@@ -197,3 +197,40 @@
 @media (prefers-reduced-motion: reduce) {
   .campagne-entree { animation: none; }
 }
+/* ── Pied de page (app/PiedDePage.tsx) ──
+   Seule animation : les colonnes apparaissent en cascade à l'entrée du pied de page à l'écran. */
+[data-revelation="attente"] .pied-col {
+  opacity: 0;
+  transform: translateY(16px);
+}
+[data-revelation="visible"] .pied-col {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+[data-revelation="visible"] .pied-col:nth-child(2) { transition-delay: 0.08s; }
+[data-revelation="visible"] .pied-col:nth-child(3) { transition-delay: 0.16s; }
+[data-revelation="visible"] .pied-col:nth-child(4) { transition-delay: 0.24s; }
+/* Liens : le texte reste blanc, un soulignement rouge se trace de gauche à droite au survol. */
+.pied-lien-texte {
+  background-image: linear-gradient(#e32119, #e32119);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 2px;
+  padding-bottom: 2px;
+  transition: background-size 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.pied-lien:hover .pied-lien-texte,
+.pied-lien:focus-visible .pied-lien-texte {
+  background-size: 100% 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-revelation] .pied-col { opacity: 1; transform: none; transition: none; }
+  .pied-lien-texte { transition: none; }
+}
+/* Page campagne sur mobile : la barre « Je m'inscris » fixée en bas ne doit pas masquer la fin du pied de page. */
+@media (max-width: 1023px) {
+  body:has(.barre-inscription-mobile) .pied-de-page { padding-bottom: 88px; }
+}

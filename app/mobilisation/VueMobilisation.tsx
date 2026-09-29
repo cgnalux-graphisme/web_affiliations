@@ -214,7 +214,7 @@ export default function VueMobilisation({ m, apercu = false }: { m: Mobilisation
 
       {/* ── Mobile : inscription toujours à portée de pouce ── */}
       {lien && !apercu && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t-4 border-militant-rouge bg-white px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 lg:hidden">
+        <div className="barre-inscription-mobile fixed inset-x-0 bottom-0 z-30 border-t-4 border-militant-rouge bg-white px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 lg:hidden">
           <BoutonInscription lien={lien} className="w-full" />
         </div>
       )}
