@@ -55,6 +55,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/on-vous-explique/<slug>` | public | Une explication : même mise en page, pastille « On vous explique » |
 | `/demarches` | public | Toutes les démarches en ligne (tuiles, l'affiliation en tête) |
 | `/contact` | public | Nos 4 bureaux : adresses, téléphones, horaires (été en juillet-août), statut « ouvert maintenant » |
+| `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **À faire valider** par le service juridique / DPO de la FGTB avant mise en ligne. Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
 | `/login` | public | Connexion (identifiants CG Link) |
 | `/suivi-actions` | SUPER_ADMIN | **Tableau de bord** : une tuile par domaine (Scan News, Démarches affiliés, Actions syndicales, Publications) avec les chiffres clés ; chaque tuile ouvre sa section |
@@ -722,6 +723,12 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   mise en avant en bordeaux ; bouton principal bordeaux (survol charbon), bouton
   secondaire contour charbon ; badges en contour ; lien actif souligné de rouge ;
   filet rouge de 4 px sous la barre de navigation et au-dessus du pied de page.
+  **Pied de page** (`app/PiedDePage.tsx`, 29/09/2026) : fond blanc, 4 colonnes
+  (identité + bureaux de Libramont et Namur, e-mail, WhatsApp · Le site ·
+  Démarches · Suivez-nous : Facebook, Instagram, YouTube, TikTok en icônes
+  monochromes, jamais aux couleurs des marques) + barre du bas (© 2026, Mentions
+  légales · Vie privée · Cookies · Espace admin). Mobile : identité puis « Le
+  site » et « Démarches » côte à côte, puis les réseaux.
   Icônes : `lucide-react` (jamais d'emoji comme icône).
 - **Logos** (`public/`) : `logo-cg-rouge.png` sur fond blanc (usage principal),
   `logo-cg-blanc.png` sur fond bordeaux (connexion, couverture du rapport PDF),
