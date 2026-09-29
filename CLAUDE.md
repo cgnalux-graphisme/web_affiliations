@@ -157,12 +157,15 @@ Réseaux sociaux (créé côté Supabase avant le 28/09/2026) :
 Colonnes relevées par l'OpenAPI de PostgREST ; aucune contrainte d'unicité visible sur (`article_id`, `reseau`) : le code met à jour la ligne la plus récente, sinon en insère une. YouTube : titre sur la 1re ligne, ligne vide, puis description (`composerYoutube()` / `lireYoutube()`, `lib/reseaux.ts`). Si la base contraint `reseau` à d'autres valeurs, adapter `RESEAUX`.
 
 ### Colonnes de `site_articles`
-`titre`, `slug` (adresse `/blog/<slug>`), `chapo` (accroche), `points_cles`
+`titre`, `slug` (adresse `/blog/<slug>` ou `/on-vous-explique/<slug>` selon
+`categorie`), `chapo` (accroche), `points_cles`
 (encart « En bref », **texte, une ligne par point**), `contenu` (**HTML** produit
 par l'éditeur Tiptap), `image_couverture` (URL publique du bucket), `sources`
 (**texte, un lien par ligne**, libellé facultatif avant le lien :
-« Le Soir – https://… »), `statut` (`brouillon` / `publie`), `date_publication`
-(timestamptz), `created_at`, `updated_at`. Types relevés par sondage de l'API
+« Le Soir – https://… » ; pour une explication, une ligne peut être une simple
+référence sans lien), `statut` (`brouillon` / `publie`), `date_publication`
+(timestamptz), `created_at`, `updated_at`, `categorie` (`article` / `explication`),
+`document_source` (note FGTB archivée). Types relevés par sondage de l'API
 (pas d'accès au schéma) : si la base contraint `statut` à d'autres valeurs,
 adapter `STATUT_*` dans `lib/articles.ts`.
 
@@ -306,7 +309,7 @@ exception : la migration des envois, voir plus haut, demandée par Fred).
 - [x] Base de données prête (tables `site_*` dans CG Link)
 - [ ] Supprimer le projet Supabase doublon `accg-nalux-site`
 - [~] Partie publique du site : accueil, `/demarches`, `/actions`, `/blog`,
-      `/contact` faits ; **manquent** présentation, mentions légales, vie privée
+      `/on-vous-explique`, `/contact` faits ; **manquent** présentation, mentions légales, vie privée
 - [ ] « Trouver votre contact » → voir Phase 4, lié à l'assistant-aiguilleur
 - [x] Refonte graphique « direction D » (éditorial + modulaire, sans fond noir) —
       voir Conventions > Design
@@ -572,7 +575,7 @@ reformuler, citer et lier la source, jamais recopier.
 
 ---
 
-## État au 28/09/2026
+## État au 29/09/2026
 - Tout le travail est sur la branche **`suivi-actions`** : rien sur `main`, rien
   déployé. À relire puis fusionner quand Fred valide.
 - Migration des envois exécutée le 28/09/2026. À tester par Fred : un envoi
@@ -585,12 +588,16 @@ reformuler, citer et lier la source, jamais recopier.
 - PDF **Affiliation** et **Mandat SEPA** passés à la charte du site (proposition
   « Registre » du 25/09/2026). Les PDF **C1, C3.2 et Calcul de préavis ne doivent
   pas être modifiés**.
-- **En place sur `suivi-actions` le 28/09/2026, commité et poussé sur GitHub**
-  (déploiement de prévisualisation Vercel) : blog, veille RSS (sources,
-  ramassage quotidien, thématiques), **rédaction assistée par IA** (tunnel en 5
-  étapes, garde-fou droit d'auteur) et **déclinaison réseaux** (Facebook,
-  Instagram, TikTok, YouTube, sans publication automatique). Rien sur `main`,
-  rien en production.
+- **En place sur `suivi-actions`, commité et poussé sur GitHub le 29/09/2026**
+  (déploiement de prévisualisation Vercel) : blog, Scan News (ex-veille RSS :
+  sources, ramassage quotidien, thématiques), **rédaction assistée par IA**
+  (tunnel en 5 étapes, garde-fou droit d'auteur), **déclinaison réseaux**
+  (Facebook, Instagram, TikTok, YouTube, sans publication automatique),
+  **back-office des demandes** (PDF régénérés, demandes liées, historique des
+  e-mails), **paramètres des envois**, **refonte de l'espace admin** (tableau de
+  bord, menu par sections), rubrique **« On vous explique »** (vulgarisation des
+  notes FGTB, suggestion de photo) et **indicateur de chargement** unique. Rien
+  sur `main`, rien en production.
 - `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` et `ANTHROPIC_API_KEY` sont
   **configurées** dans `.env.local` (vérifié le 28/09/2026 ; la clé Anthropic
   répond, testée sur la déclinaison réseaux) **et ajoutées dans Vercel par Fred le
