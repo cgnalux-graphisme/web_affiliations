@@ -46,7 +46,7 @@ export default function ConsentementCookies() {
       role="dialog"
       aria-modal="false"
       aria-label="Cookies"
-      className="consentement-entree fixed inset-x-3 bottom-3 z-[60] rounded-2xl border-2 border-militant-charbon bg-white p-4 font-barlow text-militant-charbon shadow-[0_24px_60px_-20px_rgba(34,34,34,0.45)] sm:inset-x-auto sm:bottom-5 sm:left-5 sm:w-[380px]"
+      className={`${reglages ? "consentement-rappel" : "consentement-entree"} fixed inset-x-3 bottom-3 z-[60] rounded-2xl border-2 border-militant-charbon bg-white p-4 font-barlow text-militant-charbon shadow-[0_24px_60px_-20px_rgba(34,34,34,0.45)] sm:inset-x-auto sm:bottom-5 sm:left-5 sm:w-[380px]`}
     >
       <div className="flex items-center justify-between gap-3">
         <p

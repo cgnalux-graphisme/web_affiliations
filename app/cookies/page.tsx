@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import BoutonReglagesCookies from "../BoutonReglagesCookies";
+import ChoixActuel from "./ChoixActuel";
 import PageLegale, { Courriel, Encadre, LienExterne, Liste, Section } from "../PageLegale";
 
 export const metadata: Metadata = {
@@ -33,9 +33,7 @@ export default function CookiesPage() {
         <p>
           Vous pouvez à tout moment accepter ou refuser les cartes Google Maps, ou retirer votre accord.
         </p>
-        <BoutonReglagesCookies className="inline-flex min-h-[48px] items-center rounded-xl bg-militant-bordeaux px-6 font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2">
-          Gérer mes cookies
-        </BoutonReglagesCookies>
+        <ChoixActuel />
       </Section>
 
       <Section titre="Qui est responsable ?">
