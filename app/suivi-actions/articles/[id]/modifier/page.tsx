@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, Share2 } from "lucide-react";
-import { STATUT_PUBLIE } from "../../../../../lib/articles";
+import { BUCKET_NOTES, STATUT_PUBLIE, categorieDe } from "../../../../../lib/articles";
+import { getSupabaseService } from "../../../../../lib/supabase-service";
 import { getSuperAdmin, getSupabaseServer } from "../../../../../lib/supabase-server";
 import { SuppressionArticle } from "../../BoutonsArticle";
 import FormulaireArticle, { type ArticleEnregistre } from "../../FormulaireArticle";
@@ -29,12 +30,19 @@ export default async function ModifierArticlePage({
   const supabase = await getSupabaseServer();
   const { data, error } = await supabase
     .from("site_articles")
-    .select("id, titre, slug, chapo, points_cles, contenu, image_couverture, sources, statut, date_publication")
+    .select("id, titre, slug, chapo, points_cles, contenu, image_couverture, sources, statut, date_publication, categorie, document_source")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`Chargement de l'article impossible : ${error.message}`);
   if (!data) notFound();
   const article = data as ArticleEnregistre;
+
+  // Note FGTB d'origine (On vous explique) : bucket privé, lien temporaire créé côté serveur (1 h).
+  let lienNote: string | null = null;
+  if (article.document_source) {
+    const { data: signe } = (await getSupabaseService()?.storage.from(BUCKET_NOTES).createSignedUrl(article.document_source, 3600, { download: true })) ?? {};
+    lienNote = signe?.signedUrl ?? null;
+  }
 
   return (
     <>
@@ -58,7 +66,7 @@ export default async function ModifierArticlePage({
           </Link>
         </div>
       )}
-      <FormulaireArticle key={article.id} article={article} />
+      <FormulaireArticle key={article.id} article={article} lienNote={lienNote} />
       <div className="mt-12">
         <SuppressionArticle
           article={{
@@ -69,6 +77,7 @@ export default async function ModifierArticlePage({
             image_couverture: article.image_couverture,
             date_publication: article.date_publication,
             aContenu: Boolean(article.contenu?.trim()),
+            categorie: categorieDe(article.categorie),
           }}
         />
       </div>

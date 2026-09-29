@@ -30,6 +30,10 @@ import { preparerPhoto } from "../../../lib/photos";
 import { useOnceSubmit } from "../../../lib/use-once-submit";
 import {
   BUCKET_BLOG,
+  CATEGORIE_EXPLICATION,
+  RUBRIQUES,
+  categorieDe,
+  type Categorie,
   STATUT_BROUILLON,
   STATUT_PUBLIE,
   aujourdhui,
@@ -47,6 +51,7 @@ import type { Brouillon } from "../../../lib/redaction-ia";
 import { CONSIGNES_MAX, EXTRAIT_MAX } from "../../../lib/redaction-limites";
 import type { Lisibilite } from "../../api/redaction/lisibilite/route";
 import EditeurTexte from "./EditeurTexte";
+import PanneauNote, { RAPPEL_NOTE, type ResultatNote } from "./PanneauNote";
 import { rafraichirBlog } from "./revalidation";
 
 /** Ligne de site_articles, pour le mode modification. */
@@ -61,6 +66,10 @@ export type ArticleEnregistre = {
   sources: string | null;
   statut: string;
   date_publication: string | null;
+  /** « article » (blog) ou « explication » (On vous explique) ; absent = article. */
+  categorie?: string | null;
+  /** Chemin de la note FGTB d'origine dans le bucket privé notes-sources (On vous explique). */
+  document_source?: string | null;
 };
 
 type Form = {
@@ -121,12 +130,18 @@ type EtatIA =
 
 export default function FormulaireArticle({
   article,
+  categorie: categorieNouvelle,
+  lienNote,
   preRemplissage,
   veilleId,
   veilleLien,
   mettreEnAvantIA,
 }: {
   article?: ArticleEnregistre;
+  /** Rubrique d'un nouvel article (sinon celle de l'article modifié). */
+  categorie?: Categorie;
+  /** Lien temporaire de téléchargement de la note d'origine (On vous explique). */
+  lienNote?: string | null;
   preRemplissage?: PreRemplissage;
   /** Item de veille à l'origine de l'article : active « Proposer un brouillon avec l'IA ». */
   veilleId?: string;
@@ -136,6 +151,12 @@ export default function FormulaireArticle({
   mettreEnAvantIA?: boolean;
 }) {
   const router = useRouter();
+  const categorie: Categorie = article ? categorieDe(article.categorie) : (categorieNouvelle ?? "article");
+  const rubrique = RUBRIQUES[categorie];
+  const explication = categorie === CATEGORIE_EXPLICATION;
+  // Note FGTB importée (On vous explique) : chemin de l'archive et rappel de vérification.
+  const [documentSource, setDocumentSource] = useState<string | null>(article?.document_source ?? null);
+  const [vulgarise, setVulgarise] = useState(false);
   const [form, setForm] = useState<Form>(() => formDepuis(article, preRemplissage));
   // Un nouvel article suit son titre ; un article existant garde son adresse (liens déjà partagés).
   const [slugManuel, setSlugManuel] = useState(Boolean(article));
@@ -210,6 +231,25 @@ export default function FormulaireArticle({
     } catch {
       setIa({ etape: "erreur", message: "Le serveur ne répond pas. Vérifiez votre connexion et réessayez." });
     }
+  }
+
+  /** « On vous explique » : la vulgarisation de la note pré-remplit le formulaire (date et statut inchangés). */
+  function appliquerNote(r: ResultatNote) {
+    const v = r.vulgarisation;
+    setForm((f) => ({
+      ...f,
+      titre: v.titre,
+      slug: v.slug,
+      chapo: v.chapo,
+      pointsCles: v.points_cles,
+      contenu: v.contenu,
+      sources: v.sources,
+    }));
+    setDocumentSource(r.document_source);
+    setSlugManuel(false);
+    setErreurs({});
+    setVersionEditeur((n) => n + 1);
+    setVulgarise(true);
   }
 
   // Étape 1 : l'IA pourra-t-elle lire l'article ? (vérification gratuite du robots.txt du média)
@@ -321,7 +361,8 @@ export default function FormulaireArticle({
     if (!form.slug) e.slug = "Indiquez l'adresse de l'article";
     else if (!slugValide(form.slug)) e.slug = "Uniquement des lettres minuscules sans accent, des chiffres et des tirets";
     if (form.chapo.length > CHAPO_MAX) e.chapo = `${CHAPO_MAX} caractères maximum`;
-    const invalides = lignesSourcesInvalides(form.sources);
+    // « On vous explique » : une source peut être une simple référence (ex. « Note FGTB 26I107F »).
+    const invalides = explication ? [] : lignesSourcesInvalides(form.sources);
     if (invalides.length) {
       e.sources = `Ligne${invalides.length > 1 ? "s" : ""} ${invalides.join(", ")} : chaque ligne doit contenir un lien complet (https://…)`;
     }
@@ -359,6 +400,8 @@ export default function FormulaireArticle({
       sources: form.sources.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join("\n") || null,
       statut: form.statut,
       date_publication: horodatage(),
+      categorie,
+      document_source: documentSource,
     };
 
     try {
@@ -390,7 +433,7 @@ export default function FormulaireArticle({
       if (!imageOk) {
         router.push(`/suivi-actions/articles/${ligne.id}/modifier?image=erreur`);
       } else {
-        router.push(`/suivi-actions/articles?enregistre=${ligne.id}`);
+        router.push(`${rubrique.admin}?enregistre=${ligne.id}`);
       }
       router.refresh();
     } catch (err) {
@@ -455,14 +498,30 @@ export default function FormulaireArticle({
     <div className="mx-auto max-w-3xl space-y-5">
       <header className="border-b-[6px] border-militant-charbon pb-4">
         <Link
-          href="/suivi-actions/articles"
+          href={rubrique.admin}
           className="inline-flex items-center gap-1 text-sm font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
         >
-          <ArrowLeft size={15} aria-hidden /> Tous les articles
+          <ArrowLeft size={15} aria-hidden /> {rubrique.tous}
         </Link>
-        <h1 className="mt-3 font-condensed text-5xl font-extrabold uppercase leading-[0.9]">
-          {article ? "Modifier l'article" : "Nouvel article"}
+        {explication && <p className="mt-3 text-sm font-bold text-militant-bordeaux">{rubrique.nom}</p>}
+        <h1 className={`${explication ? "mt-1" : "mt-3"} font-condensed text-5xl font-extrabold uppercase leading-[0.9]`}>
+          {article ? `Modifier l'${rubrique.singulier}` : rubrique.nouveau}
         </h1>
+        {explication && documentSource && (
+          <p className="mt-2 text-sm">
+            Note FGTB d&apos;origine (usage interne) :{" "}
+            {lienNote ? (
+              <a
+                href={lienNote}
+                className="break-all font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux"
+              >
+                {documentSource.split("/").pop()?.replace(/^[0-9a-f-]{36}-/i, "")}
+              </a>
+            ) : (
+              <span className="break-all font-semibold">{documentSource.split("/").pop()?.replace(/^[0-9a-f-]{36}-/i, "")}</span>
+            )}
+          </p>
+        )}
         {article && (
           <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <p className="text-lg font-semibold">{article.titre}</p>
@@ -481,6 +540,13 @@ export default function FormulaireArticle({
           </p>
         )}
       </header>
+
+      {explication && !article && (
+        <PanneauNote
+          dejaRedige={Boolean(form.contenu.trim() || form.chapo.trim() || form.pointsCles.trim())}
+          onResultat={appliquerNote}
+        />
+      )}
 
       {veilleId && (
         <PanneauIA
@@ -529,7 +595,7 @@ export default function FormulaireArticle({
                   erreurs.slug ? "border-2 border-militant-bordeaux" : "border-militant-ardoise"
                 }`}
               >
-                <span className="shrink-0 pl-3 text-sm font-semibold">/blog/</span>
+                <span className="shrink-0 pl-3 text-sm font-semibold">{rubrique.chemin}/</span>
                 <input
                   id="slug"
                   className="w-full min-w-0 rounded-xl bg-white py-2.5 pr-3 text-sm focus:outline-none"
@@ -725,9 +791,13 @@ export default function FormulaireArticle({
         <div className="px-6 py-6">
           <Champ
             id="sources"
-            label="Liens vers les sources"
+            label={explication ? "Sources" : "Liens vers les sources"}
             erreur={erreurs.sources}
-            aide="Un lien par ligne. Vous pouvez le faire précéder du nom du média : « Le Soir – https://… »."
+            aide={
+              explication
+                ? "Une source par ligne : la référence de la note (« Note FGTB 26I107F ») et, si besoin, des liens."
+                : "Un lien par ligne. Vous pouvez le faire précéder du nom du média : « Le Soir – https://… »."
+            }
           >
             <textarea
               id="sources"
@@ -788,10 +858,10 @@ export default function FormulaireArticle({
         </div>
 
         <div className="space-y-3 px-6 pb-6">
-          {ia.etape === "propose" && (
+          {(ia.etape === "propose" || vulgarise) && (
             <p className="flex items-start gap-2 rounded-xl border-2 border-militant-bordeaux px-4 py-3 text-sm font-semibold">
               <Sparkles size={16} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
-              {RAPPEL_IA}
+              {vulgarise ? RAPPEL_NOTE : RAPPEL_IA}
             </p>
           )}
           {erreurEnvoi && (

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, EyeOff, Globe, Loader2, Trash2 } from "lucide-react";
 import { getSupabaseAuth } from "../../../lib/supabase";
-import { BUCKET_BLOG, STATUT_BROUILLON, STATUT_PUBLIE, cheminImageDepuisUrl } from "../../../lib/articles";
+import { BUCKET_BLOG, RUBRIQUES, STATUT_BROUILLON, STATUT_PUBLIE, cheminImageDepuisUrl, type Categorie } from "../../../lib/articles";
 import { rafraichirBlog } from "./revalidation";
 
 type ArticleCible = {
@@ -15,6 +15,8 @@ type ArticleCible = {
   image_couverture: string | null;
   date_publication: string | null;
   aContenu: boolean;
+  /** Rubrique (retour à la bonne liste après suppression) ; absent = article. */
+  categorie?: Categorie;
 };
 
 const BOUTON =
@@ -111,7 +113,7 @@ export function SuppressionArticle({ article, compact }: { article: ArticleCible
     }
 
     await rafraichirBlog([article.slug]);
-    router.push(`/suivi-actions/articles?supprime=${encodeURIComponent(article.titre)}`);
+    router.push(`${RUBRIQUES[article.categorie ?? "article"].admin}?supprime=${encodeURIComponent(article.titre)}`);
     router.refresh();
   }
 

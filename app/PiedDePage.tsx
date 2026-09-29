@@ -16,6 +16,9 @@ export default function PiedDePage() {
               <Link href="/blog" className="hover:text-militant-bordeaux">Actualités</Link>
             </li>
             <li>
+              <Link href="/on-vous-explique" className="hover:text-militant-bordeaux">On vous explique</Link>
+            </li>
+            <li>
               <Link href="/demarches" className="hover:text-militant-bordeaux">Démarches en ligne</Link>
             </li>
             <li>

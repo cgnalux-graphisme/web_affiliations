@@ -1,7 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Clock, ExternalLink } from "lucide-react";
-import { dateArticle, lignes, lireSources, tempsLecture } from "../../lib/articles";
+import {
+  CATEGORIE_EXPLICATION,
+  RUBRIQUES,
+  dateArticle,
+  lignes,
+  lireReferences,
+  lireSources,
+  tempsLecture,
+  type Categorie,
+  type Reference,
+} from "../../lib/articles";
 import { nettoyerContenu } from "../../lib/articles-html";
 
 export type ArticleAffiche = {
@@ -14,10 +24,13 @@ export type ArticleAffiche = {
   date_publication: string | null;
 };
 
-/** Page d'un article (site public, et aperçu dans l'espace admin). */
-export default function VueArticle({ article }: { article: ArticleAffiche }) {
+/** Page d'un article ou d'une explication (site public, et aperçu dans l'espace admin). */
+export default function VueArticle({ article, categorie = "article" }: { article: ArticleAffiche; categorie?: Categorie }) {
+  const rubrique = RUBRIQUES[categorie];
+  const retour = categorie === CATEGORIE_EXPLICATION ? "Toutes les explications" : "Toutes les actualités";
   const points = lignes(article.points_cles);
-  const sources = lireSources(article.sources);
+  // « On vous explique » : une source peut être une simple référence (« Note FGTB 26I107F »), sans lien.
+  const sources: Reference[] = categorie === CATEGORIE_EXPLICATION ? lireReferences(article.sources) : lireSources(article.sources);
   const contenu = nettoyerContenu(article.contenu);
   const minutes = tempsLecture(article.chapo, article.points_cles, article.contenu);
 
@@ -25,10 +38,10 @@ export default function VueArticle({ article }: { article: ArticleAffiche }) {
     <main className="bg-white font-barlow text-militant-charbon">
       <article className="mx-auto max-w-4xl px-4 pb-24 pt-8 sm:px-6 sm:pt-12 lg:px-8">
         <Link
-          href="/blog"
+          href={rubrique.chemin}
           className="inline-flex min-h-[44px] items-center gap-1.5 text-[15px] font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
         >
-          <ArrowLeft size={16} aria-hidden /> Toutes les actualités
+          <ArrowLeft size={16} aria-hidden /> {retour}
         </Link>
 
         <header className="mt-6">
@@ -84,7 +97,16 @@ export default function VueArticle({ article }: { article: ArticleAffiche }) {
             </h2>
             <ol className="mt-2 divide-y divide-militant-ardoise">
               {sources.map((s, i) => (
-                <li key={`${s.url}-${i}`}>
+                <li key={`${s.url ?? s.libelle}-${i}`}>
+                  {s.url === null ? (
+                    // Référence sans lien (ex. « Note FGTB 26I107F »).
+                    <p className="flex min-h-[44px] items-baseline gap-3 py-3">
+                      <span className="w-6 shrink-0 font-condensed text-xl font-extrabold tabular-nums text-militant-rouge">
+                        {i + 1}
+                      </span>
+                      <span className="min-w-0 break-words font-bold">{s.libelle}</span>
+                    </p>
+                  ) : (
                   <a
                     href={s.url}
                     target="_blank"
@@ -103,6 +125,7 @@ export default function VueArticle({ article }: { article: ArticleAffiche }) {
                       <span className="mt-0.5 block break-all text-sm">{s.url}</span>
                     </span>
                   </a>
+                  )}
                 </li>
               ))}
             </ol>
@@ -122,10 +145,10 @@ export default function VueArticle({ article }: { article: ArticleAffiche }) {
         </aside>
 
         <Link
-          href="/blog"
+          href={rubrique.chemin}
           className="mt-10 inline-flex min-h-[44px] items-center gap-1.5 text-[15px] font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
         >
-          <ArrowLeft size={16} aria-hidden /> Toutes les actualités
+          <ArrowLeft size={16} aria-hidden /> {retour}
         </Link>
       </article>
     </main>

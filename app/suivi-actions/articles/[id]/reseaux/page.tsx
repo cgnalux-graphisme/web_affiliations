@@ -3,7 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { AlertTriangle, ArrowLeft, ExternalLink } from "lucide-react";
-import { STATUT_PUBLIE } from "../../../../../lib/articles";
+import { STATUT_PUBLIE, categorieDe, cheminPublic } from "../../../../../lib/articles";
 import { estReseau, type Reseau, type VersionEnregistree } from "../../../../../lib/reseaux";
 import { origineSite } from "../../../../../lib/reseaux-ia";
 import { getSuperAdmin, getSupabaseServer } from "../../../../../lib/supabase-server";
@@ -25,12 +25,12 @@ export default async function ReseauxArticlePage({ params }: { params: Promise<{
   const supabase = await getSupabaseServer();
   const { data, error } = await supabase
     .from("site_articles")
-    .select("id, titre, slug, statut")
+    .select("id, titre, slug, statut, categorie")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`Chargement de l'article impossible : ${error.message}`);
   if (!data) notFound();
-  const article = data as { id: string; titre: string; slug: string; statut: string };
+  const article = data as { id: string; titre: string; slug: string; statut: string; categorie: string | null };
 
   // Plus récente d'abord : si plusieurs lignes existent pour un réseau, la première gagne.
   const { data: lignes, error: errVersions } = await supabase
@@ -46,7 +46,7 @@ export default async function ReseauxArticlePage({ params }: { params: Promise<{
   const h = await headers();
   const hote = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (hote.startsWith("localhost") ? "http" : "https");
-  const lien = `${origineSite(`${proto}://${hote}`)}/blog/${article.slug}`;
+  const lien = `${origineSite(`${proto}://${hote}`)}${cheminPublic(categorieDe(article.categorie), article.slug)}`;
   const publie = article.statut === STATUT_PUBLIE;
 
   return (

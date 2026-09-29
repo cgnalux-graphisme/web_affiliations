@@ -15,6 +15,7 @@ const liens = [
   { href: "/", label: "Accueil" },
   { href: "/actions", label: "Nos actions" },
   { href: "/blog", label: "Actualités" },
+  { href: "/on-vous-explique", label: "On vous explique" },
   // Les formulaires sont regroupés dans une seule rubrique.
   { href: "/demarches", label: "Démarches en ligne", aussi: [transferJourney.href, ...forms.map((f) => f.href)] },
   { href: "/contact", label: "Contact" },

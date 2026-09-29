@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clock } from "lucide-react";
-import { dateArticle, tempsLecture } from "../../lib/articles";
+import { RUBRIQUES, cheminPublic, dateArticle, tempsLecture, type Categorie } from "../../lib/articles";
 import type { ArticlePublic } from "../../lib/articles-public";
 
-/** Le dernier article publié, en grand. */
-export function ArticleALaUne({ article: a }: { article: ArticlePublic }) {
+/** La dernière publication, en grand. */
+export function ArticleALaUne({ article: a, categorie = "article" }: { article: ArticlePublic; categorie?: Categorie }) {
   return (
     <article className="group relative grid gap-6 border-t-[6px] border-militant-charbon pt-6 lg:grid-cols-12 lg:gap-10">
       <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-militant-ardoise lg:col-span-7">
@@ -24,7 +24,7 @@ export function ArticleALaUne({ article: a }: { article: ArticlePublic }) {
         <Meta article={a} grand />
         <h2 className="mt-3 break-words font-condensed text-4xl font-extrabold leading-[0.95] tracking-tight sm:text-5xl">
           <Link
-            href={`/blog/${a.slug}`}
+            href={cheminPublic(categorie, a.slug)}
             className="decoration-militant-rouge decoration-4 underline-offset-[6px] after:absolute after:inset-0 after:rounded-2xl group-hover:underline focus:outline-none focus-visible:after:ring-4 focus-visible:after:ring-militant-rouge"
           >
             {a.titre}
@@ -32,14 +32,14 @@ export function ArticleALaUne({ article: a }: { article: ArticlePublic }) {
         </h2>
         {a.chapo && <p className="mt-4 text-lg leading-relaxed sm:text-xl">{a.chapo}</p>}
         <p aria-hidden className="mt-6 font-bold underline decoration-militant-rouge decoration-2 underline-offset-4">
-          Lire l&apos;article
+          {RUBRIQUES[categorie].lire}
         </p>
       </div>
     </article>
   );
 }
 
-export function CarteArticle({ article: a }: { article: ArticlePublic }) {
+export function CarteArticle({ article: a, categorie = "article" }: { article: ArticlePublic; categorie?: Categorie }) {
   return (
     <article className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-militant-ardoise bg-white transition-colors hover:border-militant-bordeaux">
       <div className="relative aspect-[16/9] bg-militant-ardoise">
@@ -57,7 +57,7 @@ export function CarteArticle({ article: a }: { article: ArticlePublic }) {
         <Meta article={a} />
         <h3 className="mt-2 break-words font-condensed text-[28px] font-extrabold leading-none">
           <Link
-            href={`/blog/${a.slug}`}
+            href={cheminPublic(categorie, a.slug)}
             className="decoration-militant-rouge decoration-[3px] underline-offset-4 after:absolute after:inset-0 after:rounded-2xl group-hover:underline focus:outline-none focus-visible:after:ring-4 focus-visible:after:ring-militant-rouge"
           >
             {a.titre}

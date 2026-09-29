@@ -51,6 +51,8 @@ const SECTIONS: Section[] = [
         actifSur: (c) => c.startsWith("/suivi-actions/articles/") && c !== "/suivi-actions/articles/nouveau",
       },
       { href: "/suivi-actions/articles/nouveau", label: "Écrire un article" },
+      { href: "/suivi-actions/explications", label: "On vous explique" },
+      { href: "/suivi-actions/explications/nouvelle", label: "Importer une note" },
     ],
   },
   {

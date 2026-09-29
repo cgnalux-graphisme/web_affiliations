@@ -4,6 +4,8 @@
  */
 
 export const BUCKET_BLOG = "blog-images";
+/** Notes FGTB d'origine de « On vous explique » (bucket PRIVÉ, lecture et écriture côté serveur uniquement). */
+export const BUCKET_NOTES = "notes-sources";
 
 /** Valeurs de site_articles.statut. */
 export const STATUT_BROUILLON = "brouillon";
@@ -137,4 +139,61 @@ export function cheminImageDepuisUrl(url: string | null | undefined): string | n
   if (i === -1) return null;
   const chemin = url.slice(i + marqueur.length).split(/[?#]/)[0];
   return chemin ? decodeURIComponent(chemin) : null;
+}
+
+// ── Rubriques : le blog (« Actualités ») et « On vous explique » partagent site_articles ──
+
+/** Valeurs de site_articles.categorie (défaut en base : « article »). */
+export const CATEGORIE_ARTICLE = "article";
+export const CATEGORIE_EXPLICATION = "explication";
+export type Categorie = typeof CATEGORIE_ARTICLE | typeof CATEGORIE_EXPLICATION;
+
+export function categorieDe(valeur: unknown): Categorie {
+  return valeur === CATEGORIE_EXPLICATION ? CATEGORIE_EXPLICATION : CATEGORIE_ARTICLE;
+}
+
+type Rubrique = {
+  /** Chemin public de la rubrique (liste) ; une publication est à `${chemin}/<slug>`. */
+  chemin: string;
+  nom: string;
+  /** Écran admin de la rubrique. */
+  admin: string;
+  /** Libellés au singulier (« l'article », « l'explication »). */
+  singulier: string;
+  nouveau: string;
+  tous: string;
+  lire: string;
+};
+
+export const RUBRIQUES: Record<Categorie, Rubrique> = {
+  article: {
+    chemin: "/blog",
+    nom: "Actualités",
+    admin: "/suivi-actions/articles",
+    singulier: "article",
+    nouveau: "Nouvel article",
+    tous: "Tous les articles",
+    lire: "Lire l'article",
+  },
+  explication: {
+    chemin: "/on-vous-explique",
+    nom: "On vous explique",
+    admin: "/suivi-actions/explications",
+    singulier: "explication",
+    nouveau: "Nouvelle explication",
+    tous: "Toutes les explications",
+    lire: "Lire l'explication",
+  },
+};
+
+export function cheminPublic(categorie: Categorie, slug: string): string {
+  return `${RUBRIQUES[categorie].chemin}/${slug}`;
+}
+
+/** Source affichée : un lien, ou (« On vous explique ») une simple référence, ex. « Note FGTB 26I107F ». */
+export type Reference = { libelle: string; url: string | null };
+
+/** Chaque ligne devient une source : avec lien si elle en contient un, sinon référence en texte. */
+export function lireReferences(texte: string | null | undefined): Reference[] {
+  return lignes(texte).map((l) => lireSource(l) ?? { libelle: l, url: null });
 }

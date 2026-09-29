@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **28/09/2026**
+> Dernière mise à jour : **29/09/2026**
 
 ---
 
@@ -50,6 +50,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/actions` | public | Vitrine des actions publiées (frise + « unes ») |
 | `/blog` | public | Actualités : dernier article en grand + articles précédents |
 | `/blog/<slug>` | public | Un article : encart « En bref », chapô, image, contenu, sources |
+| `/on-vous-explique` | public | « On vous explique » : notes techniques FGTB vulgarisées (cartes : image, titre, chapô, date), du plus récent au plus ancien |
+| `/on-vous-explique/<slug>` | public | Une explication : même mise en page que le blog, encart « En bref » en haut |
 | `/demarches` | public | Toutes les démarches en ligne (tuiles, l'affiliation en tête) |
 | `/contact` | public | Nos 4 bureaux : adresses, téléphones, horaires (été en juillet-août), statut « ouvert maintenant » |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
@@ -64,6 +66,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/articles` | SUPER_ADMIN | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
 | `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article ; `?veille=<id>` pré-remplit depuis la veille et affiche le panneau de rédaction assistée |
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
+| `/suivi-actions/explications` | SUPER_ADMIN | Liste des explications (« On vous explique ») : modifier, publier / dépublier, réseaux, supprimer |
+| `/suivi-actions/explications/nouvelle` | SUPER_ADMIN | Importer une note FGTB (.docx / .pdf) à vulgariser → formulaire d'article pré-rempli (categorie `explication`) |
 | `/suivi-actions/articles/<id>/reseaux` | SUPER_ADMIN | Déclinaison d'un article publié en posts Facebook, Instagram, TikTok, YouTube : générer, modifier, enregistrer, copier |
 | `/suivi-actions/veille` | SUPER_ADMIN | **Scan News › Le fil** : articles ramassés (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
@@ -74,11 +78,12 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/api/image-distante` | SUPER_ADMIN | Télécharge une image glissée depuis une autre page web (POST `{ url }`) |
 | `/api/redaction/lisibilite` | SUPER_ADMIN | L'IA peut-elle lire l'article ? Vérification gratuite du `robots.txt` du média (GET `?veilleId=`) |
 | `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 (POST `{ veilleId, lire, extrait?, consignes? }`) |
+| `/api/redaction/note` | SUPER_ADMIN | Note FGTB (multipart, champ `fichier`) → texte extrait, vulgarisé par Claude Sonnet 5, fichier archivé dans `notes-sources` |
 | `/api/reseaux/declinaison` | SUPER_ADMIN | Posts réseaux proposés par Claude Sonnet 5 (POST `{ articleId, reseau? }` ; sans `reseau` = les 4) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
-Navigation publique : Accueil · Nos actions · Actualités · Démarches en ligne ·
-Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
+Navigation publique : Accueil · Nos actions · Actualités · On vous explique ·
+Démarches en ligne · Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
 ligne » (pas un onglet par formulaire). Rubrique à venir : « Trouver votre
 contact » (permanent et juriste par secteur / commission paritaire). Toute la
 gestion (actions, articles, Scan News, demandes, paramètres) vit sous
@@ -88,7 +93,7 @@ chaque page).
 **Menu de l'espace admin** (`app/suivi-actions/MenuAdmin.tsx`, refonte du
 28/09/2026) : Tableau de bord, puis sections titrées — **Actions syndicales**
 (Toutes les actions · Nouvelle action · Rapport d'activité), **Publications**
-(Articles · Écrire un article), **Scan News** (Le fil · Sources · Thématiques),
+(Articles · Écrire un article · On vous explique · Importer une note), **Scan News** (Le fil · Sources · Thématiques),
 **Démarches affiliés** (Demandes) — et, séparés en pied : Paramètres des envois,
 compte connecté, Se déconnecter. Mobile : bouton « Menu ». Lien actif = barre
 rouge sur un rail ardoise.
@@ -125,9 +130,15 @@ Blog (créés côté Supabase avant le 28/09/2026, aucune migration dans le dép
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_articles` | Articles du blog | Super admin (lecture/écriture) |
-| `site_articles_public` | Vue : articles publiés (sans `statut`, `created_at`, `updated_at`) | Lecture publique |
+| `site_articles` | Articles du blog **et** explications (« On vous explique »), distingués par `categorie` | Super admin (lecture/écriture) |
+| `site_articles_public` | Vue : articles publiés (sans `statut`, `created_at`, `updated_at`), **avec `categorie`** | Lecture publique |
 | Bucket `blog-images` | Images de couverture (public en lecture) | Écriture super admin |
+| Bucket `notes-sources` | **Privé** : notes FGTB d'origine des explications (traçabilité interne) | Lecture et écriture **côté serveur uniquement** (service_role) |
+
+`categorie` et `document_source` ajoutés par Fred avant le 29/09/2026 (aucune
+migration dans le dépôt) : `categorie` = `article` (défaut, blog) ou `explication`
+(On vous explique) ; `document_source` = chemin de la note dans `notes-sources`
+(`<aaaa>/<uuid>-<nom>.docx|pdf`).
 
 Veille (créés côté Supabase avant le 28/09/2026) :
 
@@ -438,6 +449,50 @@ reformuler, citer et lier la source, jamais recopier.
 - `SITE_URL` (facultative, serveur) : adresse publique du site pour le lien des
   posts réseaux (ex. `https://accg-nalux.com`). **Pas encore définie.**
 
+#### On vous explique (vulgarisation des notes FGTB, 29/09/2026)
+- Rubrique **sœur du blog** : même table, même formulaire, mêmes pages
+  (aperçu, réseaux, suppression), distinguée par `categorie = 'explication'`.
+  **Séparation stricte** : `/blog` et l'écran Articles ne lisent que
+  `categorie = 'article'` ; `/on-vous-explique` et l'écran « On vous explique »
+  que `explication` (`chargerArticles(categorie)`, `chargerArticle(slug,
+  categorie)`, `lib/articles-public.ts`). Libellés et chemins par rubrique :
+  `RUBRIQUES`, `cheminPublic()`, `categorieDe()` (`lib/articles.ts`). Liste
+  admin partagée : `app/suivi-actions/articles/ListePublications.tsx`.
+- **Import** (`PanneauNote.tsx` dans le formulaire, nouvelle explication
+  seulement) : .docx ou .pdf, **4 Mo max** (limite des requêtes vers une
+  fonction Vercel : 4,5 Mo). Extraction **côté serveur** (`lib/notes-extraction.ts`) :
+  type vérifié par la signature du fichier (« PK » / « %PDF »), `.docx` via
+  **mammoth**, `.pdf` via **unpdf** (conçu pour le serverless) ; `.doc`
+  refusé avec consigne ; PDF scanné (< 300 caractères) refusé ; 150 000
+  caractères max.
+- **Vulgarisation** (`lib/vulgarisation-ia.ts`, `/api/redaction/note`) : Claude
+  Sonnet 5, sortie structurée `zod`, réflexion adaptative, effort `high`
+  (~15 s et quelques centimes pour une note courte). Structure imposée :
+  titre, chapô (1-2 phrases), « En bref » (3-4 puces), 4 sous-titres `<h2>` —
+  « De quoi s'agit-il ? », « Ce qui est proposé ou ce qui change », « La
+  position de la FGTB », « Ce que ça change concrètement pour vous » —, sources =
+  « Note FGTB <référence> ». Consigne : langage grand public, **chaque sigle ou
+  terme technique expliqué** (CNT, CCE, CCT, commission paritaire, 2e pilier…),
+  **position FGTB restituée telle qu'écrite** (ni inventée, ni adoucie, ni
+  durcie, ni nuancée), aucun fait / chiffre / opinion absent de la note, ton
+  engagé mais pédagogique, note maigre ou ambiguë signalée.
+- **Garde-fous côté code** : référence de note gardée seulement si elle figure
+  dans le texte ; sous-titres manquants signalés ; **tout nombre du texte
+  produit absent de la note est signalé** (« Chiffres absents de la note, à
+  vérifier ») ; liens retirés, HTML nettoyé, adresse depuis le titre. Date et
+  statut restent au formulaire (brouillon). Rappel visible : « Vulgarisation IA
+  — vérifier la fidélité à la note FGTB avant publication. »
+- **Archive** : la note d'origine est déposée dans `notes-sources` (service_role)
+  et son chemin enregistré dans `document_source` ; la page Modifier affiche un
+  lien de téléchargement temporaire (1 h). Un échec d'archivage n'empêche pas
+  d'utiliser la vulgarisation (message affiché). Supprimer une explication ne
+  supprime pas sa note archivée.
+- **Sources** : pour une explication, une ligne peut être une simple référence
+  sans lien (`lireReferences()`) ; le blog exige toujours un lien par ligne.
+- La déclinaison réseaux fonctionne aussi pour une explication (lien vers
+  `/on-vous-explique/<slug>`). Le tableau de bord (tuile Publications) compte
+  les articles et, à part, les explications.
+
 ### Phase 3 — Publication réseaux
 - [x] **Déclinaison par l'IA** (28/09/2026, `suivi-actions`) : depuis un article
       **publié** (bouton « Réseaux » de la liste, bandeau de la page Modifier),
@@ -541,6 +596,11 @@ reformuler, citer et lier la source, jamais recopier.
 - Le 28/09/2026 : **back-office des demandes** (`/suivi-actions/demandes`) sur
   `suivi-actions` : 238 affiliations, 20 mandats SEPA, 11 changements de compte,
   29 C1 et 27 C3.2 à cette date.
+- Le 29/09/2026 : rubrique **« On vous explique »** (import de notes FGTB .docx /
+  .pdf, vulgarisation par Claude Sonnet 5, pages publiques) sur `suivi-actions`.
+  Vérifié : extraction réelle .docx et .pdf (tests), vulgarisation d'une note
+  fictive par l'API. **Pas encore testé** : l'archivage réel dans
+  `notes-sources` et une note FGTB réelle.
 - Avant un usage réel de la déclinaison réseaux : définir `SITE_URL` dans
   Vercel, sinon les posts générés depuis la preview pointent vers la preview.
 - Pistes suivantes : brancher la déclinaison aux futurs outils de visuels et de
@@ -628,8 +688,9 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 - Stack : Next.js 16 (App Router, Node 24), Supabase, Vercel, Resend (envoi
   d'e-mails), Tailwind 3, `@react-pdf/renderer`, Vitest, Tiptap (éditeur),
   `sanitize-html`, `fast-xml-parser` (flux RSS), `@anthropic-ai/sdk` + `zod`
-  (rédaction assistée et déclinaison réseaux, serveur uniquement ; erreurs de
-  l'API traduites par `lib/anthropic-erreurs.ts`).
+  (rédaction assistée, déclinaison réseaux et vulgarisation, serveur uniquement ;
+  erreurs de l'API traduites par `lib/anthropic-erreurs.ts`), `mammoth` (.docx) et
+  `unpdf` (.pdf) pour l'extraction des notes FGTB, serveur uniquement.
 - Le `.env.local` de `web_affiliations` pointe **déjà** vers CG Link — ne pas le
   modifier. Les clés restent dans `.env.local` (jamais dans ce fichier ni sur GitHub).
 - **Next.js 16** : le middleware s'appelle `proxy.ts` (verrou de `/suivi-actions`).

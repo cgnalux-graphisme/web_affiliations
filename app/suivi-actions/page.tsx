@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FolderOpen, Megaphone, Newspaper, Plus, Radar, type LucideIcon } from "lucide-react";
 import { titreAction } from "../../lib/actions";
-import { STATUT_BROUILLON, STATUT_PUBLIE, dateArticle } from "../../lib/articles";
+import { CATEGORIE_ARTICLE, CATEGORIE_EXPLICATION, STATUT_BROUILLON, STATUT_PUBLIE, dateArticle } from "../../lib/articles";
 import { isoToDateFr } from "../../lib/dates";
 import { DEMANDES, TYPES_DEMANDE, dateHeureBruxelles } from "../../lib/demandes";
 import { resumerDemandes, type ResumeDemandes } from "../../lib/demandes-serveur";
@@ -31,7 +31,7 @@ export default async function TableauDeBordPage() {
   if (!(await getSuperAdmin())) redirect("/login?next=/suivi-actions");
   const supabase = await getSupabaseServer();
 
-  const [actionsTotal, actionsPubliees, derniereAction, brouillons, publies, nouveaux, themes, dernierRamassage] =
+  const [actionsTotal, actionsPubliees, derniereAction, brouillons, publies, nouveaux, themes, dernierRamassage, explications] =
     await Promise.all([
       supabase.from("site_actions").select("id", { count: "exact", head: true }),
       supabase.from("site_actions").select("id", { count: "exact", head: true }).eq("visible_public", true),
@@ -41,12 +41,24 @@ export default async function TableauDeBordPage() {
         .order("date_action", { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabase.from("site_articles").select("id", { count: "exact", head: true }).eq("statut", STATUT_BROUILLON),
-      supabase.from("site_articles").select("id", { count: "exact", head: true }).eq("statut", STATUT_PUBLIE),
+      supabase
+        .from("site_articles")
+        .select("id", { count: "exact", head: true })
+        .eq("categorie", CATEGORIE_ARTICLE)
+        .eq("statut", STATUT_BROUILLON),
+      supabase
+        .from("site_articles")
+        .select("id", { count: "exact", head: true })
+        .eq("categorie", CATEGORIE_ARTICLE)
+        .eq("statut", STATUT_PUBLIE),
       supabase.from("site_veille").select("titre, resume").eq("statut", VEILLE_NOUVEAU).limit(LIMITE_NOUVEAUX),
       supabase.from("site_themes").select("mot_cle").eq("actif", true),
       supabase.from("site_veille").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("site_articles").select("statut").eq("categorie", CATEGORIE_EXPLICATION),
     ]);
+  const lignesExplications = (explications.data ?? []) as { statut: string }[];
+  const explicationsPubliees = lignesExplications.filter((l) => l.statut === STATUT_PUBLIE).length;
+  const explicationsBrouillons = lignesExplications.length - explicationsPubliees;
 
   // Pertinence calculée comme dans « Le fil » : au moins un mot-clé actif dans le titre ou le résumé.
   const correspondance = preparerCorrespondance(((themes.data ?? []) as { mot_cle: string }[]).map((t) => t.mot_cle));
@@ -189,15 +201,26 @@ export default async function TableauDeBordPage() {
           Icon={Newspaper}
           href="/suivi-actions/articles"
           libelleLien="Tous les articles"
-          liens={[{ href: "/suivi-actions/articles/nouveau", label: "Écrire un article", Icon: Plus }]}
+          liens={[
+            { href: "/suivi-actions/articles/nouveau", label: "Écrire un article", Icon: Plus },
+            { href: "/suivi-actions/explications", label: "On vous explique" },
+          ]}
         >
           {brouillons.error || publies.error ? (
             <Indisponible />
           ) : (
-            <div className="flex flex-wrap gap-x-10 gap-y-3">
-              <Chiffre valeur={brouillons.count ?? 0}>{(brouillons.count ?? 0) > 1 ? "brouillons" : "brouillon"}</Chiffre>
-              <Chiffre valeur={publies.count ?? 0}>{(publies.count ?? 0) > 1 ? "articles publiés" : "article publié"}</Chiffre>
-            </div>
+            <>
+              <div className="flex flex-wrap gap-x-10 gap-y-3">
+                <Chiffre valeur={brouillons.count ?? 0}>{(brouillons.count ?? 0) > 1 ? "brouillons" : "brouillon"}</Chiffre>
+                <Chiffre valeur={publies.count ?? 0}>{(publies.count ?? 0) > 1 ? "articles publiés" : "article publié"}</Chiffre>
+              </div>
+              {!explications.error && (
+                <p className="mt-3 text-[15px]">
+                  On vous explique : {pluriel(explicationsPubliees, "explication publiée", "explications publiées")},{" "}
+                  {pluriel(explicationsBrouillons, "brouillon", "brouillons")}.
+                </p>
+              )}
+            </>
           )}
         </Tuile>
       </div>

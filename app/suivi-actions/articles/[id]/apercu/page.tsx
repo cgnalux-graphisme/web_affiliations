@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Eye, Pencil } from "lucide-react";
-import { STATUT_PUBLIE } from "../../../../../lib/articles";
+import { STATUT_PUBLIE, categorieDe } from "../../../../../lib/articles";
 import { getSuperAdmin, getSupabaseServer } from "../../../../../lib/supabase-server";
 import VueArticle, { type ArticleAffiche } from "../../../../blog/VueArticle";
 
@@ -22,12 +22,12 @@ export default async function ApercuArticlePage({ params }: { params: Promise<{ 
   const supabase = await getSupabaseServer();
   const { data, error } = await supabase
     .from("site_articles")
-    .select("titre, statut, chapo, points_cles, contenu, image_couverture, sources, date_publication")
+    .select("titre, statut, chapo, points_cles, contenu, image_couverture, sources, date_publication, categorie")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`Chargement de l'article impossible : ${error.message}`);
   if (!data) notFound();
-  const article = data as ArticleAffiche & { statut: string };
+  const article = data as ArticleAffiche & { statut: string; categorie: string | null };
 
   return (
     <div className="-mx-4 -my-8 sm:-mx-6 lg:-mx-10">
@@ -43,7 +43,7 @@ export default async function ApercuArticlePage({ params }: { params: Promise<{ 
           <Pencil size={14} aria-hidden /> Modifier
         </Link>
       </div>
-      <VueArticle article={article} />
+      <VueArticle article={article} categorie={categorieDe(article.categorie)} />
     </div>
   );
 }

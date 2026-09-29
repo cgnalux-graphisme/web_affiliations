@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { NextResponse, type NextRequest } from "next/server";
 import { messageErreurApi } from "../../../../lib/anthropic-erreurs";
-import { STATUT_PUBLIE } from "../../../../lib/articles";
+import { STATUT_PUBLIE, categorieDe, cheminPublic } from "../../../../lib/articles";
 import { RESEAUX, estReseau, type Reseau, type VersionEnregistree } from "../../../../lib/reseaux";
 import {
   MODELE_RESEAUX,
@@ -48,18 +48,19 @@ export async function POST(request: NextRequest) {
   const supabase = await getSupabaseServer();
   const { data, error } = await supabase
     .from("site_articles")
-    .select("titre, slug, statut, chapo, points_cles, contenu")
+    .select("titre, slug, statut, chapo, points_cles, contenu, categorie")
     .eq("id", articleId)
     .maybeSingle();
   if (error) return erreur("L'article ne peut pas être lu. Reconnectez-vous puis réessayez.", 500);
   if (!data) return erreur("Cet article n'existe plus.", 404);
-  const article = data as ArticleSource & { slug: string; statut: string };
+  const article = data as ArticleSource & { slug: string; statut: string; categorie: string | null };
   if (article.statut !== STATUT_PUBLIE) {
     return erreur("Seul un article publié peut être décliné pour les réseaux. Publiez-le d'abord.", 409);
   }
   if (!article.contenu?.trim()) return erreur("L'article n'a pas de contenu à décliner.", 422);
 
-  const lien = `${origineSite(request.nextUrl.origin)}/blog/${article.slug}`;
+  // Lien vers la bonne rubrique : /blog/… (article) ou /on-vous-explique/… (explication).
+  const lien = `${origineSite(request.nextUrl.origin)}${cheminPublic(categorieDe(article.categorie), article.slug)}`;
   const client = new Anthropic({ timeout: 180_000 });
 
   let reponse: Partial<ReponseDeclinaisons>;

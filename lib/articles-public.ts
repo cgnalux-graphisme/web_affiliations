@@ -1,10 +1,13 @@
 import { cache } from "react";
+import type { Categorie } from "./articles";
 import { getSupabase } from "./supabase";
 
 /**
  * Lecture des articles publiés pour les pages publiques : uniquement via la vue
  * site_articles_public (jamais la table site_articles). Un article programmé
  * (date de publication future) n'apparaît qu'à partir de sa date.
+ * Deux rubriques partagent la vue : le blog (categorie = article) et « On vous explique »
+ * (categorie = explication) ; chaque page ne lit que la sienne.
  */
 export type ArticlePublic = {
   id: string;
@@ -20,10 +23,11 @@ export type ArticlePublic = {
 
 const COLONNES = "id, titre, slug, chapo, points_cles, contenu, image_couverture, sources, date_publication";
 
-export async function chargerArticles(): Promise<{ articles: ArticlePublic[]; erreur: boolean }> {
+export async function chargerArticles(categorie: Categorie): Promise<{ articles: ArticlePublic[]; erreur: boolean }> {
   const { data, error } = await getSupabase()
     .from("site_articles_public")
     .select(COLONNES)
+    .eq("categorie", categorie)
     .lte("date_publication", new Date().toISOString())
     .order("date_publication", { ascending: false });
   if (error) {
@@ -33,12 +37,13 @@ export async function chargerArticles(): Promise<{ articles: ArticlePublic[]; er
   return { articles: (data ?? []) as ArticlePublic[], erreur: false };
 }
 
-/** Un article publié par son slug (mis en cache pour la requête : métadonnées + page). */
-export const chargerArticle = cache(async (slug: string): Promise<ArticlePublic | null> => {
+/** Une publication par son slug, dans sa rubrique (mis en cache pour la requête : métadonnées + page). */
+export const chargerArticle = cache(async (slug: string, categorie: Categorie): Promise<ArticlePublic | null> => {
   const { data, error } = await getSupabase()
     .from("site_articles_public")
     .select(COLONNES)
     .eq("slug", slug)
+    .eq("categorie", categorie)
     .lte("date_publication", new Date().toISOString())
     .maybeSingle();
   if (error) throw new Error(`Chargement de l'article impossible : ${error.message}`);
