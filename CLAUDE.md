@@ -46,7 +46,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 
 | Route | Accès | Rôle |
 |---|---|---|
-| `/` | public | Accueil : ouverture, dernière action publiée, démarches, nos actions |
+| `/` | public | Accueil (29/09/2026) : 1. ouverture = **mobilisation mise en avant** si la vue `site_accueil_mobilisation` renvoie une ligne (titre, date, lieu, chapô, image, compte à rebours, « Je m'inscris », « Pourquoi on se mobilise »), sinon l'ouverture habituelle ; 2. 4 dernières publications (pastilles) ; 3. démarches ; 4. 3 dernières actions passées (photos) |
+| `/mobilisation/<slug>` | public | Page campagne de la mobilisation mise en avant (seulement elle, via la vue ; sinon 404) : en-tête bordeaux, compte à rebours, pourquoi, « Ce qu'on demande », « Comment y aller », « Je m'inscris » répété (+ barre fixe sur mobile), partage par le visiteur |
 | `/actions` | public | Vitrine des actions publiées (frise + « unes ») |
 | `/actualites` | public | **Page unifiée** (29/09/2026) : articles du blog **et** explications mélangés, du plus récent au plus ancien (le plus récent en grand) ; pastille de rubrique sur chaque photo ; sélecteur à segments « Tout · Actualités · On vous explique » filtré dans le navigateur (`?rubrique=actualites` / `on-vous-explique` pré-applique le filtre) |
 | `/blog`, `/on-vous-explique` | public | Redirigées (308, `next.config.ts`) vers `/actualites?rubrique=…` |
@@ -72,6 +73,9 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/veille` | SUPER_ADMIN | **Scan News › Le fil** : articles ramassés (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
+| `/suivi-actions/mobilisations` · `/nouvelle` · `/<id>/modifier` · `/<id>/apercu` | SUPER_ADMIN | Mobilisations (manifs, grèves à venir) : créer, modifier, supprimer, interrupteur « mise en avant » (une seule à la fois), aperçu de la page campagne, « pourquoi » rédigé par l'IA |
+| `/suivi-actions/parametres-site` | SUPER_ADMIN | Paramètres du site : interrupteur « Afficher le bloc mobilisation sur l'accueil » (`site_parametres`, clé `accueil_mobilisation`, `on` / `off`) |
+| `/api/mobilisations/pourquoi` | SUPER_ADMIN | « Pourquoi on se mobilise » rédigé par Claude Sonnet 5 depuis les points de Fred (POST `{ points, titre?, date?, lieu?, revendications? }`), rien n'est enregistré |
 | `/suivi-actions/parametres` | SUPER_ADMIN | Paramètres : adresses internes qui reçoivent chaque envoi automatique des formulaires (ajouter, activer / désactiver, supprimer) |
 | `/api/admin/demandes` | SUPER_ADMIN | Liste d'un type de demande (GET `?type=&q=&du=&au=&tri=&page=`) — clé service_role |
 | `/api/admin/demandes/<type>/<id>` · `/pdf` · `/liees` · `/envois` | SUPER_ADMIN | Détail complet d'une demande ; PDF C1 / C3.2 rempli côté serveur ; demandes de la même personne ; historique des e-mails |
@@ -82,9 +86,14 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/api/reseaux/declinaison` | SUPER_ADMIN | Posts réseaux proposés par Claude Sonnet 5 (POST `{ articleId, reseau? }` ; sans `reseau` = les 4) |
 | `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
 
-Navigation publique : Accueil · Nos actions · Actualités (une seule entrée pour le
-blog et « On vous explique », active aussi sur `/blog/…` et `/on-vous-explique/…`) ·
-Démarches en ligne · Contact + bouton « S'affilier ». Les formulaires sont **regroupés** sous « Démarches en
+Navigation publique (ordre du 29/09/2026) : Accueil · Actualités (une seule entrée
+pour le blog et « On vous explique », active aussi sur `/blog/…` et
+`/on-vous-explique/…`) · Nos actions · Démarches en ligne · Contact + bouton
+« S'affilier ». **Bandeau d'alerte** (`app/BandeauMobilisation.tsx`, dans le
+layout) au-dessus de la navigation de toutes les pages publiques quand la vue
+`site_accueil_mobilisation` renvoie une ligne ; refermable (mémorisé pour la
+session, par mobilisation) ; masqué dans l'espace admin, sur `/login` et sur la
+page campagne. Les formulaires sont **regroupés** sous « Démarches en
 ligne » (pas un onglet par formulaire). Rubrique à venir : « Trouver votre
 contact » (permanent et juriste par secteur / commission paritaire). Toute la
 gestion (actions, articles, Scan News, demandes, paramètres) vit sous
@@ -95,7 +104,8 @@ chaque page).
 28/09/2026) : Tableau de bord, puis sections titrées — **Actions syndicales**
 (Toutes les actions · Nouvelle action · Rapport d'activité), **Publications**
 (Articles · Écrire un article · On vous explique · Importer une note), **Scan News** (Le fil · Sources · Thématiques),
-**Démarches affiliés** (Demandes) — et, séparés en pied : Paramètres des envois,
+**Démarches affiliés** (Demandes) — « Mobilisations » est dans Actions syndicales —
+et, séparés en pied : Paramètres du site, Paramètres des envois,
 compte connecté, Se déconnecter. Mobile : bouton « Menu ». Lien actif = barre
 rouge sur un rail ardoise.
 
@@ -148,6 +158,30 @@ Veille (créés côté Supabase avant le 28/09/2026) :
 | `site_sources` | Flux RSS suivis : `nom`, `url_flux`, `actif` | Super admin |
 | `site_themes` | Mots-clés de pertinence : `mot_cle`, `actif` (pré-remplie) | Super admin |
 | `site_veille` | Articles ramassés : `source_id`, `source_nom`, `titre`, `resume`, `lien` (**index unique**), `date_publication`, `statut` (`nouveau` / `traite` / `ignore`) | Super admin ; écriture du ramassage en service_role |
+
+Mobilisations (créés par Fred avant le 29/09/2026, aucune migration dans le dépôt ;
+colonnes relevées par l'OpenAPI de PostgREST) :
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_mobilisations` | `titre`, `slug`, `date_evenement` (timestamptz ; saisie `jj/mm/aaaa` + `hh:mm` à l'heure de Bruxelles, `versHorodatage()`), `lieu`, `chapo`, `image_hero` (bucket `blog-images`, `mobilisations/<id>/hero-<uuid>.jpg`), `pourquoi` (texte, paragraphes séparés par une ligne vide), `revendications` et `infos_pratiques` (une ligne par élément ; « Libellé : détail » met le libellé en gras), `lien_inscription` (formulaire FGTB fédérale, http(s)), `actif` (défaut false), `created_at`, `updated_at` | Super admin |
+| `site_parametres` | `cle` (clé primaire), `valeur`, `updated_at` ; `accueil_mobilisation` = `on` / `off` | Super admin |
+| `site_accueil_mobilisation` | Vue : **une ligne seulement si** l'interrupteur est sur `on` **et** qu'une mobilisation est active (colonnes publiques) | Lecture publique |
+
+**Règle** : bloc d'accueil, bandeau et page campagne ne s'affichent **que** si la
+vue renvoie une ligne (`chargerMobilisationActive()`, `lib/mobilisations-public.ts`,
+jamais la table). Sinon, ouverture habituelle et aucun bandeau : jamais de bloc
+vide. Activer une mobilisation désactive les autres (côté code). Après tout
+changement : `revalidatePath("/", "layout")` ; le layout a `revalidate = 60`
+(toutes les pages publiques sont donc régénérées au plus toutes les minutes).
+Compte à rebours calculé dans le navigateur seulement (`CompteARebours.tsx`) ;
+« C'est aujourd'hui. » le jour J, rien après. Partage : partage natif du
+téléphone + Facebook, WhatsApp, X, e-mail, copier le lien (`liensPartage()`),
+icônes monochromes (pas de bleu ni de vert de marque) ; aucune publication depuis
+nos comptes. « Pourquoi » par l'IA (`lib/mobilisation-ia.ts`) : texte percutant
+pour convaincre même les réticents, aucun fait / chiffre / revendication / action
+absent des points de Fred, chiffres absents signalés (`nombresAbsents()`), rappel
+« à relire, corriger et valider ».
 
 Réseaux sociaux (créé côté Supabase avant le 28/09/2026) :
 

@@ -28,13 +28,15 @@ export type ArticlePublic = {
 
 const COLONNES = "id, titre, slug, chapo, points_cles, contenu, image_couverture, sources, date_publication, categorie";
 
-/** Toutes les publications des deux rubriques, mélangées, de la plus récente à la plus ancienne. */
-export async function chargerPublications(): Promise<{ articles: ArticlePublic[]; erreur: boolean }> {
-  const { data, error } = await getSupabase()
+/** Les publications des deux rubriques, mélangées, de la plus récente à la plus ancienne (toutes, ou les `limite` dernières). */
+export async function chargerPublications(limite?: number): Promise<{ articles: ArticlePublic[]; erreur: boolean }> {
+  let requete = getSupabase()
     .from("site_articles_public")
     .select(COLONNES)
     .lte("date_publication", new Date().toISOString())
     .order("date_publication", { ascending: false });
+  if (limite) requete = requete.limit(limite);
+  const { data, error } = await requete;
   if (error) {
     console.error("site_articles_public:", error.message);
     return { articles: [], erreur: true };

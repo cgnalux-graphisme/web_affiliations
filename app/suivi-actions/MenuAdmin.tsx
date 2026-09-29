@@ -12,6 +12,7 @@ import {
   Newspaper,
   Radar,
   Settings,
+  SlidersHorizontal,
   ShieldCheck,
   X,
   type LucideIcon,
@@ -39,6 +40,11 @@ const SECTIONS: Section[] = [
       { href: "/suivi-actions/actions", label: "Toutes les actions", actifSur: (c) => new RegExp(`^/suivi-actions/${UUID}/`, "i").test(c) },
       { href: "/suivi-actions/nouvelle", label: "Nouvelle action" },
       { href: "/suivi-actions/rapport", label: "Rapport d'activité" },
+      {
+        href: "/suivi-actions/mobilisations",
+        label: "Mobilisations",
+        actifSur: (c) => c.startsWith("/suivi-actions/mobilisations/"),
+      },
     ],
   },
   {
@@ -72,6 +78,7 @@ const SECTIONS: Section[] = [
 ];
 
 const PARAMETRES: Lien = { href: "/suivi-actions/parametres", label: "Paramètres des envois" };
+const PARAMETRES_SITE: Lien = { href: "/suivi-actions/parametres-site", label: "Paramètres du site" };
 
 function estActif(lien: Lien, chemin: string): boolean {
   return chemin === lien.href || Boolean(lien.actifSur?.(chemin));
@@ -79,7 +86,7 @@ function estActif(lien: Lien, chemin: string): boolean {
 
 /** Intitulé de la page courante (barre mobile). */
 function pageCourante(chemin: string): string {
-  for (const l of [TABLEAU_DE_BORD, ...SECTIONS.flatMap((s) => s.liens), PARAMETRES]) {
+  for (const l of [TABLEAU_DE_BORD, ...SECTIONS.flatMap((s) => s.liens), PARAMETRES_SITE, PARAMETRES]) {
     if (estActif(l, chemin)) return l.label;
   }
   return "Espace admin";
@@ -164,6 +171,7 @@ export default function MenuAdmin({ email }: { email: string }) {
 
           {/* Pied du menu : réglages et compte, séparés du reste */}
           <div className="mt-auto border-t-2 border-militant-charbon px-4 py-4 sm:px-6">
+            <LienMenu lien={PARAMETRES_SITE} chemin={chemin} Icon={SlidersHorizontal} />
             <LienMenu lien={PARAMETRES} chemin={chemin} Icon={Settings} />
             <p className="mt-3 text-sm">Connecté</p>
             <p className="truncate text-sm font-bold" title={email}>

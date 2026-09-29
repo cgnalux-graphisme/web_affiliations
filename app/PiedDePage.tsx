@@ -10,10 +10,10 @@ export default function PiedDePage() {
         <nav aria-label="Pied de page">
           <ul className="flex flex-wrap gap-x-7 gap-y-2 text-[15px] font-semibold">
             <li>
-              <Link href="/actions" className="hover:text-militant-bordeaux">Nos actions</Link>
+              <Link href="/actualites" className="hover:text-militant-bordeaux">Actualités</Link>
             </li>
             <li>
-              <Link href="/actualites" className="hover:text-militant-bordeaux">Actualités</Link>
+              <Link href="/actions" className="hover:text-militant-bordeaux">Nos actions</Link>
             </li>
             <li>
               <Link href="/demarches" className="hover:text-militant-bordeaux">Démarches en ligne</Link>
