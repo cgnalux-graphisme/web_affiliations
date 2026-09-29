@@ -748,7 +748,7 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   développement seulement, marge basse pour l'indicateur flottant de Next.js.
   Icônes : `lucide-react` (jamais d'emoji comme icône).
 - **Logos** (`public/`) : `logo-cg-rouge.png` sur fond blanc (usage principal),
-  `logo-cg-blanc.png` sur fond bordeaux (connexion, couverture du rapport PDF),
+  `logo-cg-blanc.png` sur fond bordeaux ou charbon (connexion, couverture du rapport PDF, pied de page),
   `logo-cg-noir.png` réservé à l'impression noir et blanc — pas sur le site.
 - **Documents PDF** (affiliation, mandat SEPA, rapport) : charte « Registre » —
   page blanche, logo rouge en tête, titre en majuscules condensées sur filet
