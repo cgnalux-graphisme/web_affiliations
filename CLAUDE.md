@@ -686,8 +686,9 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   `IconeChargement` = petite icône dans un bouton ou devant un texte « … en
   cours » (couleur du texte : blanc sur bouton bordeaux, `text-militant-rouge`
   ailleurs) ; `EcranChargement` = grand cercle rouge + arc bordeaux intérieur
-  avec un texte, pour une page (`app/loading.tsx`, `app/suivi-actions/loading.tsx`)
-  ou une attente longue (IA, première liste). **Ne plus utiliser `Loader2` ni
+  avec un texte, pour une attente longue (IA, première liste, fiche). **Pas
+  d'écran de chargement entre deux pages** (pas de `loading.tsx`, choix de Fred
+  du 29/09/2026). **Ne plus utiliser `Loader2` ni
   `animate-spin`** : tout nouveau chargement passe par ces deux composants, avec
   un texte qui dit ce qui se passe.
 - **Accessibilité** : vrais `<button>` / `<a>` / `<label>`, focus visible,
