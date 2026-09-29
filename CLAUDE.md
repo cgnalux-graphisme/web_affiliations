@@ -704,7 +704,7 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 - **Palette stricte** : `#E32119` rouge, `#931510` bordeaux, `#222222` charbon,
   `#FFFFFF` blanc, `#7C90A0` ardoise. Dans le code : couleurs Tailwind
   `militant-rouge`, `militant-bordeaux`, `militant-charbon`, `militant-ardoise`.
-  Bordeaux = `#931510` depuis le 29/09/2026 (avant : `#AA0F33`, demande de Fred).
+  Bordeaux = `#931510` depuis le 29/09/2026 (demande de Fred).
   Contrastes vérifiés : blanc sur bordeaux **8,9:1** (AAA, avant 7,4:1) ; bordeaux
   sur blanc 8,9:1 ; rouge / bordeaux 1,9:1 (pastilles « Actualité » / « On vous
   explique » : le texte les distingue) ; filet blanc 35 % sur bordeaux 2,2:1
