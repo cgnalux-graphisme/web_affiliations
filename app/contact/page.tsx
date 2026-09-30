@@ -62,7 +62,7 @@ export default function ContactPage() {
                 <li key={a.href}>
                   <a
                     href={a.href}
-                    className="group inline-flex min-h-[44px] items-center gap-2 rounded-full border-2 border-militant-charbon px-4 font-bold transition-colors hover:border-militant-bordeaux hover:bg-militant-bordeaux hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2"
+                    className="group inline-flex min-h-[44px] items-center gap-2 rounded-xl border-2 border-militant-charbon px-4 font-bold transition-colors hover:border-militant-bordeaux hover:bg-militant-bordeaux hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2"
                   >
                     {a.label}
                     <ArrowDown

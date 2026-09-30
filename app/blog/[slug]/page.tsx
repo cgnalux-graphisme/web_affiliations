@@ -17,10 +17,10 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const article = slugValide(slug) ? await chargerArticle(slug, "article") : null;
-  if (!article) return { title: "Article introuvable — Centrale Générale FGTB Namur – Luxembourg" };
+  if (!article) return { title: "Article introuvable — Centrale Générale FGTB Namur-Luxembourg" };
   const description = article.chapo ?? lignes(article.points_cles).join(" ");
   return {
-    title: `${article.titre} — Centrale Générale FGTB Namur – Luxembourg`,
+    title: `${article.titre} — Centrale Générale FGTB Namur-Luxembourg`,
     description: description || undefined,
     openGraph: {
       type: "article",

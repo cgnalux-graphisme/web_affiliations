@@ -48,9 +48,9 @@ function buildEmailHtml(p: EmailPayload): string {
          <td style="padding:0 0 8px 0;">
            <table width="100%" cellpadding="0" cellspacing="0">
              <tr>
-               <td width="10" style="background-color:#b91c1c;border-radius:2px;">&nbsp;</td>
-               <td style="padding-left:12px;font-size:13px;color:#374151;line-height:1.6;">
-                 <strong style="color:#111827;">Domiciliation automatique</strong> —
+               <td width="10" style="background-color:#931510;border-radius:2px;">&nbsp;</td>
+               <td style="padding-left:12px;font-size:13px;color:#222222;line-height:1.6;">
+                 <strong style="color:#222222;">Domiciliation automatique</strong> —
                  Le prélèvement de <strong>${p.cotisationMensuelle ?? "—"}&nbsp;€</strong>
                  sera effectué automatiquement chaque mois sur votre compte.
                </td>
@@ -62,9 +62,9 @@ function buildEmailHtml(p: EmailPayload): string {
          <td style="padding:0 0 8px 0;">
            <table width="100%" cellpadding="0" cellspacing="0">
              <tr>
-               <td width="10" style="background-color:#b91c1c;border-radius:2px;">&nbsp;</td>
-               <td style="padding-left:12px;font-size:13px;color:#374151;line-height:1.6;">
-                 <strong style="color:#111827;">Virement trimestriel</strong> —
+               <td width="10" style="background-color:#931510;border-radius:2px;">&nbsp;</td>
+               <td style="padding-left:12px;font-size:13px;color:#222222;line-height:1.6;">
+                 <strong style="color:#222222;">Virement trimestriel</strong> —
                  Merci d'effectuer votre premier versement de
                  <strong>${p.premiereEcheanceMontant ?? "—"}&nbsp;€</strong>
                  sur le compte <strong style="font-family:monospace;">${IBAN_VIREMENT}</strong>
@@ -83,29 +83,29 @@ function buildEmailHtml(p: EmailPayload): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Confirmation d'affiliation FGTB</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:32px 16px;">
+<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff;padding:32px 16px;">
   <tr>
     <td align="center">
       <table width="600" cellpadding="0" cellspacing="0"
         style="background-color:#ffffff;border-radius:12px;overflow:hidden;
-               box-shadow:0 2px 10px rgba(0,0,0,0.08);max-width:600px;width:100%;">
+               box-shadow:0 2px 10px rgba(34,34,34,0.08);max-width:600px;width:100%;">
 
         <!-- ══ BANDEAU FGTB ══════════════════════════════════════════════ -->
         <tr>
-          <td style="background-color:#b91c1c;padding:24px 32px;">
+          <td style="background-color:#931510;padding:24px 32px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td>
                   <p style="margin:0;color:#ffffff;font-size:20px;font-weight:bold;line-height:1.2;">
                     Centrale Générale FGTB
                   </p>
-                  <p style="margin:4px 0 0;color:#fca5a5;font-size:12px;">
+                  <p style="margin:4px 0 0;color:#ffffff;font-size:12px;">
                     Namur&nbsp;•&nbsp;Luxembourg
                   </p>
                 </td>
                 <td align="right">
-                  <p style="margin:0;color:#fecaca;font-size:11px;">Confirmation d'affiliation</p>
+                  <p style="margin:0;color:#ffffff;font-size:11px;">Confirmation d'affiliation</p>
                 </td>
               </tr>
             </table>
@@ -117,17 +117,17 @@ function buildEmailHtml(p: EmailPayload): string {
           <td style="padding:28px 32px 0;">
 
             <!-- Salutation -->
-            <p style="margin:0 0 18px;font-size:15px;color:#111827;">
+            <p style="margin:0 0 18px;font-size:15px;color:#222222;">
               Bonjour <strong>${p.prenom} ${p.nom}</strong>,
             </p>
 
             <!-- Intro -->
-            <p style="margin:0 0 14px;font-size:13px;color:#374151;line-height:1.65;">
+            <p style="margin:0 0 14px;font-size:13px;color:#222222;line-height:1.65;">
               Nous avons bien reçu votre demande d'affiliation à la
               <strong>Centrale Générale FGTB Namur Luxembourg</strong>
               et nous vous remercions de votre confiance.
             </p>
-            <p style="margin:0 0 20px;font-size:13px;color:#374151;line-height:1.65;">
+            <p style="margin:0 0 20px;font-size:13px;color:#222222;line-height:1.65;">
               Vous trouverez en pièce jointe de cet e-mail le
               <strong>récapitulatif de votre demande au format PDF</strong>,
               comprenant les informations transmises ainsi que votre mandat de paiement.
@@ -135,32 +135,32 @@ function buildEmailHtml(p: EmailPayload): string {
 
             <!-- ⚠️ ENCADRÉ IMPORTANT -->
             <table width="100%" cellpadding="0" cellspacing="0"
-              style="background-color:#fffbeb;border:1px solid #fde68a;
-                     border-left:4px solid #f59e0b;border-radius:6px;margin-bottom:24px;">
+              style="background-color:#ffffff;border:1px solid #7C90A0;
+                     border-left:4px solid #E32119;border-radius:6px;margin-bottom:24px;">
               <tr>
                 <td style="padding:14px 18px;">
-                  <p style="margin:0 0 6px;font-size:13px;color:#92400e;font-weight:bold;">
+                  <p style="margin:0 0 6px;font-size:13px;color:#931510;font-weight:bold;">
                     ⚠️ INFORMATION IMPORTANTE
                   </p>
-                  <p style="margin:0 0 10px;font-size:12px;color:#78350f;line-height:1.55;">
+                  <p style="margin:0 0 10px;font-size:12px;color:#931510;line-height:1.55;">
                     Si vous n'êtes pas l'auteur de cette demande d'affiliation,
                     merci de nous contacter dans les plus brefs délais :
                   </p>
                   <table cellpadding="0" cellspacing="0">
                     <tr>
-                      <td style="padding:2px 0;font-size:12px;color:#92400e;">
+                      <td style="padding:2px 0;font-size:12px;color:#931510;">
                         📧 E-mail :&nbsp;
                         <a href="mailto:${ADMIN_EMAIL}"
-                          style="color:#b45309;font-weight:bold;">${ADMIN_EMAIL}</a>
+                          style="color:#931510;font-weight:bold;">${ADMIN_EMAIL}</a>
                       </td>
                     </tr>
                     <tr>
-                      <td style="padding:2px 0;font-size:12px;color:#92400e;">
+                      <td style="padding:2px 0;font-size:12px;color:#931510;">
                         📞 Téléphone (Namur) : <strong>${TEL_NAMUR}</strong>
                       </td>
                     </tr>
                     <tr>
-                      <td style="padding:2px 0;font-size:12px;color:#92400e;">
+                      <td style="padding:2px 0;font-size:12px;color:#931510;">
                         📞 Téléphone (Luxembourg) : <strong>${TEL_LUXEMBOURG}</strong>
                       </td>
                     </tr>
@@ -170,7 +170,7 @@ function buildEmailHtml(p: EmailPayload): string {
             </table>
 
             <!-- PROCHAINES ÉTAPES -->
-            <p style="margin:0 0 12px;font-size:14px;color:#111827;font-weight:bold;">
+            <p style="margin:0 0 12px;font-size:14px;color:#222222;font-weight:bold;">
               Prochaines étapes de votre affiliation
             </p>
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
@@ -179,9 +179,9 @@ function buildEmailHtml(p: EmailPayload): string {
                 <td style="padding:0 0 10px 0;">
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
-                      <td width="10" style="background-color:#b91c1c;border-radius:2px;">&nbsp;</td>
-                      <td style="padding-left:12px;font-size:13px;color:#374151;line-height:1.6;">
-                        <strong style="color:#111827;">Traitement de votre dossier</strong> —
+                      <td width="10" style="background-color:#931510;border-radius:2px;">&nbsp;</td>
+                      <td style="padding-left:12px;font-size:13px;color:#222222;line-height:1.6;">
+                        <strong style="color:#222222;">Traitement de votre dossier</strong> —
                         Notre équipe administrative vérifie actuellement vos données.
                       </td>
                     </tr>
@@ -193,9 +193,9 @@ function buildEmailHtml(p: EmailPayload): string {
                 <td style="padding:0 0 10px 0;">
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
-                      <td width="10" style="background-color:#b91c1c;border-radius:2px;">&nbsp;</td>
-                      <td style="padding-left:12px;font-size:13px;color:#374151;line-height:1.6;">
-                        <strong style="color:#111827;">Activation</strong> —
+                      <td width="10" style="background-color:#931510;border-radius:2px;">&nbsp;</td>
+                      <td style="padding-left:12px;font-size:13px;color:#222222;line-height:1.6;">
+                        <strong style="color:#222222;">Activation</strong> —
                         Votre affiliation prendra cours à partir du mois de
                         <strong>${p.affiliationDebut}</strong> comme demandé.
                       </td>
@@ -205,14 +205,14 @@ function buildEmailHtml(p: EmailPayload): string {
               </tr>
                           <!-- AVANTAGES -->
             <table width="100%" cellpadding="0" cellspacing="0"
-              style="background-color:#fef2f2;border-left:4px solid #b91c1c;
+              style="background-color:#ffffff;border-left:4px solid #931510;
                      border-radius:4px;margin:18px 0 24px;">
               <tr>
                 <td style="padding:14px 18px;">
-                  <p style="margin:0 0 6px;font-size:13px;color:#7f1d1d;font-weight:bold;">
+                  <p style="margin:0 0 6px;font-size:13px;color:#931510;font-weight:bold;">
                     Vos avantages en tant que membre
                   </p>
-                  <p style="margin:0;font-size:12px;color:#991b1b;line-height:1.6;">
+                  <p style="margin:0;font-size:12px;color:#931510;line-height:1.6;">
                     En tant que membre, après votre stage de 3 mois,vous bénéficierez de notre
                     <strong>assistance juridique gratuite</strong> pour tout dossier lié
                     au droit du travail belge, ainsi que de l'accès à nos différents
@@ -223,7 +223,7 @@ function buildEmailHtml(p: EmailPayload): string {
             </table>
 
             <!-- CONTACT -->
-            <p style="margin:0 0 24px;font-size:13px;color:#374151;line-height:1.65;">
+            <p style="margin:0 0 24px;font-size:13px;color:#222222;line-height:1.65;">
               Nous restons à votre entière disposition pour toute question complémentaire.
             </p>
 
@@ -235,19 +235,19 @@ function buildEmailHtml(p: EmailPayload): string {
           <td style="padding:0 32px 28px;">
             <table cellpadding="0" cellspacing="0">
               <tr>
-                <td style="border-left:3px solid #b91c1c;padding-left:12px;">
-                  <p style="margin:0;font-size:13px;color:#111827;font-weight:bold;">
+                <td style="border-left:3px solid #931510;padding-left:12px;">
+                  <p style="margin:0;font-size:13px;color:#222222;font-weight:bold;">
                     Solidairement,
                   </p>
-                  <p style="margin:4px 0 0;font-size:13px;color:#374151;">
+                  <p style="margin:4px 0 0;font-size:13px;color:#222222;">
                     L'équipe administrative
                   </p>
-                  <p style="margin:2px 0 0;font-size:12px;color:#b91c1c;font-weight:bold;">
+                  <p style="margin:2px 0 0;font-size:12px;color:#931510;font-weight:bold;">
                     Centrale Générale FGTB Namur Luxembourg
                   </p>
                   <p style="margin:4px 0 0;">
                     <a href="https://${SITE_WEB}"
-                      style="font-size:12px;color:#b91c1c;text-decoration:none;">
+                      style="font-size:12px;color:#931510;text-decoration:none;">
                       ${SITE_WEB}
                     </a>
                   </p>
@@ -259,10 +259,10 @@ function buildEmailHtml(p: EmailPayload): string {
 
         <!-- ══ PIED DE PAGE ═════════════════════════════════════════════ -->
         <tr>
-          <td style="background-color:#f9fafb;padding:14px 32px;border-top:1px solid #e5e7eb;">
-            <p style="margin:0;font-size:10px;color:#9ca3af;text-align:center;line-height:1.5;">
+          <td style="background-color:#ffffff;padding:14px 32px;border-top:1px solid #7C90A0;">
+            <p style="margin:0;font-size:10px;color:#222222;text-align:center;line-height:1.5;">
               Centrale Générale FGTB Namur Luxembourg ·
-              <a href="mailto:${ADMIN_EMAIL}" style="color:#9ca3af;">${ADMIN_EMAIL}</a><br />
+              <a href="mailto:${ADMIN_EMAIL}" style="color:#222222;">${ADMIN_EMAIL}</a><br />
               Ce message a été généré automatiquement. Merci de ne pas y répondre directement.
             </p>
           </td>

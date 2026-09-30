@@ -21,7 +21,7 @@ export default function ConsentementCookies() {
   if (!pret || choix !== null || masque) return null;
 
   const bouton =
-    "inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-militant-bordeaux px-4 font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2";
+    "inline-flex min-h-[44px] flex-1 items-center justify-center whitespace-nowrap rounded-xl bg-militant-bordeaux px-2 text-[15px] font-bold sm:px-4 sm:text-base text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2";
 
   return (
     <section

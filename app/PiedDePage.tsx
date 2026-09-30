@@ -13,11 +13,14 @@ const SITE = [
   { href: "/", label: "Accueil" },
   { href: "/actualites", label: "Actualités" },
   { href: "/actions", label: "Nos actions" },
+  { href: "/demarches", label: "Démarches en ligne" },
   { href: "/contact", label: "Contact" },
 ];
 
+// Même ordre que la grille de /demarches (app/forms.ts).
 const DEMARCHES = [
   { href: "/affiliation", label: "S'affilier" },
+  { href: "/parcours-transfert", label: "Parcours de transfert" },
   { href: "/mandat-sepa", label: "Mandat SEPA" },
   { href: "/formulaire-c1", label: "Formulaire C1" },
   { href: "/formulaire-c3-2", label: "Formulaire C3.2" },

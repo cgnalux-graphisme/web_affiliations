@@ -963,7 +963,7 @@ export default function FormulairePreavis() {
       <div className="max-w-2xl mx-auto space-y-5">
         <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
           <h1 className="text-xl font-semibold leading-snug">Calcul de préavis</h1>
-          <p className="text-red-100 text-sm mt-1.5">Centrale Générale FGTB Namur – Luxembourg</p>
+          <p className="text-red-100 text-sm mt-1.5">Centrale Générale FGTB Namur-Luxembourg</p>
         </header>
 
         {etape === "situation" && (

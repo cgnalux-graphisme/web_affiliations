@@ -4,7 +4,7 @@ import ReglagesCookies from "./ReglagesCookies";
 import PageLegale, { Courriel, Encadre, LienExterne, Section } from "../PageLegale";
 
 export const metadata: Metadata = {
-  title: "Politique cookies — Centrale Générale FGTB Namur – Luxembourg",
+  title: "Politique cookies — Centrale Générale FGTB Namur-Luxembourg",
   description:
     "Chaque cookie du site en détail, avec la possibilité de l'activer ou de le désactiver. Aucune publicité ni mesure d'audience.",
 };

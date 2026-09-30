@@ -19,7 +19,7 @@ export default async function SourcesPage() {
     <div className="mx-auto max-w-4xl">
       <div className="border-b-[6px] border-militant-charbon pb-5">
         <RepereSection />
-        <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">Sources</h1>
+        <h1 className="font-condensed text-5xl font-extrabold uppercase leading-none tracking-tight">Sources</h1>
         <p className="mt-2 max-w-2xl text-base">
           Les flux RSS lus par Scan News chaque matin (et à la demande depuis Le fil). Une source désactivée n&apos;est plus lue, mais ses
           articles déjà ramassés restent dans le fil.

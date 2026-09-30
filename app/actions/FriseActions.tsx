@@ -183,7 +183,7 @@ export default function FriseActions({ jalons }: { jalons: JalonFrise[] }) {
                     <span className="block h-3.5 w-3.5 rounded-full bg-militant-rouge ring-[3px] ring-white transition-transform duration-200 group-hover:scale-150 group-focus-visible:scale-150 group-focus-visible:ring-militant-charbon motion-reduce:transition-none" />
                     <span
                       role="tooltip"
-                      className={`pointer-events-none absolute bottom-full mb-2 w-max max-w-[16rem] bg-militant-bordeaux px-3 py-2 text-left text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 ${
+                      className={`pointer-events-none absolute bottom-full mb-2 w-max max-w-[12rem] sm:max-w-[16rem] bg-militant-bordeaux px-3 py-2 text-left text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 ${
                         bord === "gauche" ? "left-0" : bord === "droite" ? "right-0" : "left-1/2 -translate-x-1/2"
                       }`}
                     >

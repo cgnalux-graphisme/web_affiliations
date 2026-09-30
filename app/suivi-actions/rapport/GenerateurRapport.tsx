@@ -142,7 +142,7 @@ export default function GenerateurRapport() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="border-b-[6px] border-militant-charbon pb-5">
-        <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">Rapport d&apos;activité</h1>
+        <h1 className="font-condensed text-5xl font-extrabold uppercase leading-none tracking-tight">Rapport d&apos;activité</h1>
         <p className="mt-2 text-base">
           Le rapport de congrès en PDF : bilan en chiffres, graphiques et chronologie détaillée de toutes les actions
           de la période, publiées ou non.

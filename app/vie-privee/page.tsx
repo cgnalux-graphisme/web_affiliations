@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PageLegale, { Courriel, Encadre, LienExterne, Liste, Section } from "../PageLegale";
 
 export const metadata: Metadata = {
-  title: "Politique de vie privée — Centrale Générale FGTB Namur – Luxembourg",
+  title: "Politique de vie privée — Centrale Générale FGTB Namur-Luxembourg",
   description: "Quelles données personnelles nous traitons, pourquoi, combien de temps, et quels sont vos droits (RGPD).",
 };
 

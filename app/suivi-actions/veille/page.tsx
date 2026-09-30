@@ -92,7 +92,7 @@ export default async function VeillePage({
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-[6px] border-militant-charbon pb-5">
         <div>
           <RepereSection />
-          <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">Le fil</h1>
+          <h1 className="font-condensed text-5xl font-extrabold uppercase leading-none tracking-tight">Le fil</h1>
           <p className="mt-2 text-base">
             {nombres[VEILLE_NOUVEAU]} nouveau{nombres[VEILLE_NOUVEAU] > 1 ? "x" : ""} à trier. Articles ramassés
             chaque matin dans les{" "}

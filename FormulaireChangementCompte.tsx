@@ -291,11 +291,6 @@ const pdfStyles = StyleSheet.create({
     color: "#222222",
     textAlign: "right",
   },
-  headerSubtitle: {
-    color: "#fca5a5",
-    fontSize: 7.5,
-    marginTop: 2,
-  },
   headerRight: {
     alignItems: "flex-end",
   },
@@ -635,7 +630,7 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure, dateDocument }: {
                 Mandat de domiciliation
               </Text>
               <Text style={{ fontSize: 7, color: "#222222", lineHeight: 1.5 }}>
-                En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur - Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire, et ce conformément aux instructions disponibles sur simple demande. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
+                En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur-Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire, et ce conformément aux instructions disponibles sur simple demande. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
               </Text>
             </View>
             <View style={[pdfStyles.twoCol, { marginTop: 6 }]}>
@@ -712,7 +707,7 @@ function SignaturePad({ onSave }: { onSave: (dataUrl: string) => void }) {
     const ctx = canvasRef.current!.getContext("2d")!;
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
-    ctx.strokeStyle = "#111";
+    ctx.strokeStyle = "#222222";
     const { x, y } = getPos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -735,7 +730,7 @@ function SignaturePad({ onSave }: { onSave: (dataUrl: string) => void }) {
         ref={canvasRef}
         width={480}
         height={100}
-        style={{ border: "1px solid #d1d5db", borderRadius: "6px", touchAction: "none", background: "#fff", width: "100%", maxWidth: "480px", cursor: "crosshair" }}
+        style={{ border: "1px solid #7C90A0", borderRadius: "6px", touchAction: "none", background: "#fff", width: "100%", maxWidth: "480px", cursor: "crosshair" }}
         onMouseDown={startDraw}
         onMouseMove={draw}
         onMouseUp={stopDraw}
@@ -991,12 +986,12 @@ export default function FormulaireChangementCompte() {
         {/* Titre */}
         <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
           <h1 className="text-xl font-semibold leading-snug">Mandat SEPA — Nouveau mandat ou changement de compte</h1>
-          <p className="text-red-100 text-sm mt-1.5">Centrale Générale FGTB Namur – Luxembourg</p>
+          <p className="text-red-100 text-sm mt-1.5">Centrale Générale FGTB Namur-Luxembourg</p>
         </header>
 
         {/* Note légale */}
         <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 text-sm text-red-800 leading-relaxed">
-          En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur - Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
+          En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur-Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm space-y-0">

@@ -49,7 +49,7 @@ export default async function ListeActionsPage({
     <div className="mx-auto max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-[6px] border-militant-charbon pb-5">
         <div>
-          <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">Actions</h1>
+          <h1 className="font-condensed text-5xl font-extrabold uppercase leading-none tracking-tight">Actions</h1>
           {!error && (
             <p className="mt-2 text-base">
               {actions.length} action{actions.length > 1 ? "s" : ""} encodée{actions.length > 1 ? "s" : ""}, dont{" "}

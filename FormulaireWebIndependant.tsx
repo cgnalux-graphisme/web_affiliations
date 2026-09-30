@@ -675,7 +675,7 @@ function CommissionSelect({
 
       {/* ── Pop-up d'avertissement pour "000 - Autre" ── */}
       {showAutreModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-militant-ardoise/70 px-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-6 h-6 text-amber-600 mt-0.5 shrink-0" aria-hidden />
@@ -1112,7 +1112,7 @@ function SignatureCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d")!;
-    ctx.strokeStyle = "#1a1a1a";
+    ctx.strokeStyle = "#222222";
     ctx.lineWidth   = 2;
     ctx.lineCap     = "round";
     ctx.lineJoin    = "round";
@@ -1276,11 +1276,6 @@ const pdfStyles = PDFStyleSheet.create({
     textTransform: "uppercase",
     color: "#222222",
     textAlign: "right",
-  },
-  headerSubtitle: {
-    color: "#fca5a5",
-    fontSize: 7.5,
-    marginTop: 2,
   },
   headerRight: {
     alignItems: "flex-end",
@@ -2476,15 +2471,15 @@ export default function FormulaireWebIndependant({
                   aria-current={i === step ? "step" : undefined}
                   onClick={() => { if (i < step) setStep(i); }}
                   className={[
-                    "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-200",
+                    "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all duration-200",
                     i === step ? "bg-red-700 border-red-700 text-white shadow-md scale-110" :
                     i < step   ? "bg-red-100 border-red-500 text-red-700 cursor-pointer hover:scale-105" :
                                  "bg-gray-100 border-gray-300 text-gray-400 cursor-default",
                   ].join(" ")}
                 >
                   {i < step
-                    ? <CheckCircle className="w-5 h-5" aria-hidden />
-                    : <Icon className="w-5 h-5" aria-hidden />}
+                    ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden />
+                    : <Icon className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden />}
                 </button>
                 <span className={[
                   "text-xs font-medium hidden sm:block",
@@ -2592,9 +2587,10 @@ export default function FormulaireWebIndependant({
       <div className="max-w-2xl mx-auto space-y-5">
 
         {/* ── En-tête FGTB ─────────────────────────────────────────────────── */}
-        <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
+        <header className="bg-red-700 rounded-2xl px-5 py-5 text-white shadow-lg sm:px-6">
           <div className="flex items-center gap-4">
-            <div className="bg-white/10 rounded-xl p-2.5 shrink-0">
+            {/* Pictogramme masqué sur les très petits écrans (320 px) : le titre garde sa place. */}
+            <div className="hidden min-[360px]:block bg-white/10 rounded-xl p-2.5 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/registericon.png"
@@ -2603,16 +2599,16 @@ export default function FormulaireWebIndependant({
                 className="w-12 h-12 object-contain"
               />
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/logo-cg-blanc.png"
                 alt="FGTB"
                 className="h-9 w-auto object-contain shrink-0"
               />
-              <p className="text-white text-lg font-semibold leading-snug">
+              <h1 className="text-white text-lg font-semibold leading-snug">
                 Nouvelle demande d&apos;affiliation
-              </p>
+              </h1>
             </div>
           </div>
         </header>
@@ -3298,7 +3294,7 @@ export default function FormulaireWebIndependant({
           )}
 
           {showDossierJuridiqueModal && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-militant-ardoise/70 px-4">
               <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-6 h-6 text-amber-600 mt-0.5 shrink-0" aria-hidden />
@@ -3577,18 +3573,18 @@ export default function FormulaireWebIndependant({
 
                 {/* ── 4b. Détails DOMICILIATION ── */}
                 {data.modePaiement === "domiciliation" && (
-                  <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 flex flex-col gap-3 text-sm">
-                    <p className="font-semibold text-purple-800">Mandat de domiciliation SEPA</p>
+                  <div className="rounded-xl border border-militant-ardoise bg-white p-4 flex flex-col gap-3 text-sm">
+                    <p className="font-semibold text-militant-charbon">Mandat de domiciliation SEPA</p>
 
-                    <div className="bg-white rounded-lg border border-purple-200 px-4 py-3 flex flex-col gap-1 text-xs text-purple-900">
-                      <p className="font-semibold text-purple-700 uppercase tracking-wide text-xs mb-1">Créancier</p>
-                      <p className="font-semibold">Centrale Générale FGTB Namur – Luxembourg</p>
+                    <div className="bg-white rounded-lg border border-militant-ardoise px-4 py-3 flex flex-col gap-1 text-xs text-militant-charbon">
+                      <p className="font-semibold text-militant-bordeaux uppercase tracking-wide text-xs mb-1">Créancier</p>
+                      <p className="font-semibold">Centrale Générale FGTB Namur-Luxembourg</p>
                       <p>Rue Fonteny Maroy 13, 6800 Libramont-Chevigny</p>
                       <p>Identifiant créancier : <span className="font-mono font-semibold">BE00000647821</span></p>
                     </div>
 
                     {/* Phrase explicative */}
-                    <div className="bg-purple-100 rounded-lg px-3 py-2 text-xs text-purple-800 leading-relaxed">
+                    <div className="bg-militant-ardoise/15 rounded-lg px-3 py-2 text-xs text-militant-charbon leading-relaxed">
                       Le prélèvement automatique démarre le <span className="font-semibold">10 du mois suivant votre inscription</span>.
                       Chaque prélèvement couvre les <span className="font-semibold">3 mois les plus anciens</span> non encore réglés,
                       jusqu&apos;à ce que votre compte soit en ordre.
@@ -3597,13 +3593,13 @@ export default function FormulaireWebIndependant({
                     {/* Échéancier domiciliation */}
                     {echeancesDom ? (
                       <div className="flex flex-col gap-1.5">
-                        <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
+                        <p className="text-xs font-semibold text-militant-bordeaux uppercase tracking-wide">
                           Échéancier des prélèvements — jusqu&apos;à décembre 2026
                         </p>
-                        <div className="overflow-hidden rounded-lg border border-purple-200 bg-white">
+                        <div className="overflow-hidden rounded-lg border border-militant-ardoise bg-white">
                           <table className="w-full text-xs">
                             <thead>
-                              <tr className="bg-purple-100 text-purple-800">
+                              <tr className="bg-militant-ardoise/15 text-militant-charbon">
                                 <th className="px-3 py-2 text-left font-semibold">Date du prélèvement</th>
                                 <th className="px-3 py-2 text-left font-semibold">Mois couverts</th>
                                 <th className="px-3 py-2 text-right font-semibold">Montant</th>
@@ -3611,10 +3607,10 @@ export default function FormulaireWebIndependant({
                             </thead>
                             <tbody>
                               {echeancesDom.map((e, i) => (
-                                <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-purple-50/40"}>
-                                  <td className="px-3 py-2 font-medium text-purple-900 whitespace-nowrap">{e.datePrelevement}</td>
+                                <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-militant-ardoise/5"}>
+                                  <td className="px-3 py-2 font-medium text-militant-charbon whitespace-nowrap">{e.datePrelevement}</td>
                                   <td className="px-3 py-2 text-gray-600">{e.moisCouverts.join(", ")}</td>
-                                  <td className="px-3 py-2 text-right font-bold text-purple-900 font-mono whitespace-nowrap">
+                                  <td className="px-3 py-2 text-right font-bold text-militant-charbon font-mono whitespace-nowrap">
                                     {e.montant.toFixed(2).replace(".", ",")} €
                                   </td>
                                 </tr>
@@ -3624,7 +3620,7 @@ export default function FormulaireWebIndependant({
                         </div>
                       </div>
                     ) : cotisation ? (
-                      <div className="bg-white rounded-lg border border-purple-200 px-4 py-2 text-xs text-purple-900">
+                      <div className="bg-white rounded-lg border border-militant-ardoise px-4 py-2 text-xs text-militant-charbon">
                         Sélectionnez une date d&apos;affiliation pour afficher l&apos;échéancier.
                       </div>
                     ) : null}

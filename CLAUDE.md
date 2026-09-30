@@ -58,6 +58,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/api/contact` | public | Formulaire de contact (POST `{ nom, email, sujet, message, site_web }`) → un e-mail Resend vers `cg.nalux@accg.be`, « Répondre à » = le visiteur. Validation `lib/contact.ts` (partagée navigateur / serveur) ; champ piège `site_web` rempli = réponse « succès » sans envoi ; **rien d'enregistré**, contenu jamais journalisé |
 | `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026 ; politique cookies réécrite et vie privée complétée — formulaire de contact, Google Maps — le même jour) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **Validés par Fred le 29/09/2026.** Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
+| (adresse inconnue) | public | Page 404 du site (`app/not-found.tsx`, 30/09/2026) : « 404 · Page introuvable » au style des autres pages + liens vers les rubriques ; sert aussi aux `notFound()` (article, explication, mobilisation introuvables) |
 | `/login` | public | Connexion (identifiants CG Link) |
 | `/suivi-actions` | SUPER_ADMIN | **Tableau de bord** : une tuile par domaine (Scan News, Démarches affiliés, Actions syndicales, Publications) avec les chiffres clés ; chaque tuile ouvre sa section |
 | `/suivi-actions/actions` | SUPER_ADMIN | Liste de toutes les actions (publiées ou non) — avant le 28/09/2026, elle était à `/suivi-actions` |
@@ -800,6 +801,15 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   une mention légale** (surtout le mandat SEPA : texte de domiciliation, créancier,
   ICS, RGPD, certification de signature). Les PDF officiels C1 / C3.2 et le
   courrier de préavis ne suivent pas cette charte.
+- **Nom de la centrale** : toujours « Centrale Générale FGTB **Namur-Luxembourg** » (trait
+  d'union sans espaces), titres d'onglet compris (`<page> — Centrale Générale FGTB
+  Namur-Luxembourg`). Harmonisé le 30/09/2026.
+- **E-mails automatiques** (confirmation d'affiliation, mandat SEPA, C1 / C3.2 :
+  `app/api/send-confirmation`, `app/api/send-mandat-sepa`, `lib/onem-email-html.ts`) :
+  palette du site depuis le 30/09/2026 (plus de gris, rouge ni orange Tailwind).
+- **Exceptions de palette connues** (audit du 30/09/2026) : vert CSC / bleu Synova,
+  2 couleurs de graphique du rapport, noir des PDF officiels C1 / C3.2 et du courrier
+  de préavis (à ne pas modifier), cartes Google Maps. Tout le reste = 5 couleurs.
 - **Adresses e-mail** : contact général `cg.nalux@accg.be` (site, page Contact) ;
   administration `admin.nalux@accg.be` (PDF affiliation et SEPA, envois
   automatiques). `cg.namurluxembourg@accg.be` est obsolète.

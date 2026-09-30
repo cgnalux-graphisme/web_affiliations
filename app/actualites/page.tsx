@@ -5,9 +5,9 @@ import { chargerPublications } from "../../lib/articles-public";
 import { ListeActualites, ListeActualitesDepuisUrl } from "./ListeActualites";
 
 export const metadata: Metadata = {
-  title: "Actualités — Centrale Générale FGTB Namur – Luxembourg",
+  title: "Actualités — Centrale Générale FGTB Namur-Luxembourg",
   description:
-    "Analyses, informations et notes de la FGTB expliquées simplement par la Centrale Générale FGTB Namur – Luxembourg : emploi, salaires, droits des travailleurs.",
+    "Analyses, informations et notes de la FGTB expliquées simplement par la Centrale Générale FGTB Namur-Luxembourg : emploi, salaires, droits des travailleurs.",
 };
 
 // Une publication depuis l'espace admin apparaît ici en moins d'une minute.

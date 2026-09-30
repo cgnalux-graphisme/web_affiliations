@@ -10,9 +10,9 @@ import LecteurYoutube from "./LecteurYoutube";
 import PhotosUne, { type Photo } from "./PhotosUne";
 
 export const metadata: Metadata = {
-  title: "Nos actions — Centrale Générale FGTB Namur – Luxembourg",
+  title: "Nos actions — Centrale Générale FGTB Namur-Luxembourg",
   description:
-    "Grèves, manifestations et piquets menés par la Centrale Générale FGTB Namur – Luxembourg.",
+    "Grèves, manifestations et piquets menés par la Centrale Générale FGTB Namur-Luxembourg.",
 };
 
 // Une action publiée depuis l'espace admin apparaît ici en moins d'une minute.
@@ -126,7 +126,7 @@ export default async function ActionsPage() {
           </h1>
           <div className="mt-6 h-2 w-24 bg-militant-rouge" aria-hidden />
           <p className="mt-6 max-w-2xl text-lg leading-relaxed sm:text-xl">
-            Grèves, manifestations, piquets : la Centrale Générale FGTB Namur – Luxembourg sur le
+            Grèves, manifestations, piquets : la Centrale Générale FGTB Namur-Luxembourg sur le
             terrain, aux côtés des travailleurs.
           </p>
         </div>

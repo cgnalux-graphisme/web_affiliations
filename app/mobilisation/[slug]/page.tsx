@@ -23,11 +23,11 @@ async function charger(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const m = await charger((await params).slug);
-  if (!m) return { title: "Mobilisation introuvable — Centrale Générale FGTB Namur – Luxembourg" };
+  if (!m) return { title: "Mobilisation introuvable — Centrale Générale FGTB Namur-Luxembourg" };
   const quand = [dateMobilisation(m.date_evenement), m.lieu].filter(Boolean).join(", ");
   const description = [quand, m.chapo].filter(Boolean).join(" — ") || undefined;
   return {
-    title: `${m.titre} — Centrale Générale FGTB Namur – Luxembourg`,
+    title: `${m.titre} — Centrale Générale FGTB Namur-Luxembourg`,
     description,
     openGraph: {
       type: "website",

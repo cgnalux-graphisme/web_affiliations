@@ -51,7 +51,7 @@ export default async function ListePublications({
     <div className="mx-auto max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-[6px] border-militant-charbon pb-5">
         <div>
-          <h1 className="font-condensed text-5xl font-extrabold leading-none tracking-tight">
+          <h1 className="font-condensed text-5xl font-extrabold uppercase leading-none tracking-tight">
             {explication ? "On vous explique" : "Articles"}
           </h1>
           {!error && (

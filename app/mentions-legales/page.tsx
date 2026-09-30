@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PageLegale, { Courriel, Liste, Section, Tel } from "../PageLegale";
 
 export const metadata: Metadata = {
-  title: "Mentions légales — Centrale Générale FGTB Namur – Luxembourg",
+  title: "Mentions légales — Centrale Générale FGTB Namur-Luxembourg",
   description: "Éditeur, responsable de la publication, hébergement et conditions d'utilisation du site.",
 };
 
