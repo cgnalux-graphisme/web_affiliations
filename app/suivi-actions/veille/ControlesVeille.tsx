@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle, EyeOff, PenLine, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
 import { IconeChargement } from "../../Chargement";
 import { getSupabaseAuth } from "../../../lib/supabase";
+import { avecDelai } from "../../../lib/delai";
 import {
   LIBELLES_STATUT,
   STATUTS_VEILLE,
@@ -159,7 +160,10 @@ export function ActionsItem({ id, titre, statut }: { id: string; titre: string; 
     setErreur("");
     // L'item est marqué traité, puis le formulaire d'article s'ouvre pré-rempli
     // (avec l'IA : le panneau de rédaction assistée est prêt, on peut y coller un extrait avant de lancer).
-    if (statut === VEILLE_TRAITE || (await changerStatut(VEILLE_TRAITE))) {
+    // Marquer « traité » est secondaire : si la base ne répond pas en 8 s (session du navigateur bloquée,
+    // réseau), le formulaire s'ouvre quand même. Seul un refus explicite de la base l'empêche.
+    const marque = statut === VEILLE_TRAITE ? true : await avecDelai(changerStatut(VEILLE_TRAITE), 8000).catch(() => false);
+    if (marque !== false) {
       router.push(`/suivi-actions/articles/nouveau?veille=${id}${avecIA ? "&ia=1" : ""}`);
       return;
     }

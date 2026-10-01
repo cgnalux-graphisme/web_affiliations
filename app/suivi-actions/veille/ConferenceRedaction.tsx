@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ToucheReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, Ban, CheckCircle, ExternalLink, EyeOff, HelpCircle, PenLine, RotateCcw, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, ArrowLeft, Ban, CheckCircle, ExternalLink, EyeOff, FilePen, HelpCircle, PenLine, RotateCcw, Sparkles } from "lucide-react";
 import { IconeChargement } from "../../Chargement";
 import { getSupabaseAuth } from "../../../lib/supabase";
+import { STATUT_PUBLIE } from "../../../lib/articles";
+import type { ArticleLie } from "../../../lib/veille-articles-lies";
+import { avecDelai } from "../../../lib/delai";
 import { VEILLE_IGNORE, VEILLE_NOUVEAU, VEILLE_TRAITE, type StatutVeille } from "../../../lib/veille";
 import {
   FENETRE_HEURES,
@@ -34,7 +38,8 @@ const PLEIN = `${BOUTON} border-militant-bordeaux bg-militant-bordeaux text-whit
 const CONTOUR = `${BOUTON} border-militant-charbon bg-white hover:bg-militant-charbon hover:text-white`;
 const DISCRET = `${BOUTON} border-transparent hover:border-militant-charbon`;
 
-type EtatSujet = "" | "redaction" | "ignore";
+/** brouillon / publie : un article enregistré traite le sujet ; commence : rédaction lancée mais rien d'enregistré. */
+type EtatSujet = "" | "commence" | "brouillon" | "publie" | "ignore";
 type Sujet = SujetClasse & { index: number };
 
 function heure(iso: string) {
@@ -54,7 +59,9 @@ function Rang({ rang, taille = "moyen" }: { rang: Rang; taille?: "petit" | "moye
 }
 
 function PuceEtat({ etat }: { etat: EtatSujet }) {
-  if (etat === "redaction") return <span className="rounded-full bg-militant-bordeaux px-2.5 py-0.5 text-xs font-bold text-white">En rédaction</span>;
+  if (etat === "publie") return <span className="rounded-full bg-militant-bordeaux px-2.5 py-0.5 text-xs font-bold text-white">Publié</span>;
+  if (etat === "brouillon") return <span className="rounded-full bg-militant-bordeaux px-2.5 py-0.5 text-xs font-bold text-white">Brouillon enregistré</span>;
+  if (etat === "commence") return <span className="rounded-full border-[1.5px] border-militant-bordeaux px-2.5 py-0.5 text-xs font-bold text-militant-bordeaux">Commencé</span>;
   if (etat === "ignore") return <span className="rounded-full border-[1.5px] border-militant-ardoise px-2.5 py-0.5 text-xs font-bold">Ignoré</span>;
   return null;
 }
@@ -83,8 +90,11 @@ function Lisibilite({ lisible }: { lisible: ArticleSujet["lisible"] }) {
 export default function ConferenceRedaction({
   analyse,
   statutsInitiaux,
+  articlesLies = {},
 }: {
   analyse: AnalyseEnregistree;
+  /** Index du sujet → article enregistré qui le traite (reconnu à ses sources). */
+  articlesLies?: Record<number, ArticleLie>;
   /** Statut actuel des articles du classement (absent = effacé du fil). */
   statutsInitiaux: Record<string, string>;
 }) {
@@ -99,13 +109,15 @@ export default function ConferenceRedaction({
 
   const presents = useCallback((s: SujetClasse) => idsDuSujet(s).filter((id) => id in statuts), [statuts]);
   const etatDe = useCallback(
-    (s: SujetClasse): EtatSujet => {
+    (s: Sujet): EtatSujet => {
+      const lie = articlesLies[s.index];
+      if (lie) return lie.statut === STATUT_PUBLIE ? "publie" : "brouillon";
       const ids = presents(s);
       if (!ids.length) return "";
       if (ids.every((id) => statuts[id] === VEILLE_IGNORE)) return "ignore";
-      return ids.some((id) => statuts[id] === VEILLE_TRAITE) ? "redaction" : "";
+      return ids.some((id) => statuts[id] === VEILLE_TRAITE) ? "commence" : "";
     },
-    [presents, statuts]
+    [presents, statuts, articlesLies]
   );
 
   const [choisi, setChoisi] = useState<number>(() => (principaux.find((s) => !etatDe(s)) ?? principaux[0] ?? sujets[0])?.index ?? 0);
@@ -153,7 +165,9 @@ export default function ConferenceRedaction({
     setEnCours(avecIA ? "ia" : "rediger");
     setErreur("");
     const aMarquer = Object.fromEntries(ids.filter((id) => statuts[id] !== VEILLE_TRAITE).map((id) => [id, VEILLE_TRAITE]));
-    if (!Object.keys(aMarquer).length || (await ecrire(aMarquer))) {
+    // Marquer « traité » est secondaire : sans réponse de la base en 8 s, le formulaire s'ouvre quand même.
+    const marque = !Object.keys(aMarquer).length ? true : await avecDelai(ecrire(aMarquer), 8000).catch(() => false);
+    if (marque !== false) {
       router.push(cheminRedactionSujet(analyse.id, s.index, avecIA));
       return;
     }
@@ -446,9 +460,30 @@ export default function ConferenceRedaction({
             })}
           </ul>
 
+          {articlesLies[sujet.index] && (
+            <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border-2 border-militant-bordeaux px-4 py-3">
+              <p className="min-w-0 flex-1 text-[15px]">
+                <span className="font-bold text-militant-bordeaux">
+                  {articlesLies[sujet.index].statut === STATUT_PUBLIE ? "Article publié" : "Brouillon enregistré"} :
+                </span>{" "}
+                {articlesLies[sujet.index].titre}
+              </p>
+              <Link href={`/suivi-actions/articles/${articlesLies[sujet.index].id}/modifier`} className={PLEIN}>
+                <FilePen size={16} aria-hidden />
+                {articlesLies[sujet.index].statut === STATUT_PUBLIE ? "Ouvrir l'article" : "Continuer le brouillon"}
+              </Link>
+            </div>
+          )}
+          {etatSujet === "commence" && (
+            <p className="mt-6 text-[15px]">
+              Rédaction commencée, mais aucun article enregistré ne reprend ces sources. Relancez « Brouillon IA » ou
+              « Rédiger un article » : le formulaire s&apos;ouvre de nouveau, pré-rempli.
+            </p>
+          )}
+
           {idsSujet.length ? (
             <div className="mt-6 flex flex-wrap gap-2">
-              <button type="button" onClick={() => rediger(sujet, true)} disabled={enCours !== null} className={PLEIN}>
+              <button type="button" onClick={() => rediger(sujet, true)} disabled={enCours !== null} className={articlesLies[sujet.index] ? CONTOUR : PLEIN}>
                 {enCours === "ia" ? <IconeChargement size={16} /> : <Sparkles size={16} aria-hidden />}
                 Brouillon IA
               </button>

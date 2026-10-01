@@ -10,6 +10,7 @@ import { idsDuSujet, ramassageRecent, type AnalyseEnregistree } from "../../../l
 import { CLE_DERNIER_RAMASSAGE } from "../../../lib/veille-ramassage";
 import { ActionsItem, BoutonCheckIA, BoutonRamassage, FiltresVeille } from "./ControlesVeille";
 import ConferenceRedaction from "./ConferenceRedaction";
+import { articlesLiesAuxSujets, type ArticleLie } from "../../../lib/veille-articles-lies";
 import LogoMedia from "./LogoMedia";
 import RepereSection from "../RepereSection";
 
@@ -103,9 +104,23 @@ export default async function VeillePage({
   const analyse = resAnalyse.error ? null : ((resAnalyse.data as AnalyseEnregistree | null) ?? null);
   const idsAnalyse = [...new Set((analyse?.resultat?.sujets ?? []).flatMap(idsDuSujet))];
   const statutsAnalyse: Record<string, string> = {};
+  const liensDuFil: Record<string, string> = {};
+  let articlesLies: Record<number, ArticleLie> = {};
   if (idsAnalyse.length) {
-    const { data } = await supabase.from("site_veille").select("id, statut").in("id", idsAnalyse);
-    for (const l of (data ?? []) as { id: string; statut: string }[]) statutsAnalyse[l.id] = l.statut;
+    const [{ data }, { data: articles }] = await Promise.all([
+      supabase.from("site_veille").select("id, statut, lien").in("id", idsAnalyse),
+      // Articles récents (brouillons et publiés) : un sujet est « en rédaction » si l'un d'eux cite ses liens.
+      supabase.from("site_articles").select("id, titre, statut, sources").order("updated_at", { ascending: false }).limit(150),
+    ]);
+    for (const l of (data ?? []) as { id: string; statut: string; lien: string }[]) {
+      statutsAnalyse[l.id] = l.statut;
+      liensDuFil[l.id] = l.lien;
+    }
+    articlesLies = articlesLiesAuxSujets(
+      analyse?.resultat?.sujets ?? [],
+      (articles ?? []) as { id: string; titre: string; statut: string; sources: string | null }[],
+      liensDuFil
+    );
   }
   const dernierRamassage = (resRamassage.data?.valeur as string | undefined) ?? null;
   const filFrais = ramassageRecent(dernierRamassage);
@@ -191,7 +206,7 @@ export default async function VeillePage({
 
       {vue === "check" &&
         (analyse ? (
-          <ConferenceRedaction key={analyse.id} analyse={analyse} statutsInitiaux={statutsAnalyse} />
+          <ConferenceRedaction key={analyse.id} analyse={analyse} statutsInitiaux={statutsAnalyse} articlesLies={articlesLies} />
         ) : (
           <div className="mt-10 border-l-[6px] border-militant-rouge py-2 pl-5">
             <p className="font-condensed text-3xl font-bold">Pas encore de classement.</p>

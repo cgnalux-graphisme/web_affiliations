@@ -13,12 +13,13 @@ import {
   Italic,
   Lightbulb,
   RefreshCw,
+  RotateCcw,
   Sparkles,
   X,
 } from "lucide-react";
 import { IconeChargement } from "../../Chargement";
 import { compterMots, evaluerMatiere, lecturePossible, SEUIL_CORRECTE, SEUIL_SOLIDE, type Lisible, type Matiere } from "../../../lib/matiere";
-import { CONSIGNES_MAX, EXTRAIT_MAX, LECTURES_MAX } from "../../../lib/redaction-limites";
+import { CONSIGNES_MAX, EXTRAIT_MAX, LECTURES_MAX, SOURCES_MAX } from "../../../lib/redaction-limites";
 import type { Lisibilite } from "../../api/redaction/lisibilite/route";
 
 /** Une source proposée à la rédaction assistée (un article du fil). */
@@ -50,6 +51,8 @@ export type EtatIA =
 export const RAPPEL_IA = "Brouillon IA — à vérifier, corriger et valider avant publication. Recoupez avec les sources.";
 
 type EtatSource = {
+  /** Source écartée du brouillon par l'éditeur (ou d'office au-delà de SOURCES_MAX). */
+  exclue: boolean;
   lisible: Lisible;
   explication: string;
   lien: string;
@@ -98,9 +101,19 @@ export default function PanneauRedaction({
   const enCours = ia.etape === "en_cours";
   const [etats, setEtats] = useState<Record<string, EtatSource>>(() =>
     Object.fromEntries(
-      sources.map((s) => [
+      sources.map((s, i) => [
         s.id,
-        { lisible: "chargement", explication: "", lien: s.lien, lire: false, texte: "", ouvert: false, message: "", confirme: 0 },
+        {
+          exclue: i >= SOURCES_MAX,
+          lisible: "chargement",
+          explication: "",
+          lien: s.lien,
+          lire: false,
+          texte: "",
+          ouvert: false,
+          message: "",
+          confirme: 0,
+        },
       ])
     )
   );
@@ -133,10 +146,13 @@ export default function PanneauRedaction({
     };
   }, [sources]);
 
+  const retenues = sources.filter((s) => !etats[s.id].exclue);
+  const tropDeSources = retenues.length > SOURCES_MAX;
+
   const matiere = useMemo(
     () =>
       evaluerMatiere(
-        sources.map((s) => ({
+        sources.filter((s) => !etats[s.id].exclue).map((s) => ({
           nom: s.source ?? "cette source",
           resumeMots: s.resumeMots,
           lisible: etats[s.id].lisible,
@@ -164,22 +180,22 @@ export default function PanneauRedaction({
     }
   }
 
-  const textesTrop = sources.some((s) => etats[s.id].texte.trim().length > EXTRAIT_MAX) || notes.trim().length > EXTRAIT_MAX;
+  const textesTrop = retenues.some((s) => etats[s.id].texte.trim().length > EXTRAIT_MAX) || notes.trim().length > EXTRAIT_MAX;
   const consignesTrop = consignes.trim().length > CONSIGNES_MAX;
 
   function lancer() {
-    const lire = sources.filter((s) => etats[s.id].lire && lecturePossible(etats[s.id].lisible)).map((s) => s.id);
+    const lire = retenues.filter((s) => etats[s.id].lire && lecturePossible(etats[s.id].lisible)).map((s) => s.id);
     const textes = Object.fromEntries(
-      sources.filter((s) => etats[s.id].texte.trim()).map((s) => [s.id, etats[s.id].texte.trim()])
+      retenues.filter((s) => etats[s.id].texte.trim()).map((s) => [s.id, etats[s.id].texte.trim()])
     );
-    onLancer({ veilleIds: sources.map((s) => s.id), lire, textes, notes: notes.trim(), consignes: consignes.trim() });
+    onLancer({ veilleIds: retenues.map((s) => s.id), lire, textes, notes: notes.trim(), consignes: consignes.trim() });
   }
 
   // Récapitulatif de ce que l'IA utilisera.
-  const nomsLus = sources.filter((s) => etats[s.id].lire && lecturePossible(etats[s.id].lisible)).map((s) => s.source ?? "une source");
-  const nomsColles = sources.filter((s) => etats[s.id].texte.trim()).map((s) => s.source ?? "une source");
+  const nomsLus = retenues.filter((s) => etats[s.id].lire && lecturePossible(etats[s.id].lisible)).map((s) => s.source ?? "une source");
+  const nomsColles = retenues.filter((s) => etats[s.id].texte.trim()).map((s) => s.source ?? "une source");
   const recap = [
-    sources.length > 1 ? `les ${sources.length} résumés du flux` : "le résumé du flux",
+    retenues.length > 1 ? `les ${retenues.length} résumés du flux` : "le résumé du flux",
     nomsLus.length && `${nomsLus.length > 1 ? "les articles" : "l'article"} de ${liste(nomsLus)}, lu${nomsLus.length > 1 ? "s" : ""} par l'IA`,
     nomsColles.length && `votre texte de ${liste(nomsColles)}`,
     notes.trim() && "vos notes",
@@ -204,7 +220,7 @@ export default function PanneauRedaction({
             </h2>
             <p className="mt-2 max-w-prose text-sm leading-relaxed">
               {sources.length > 1
-                ? `Un seul article de synthèse à partir des ${sources.length} sources du sujet. `
+                ? `Un seul article de synthèse à partir des sources retenues du sujet. `
                 : "Un brouillon à partir de cet article. "}
               Donnez à l&apos;IA le texte d&apos;au moins une source : elle lit celles que le média autorise, vous collez les
               autres. Les passages repris mot pour mot sont mis en italique.
@@ -214,11 +230,24 @@ export default function PanneauRedaction({
         </div>
 
         <ol className="mt-6 space-y-6">
-          <Etape numero={1} titre={sources.length > 1 ? `Les ${sources.length} sources` : "La source"}>
+          <Etape
+            numero={1}
+            titre={
+              sources.length > 1
+                ? `Les sources : ${retenues.length} retenue${retenues.length > 1 ? "s" : ""} sur ${sources.length}`
+                : "La source"
+            }
+          >
             <p className="mb-3 text-sm">
               Lecture par l&apos;IA : {LECTURES_MAX} sources au maximum, environ 8 c. chacune. Sinon, ouvrez l&apos;article et
-              collez son texte.
+              collez son texte.{sources.length > 1 && ` « Retirer » écarte une source du brouillon (${SOURCES_MAX} au maximum).`}
             </p>
+            {tropDeSources && (
+              <p role="alert" className="mb-3 flex items-start gap-1.5 text-sm font-semibold text-militant-bordeaux">
+                <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
+                {SOURCES_MAX} sources au maximum : retirez-en {retenues.length - SOURCES_MAX} avant de créer le brouillon.
+              </p>
+            )}
             <ul className="space-y-2.5">
               {sources.map((s) => (
                 <LigneSource
@@ -232,6 +261,8 @@ export default function PanneauRedaction({
                   onTexte={(texte) => maj(s.id, { texte, lire: texte.trim() ? false : etats[s.id].lire, message: "" })}
                   onOuvrir={(ouvert) => maj(s.id, { ouvert, message: "" })}
                   onRetirer={() => maj(s.id, { texte: "", ouvert: false, message: "" })}
+                  multiple={sources.length > 1}
+                  onExclure={() => maj(s.id, { exclue: !etats[s.id].exclue, lire: false, ouvert: false, message: "" })}
                 />
               ))}
             </ul>
@@ -283,7 +314,7 @@ export default function PanneauRedaction({
               <button
                 type="button"
                 onClick={lancer}
-                disabled={enCours || textesTrop || consignesTrop}
+                disabled={enCours || textesTrop || consignesTrop || !retenues.length || tropDeSources}
                 className="inline-flex min-h-[48px] shrink-0 items-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
               >
                 {enCours ? (
@@ -390,6 +421,8 @@ function LigneSource({
   onTexte,
   onOuvrir,
   onRetirer,
+  multiple,
+  onExclure,
 }: {
   source: SourcePanneau;
   etat: EtatSource;
@@ -400,23 +433,32 @@ function LigneSource({
   onTexte: (texte: string) => void;
   onOuvrir: (ouvert: boolean) => void;
   onRetirer: () => void;
+  /** Plusieurs sources : la ligne peut être retirée du brouillon. */
+  multiple: boolean;
+  onExclure: () => void;
 }) {
   const nom = source.source ?? "Source inconnue";
+  const exclue = etat.exclue;
   const texteMots = compterMots(etat.texte);
   const lisible = lecturePossible(etat.lisible);
   const lue = etat.lire && lisible;
   // Rail de gauche : ce qui nourrira l'IA pour cette source (le texte de la ligne le dit aussi).
-  const rail = texteMots ? "bg-militant-bordeaux" : lue ? "bg-militant-rouge" : "bg-militant-ardoise/45";
+  const rail = exclue ? "bg-transparent" : texteMots ? "bg-militant-bordeaux" : lue ? "bg-militant-rouge" : "bg-militant-ardoise/45";
   const idTexte = `texte-${source.id}`;
 
   return (
-    <li className="relative grid gap-x-4 gap-y-3 overflow-hidden rounded-xl border border-militant-ardoise bg-white py-3.5 pl-5 pr-3.5 sm:grid-cols-[minmax(0,1fr)_auto]">
+    <li
+      className={`relative grid gap-x-4 gap-y-3 overflow-hidden rounded-xl border bg-white py-3.5 pl-5 pr-3.5 transition-opacity sm:grid-cols-[minmax(0,1fr)_auto] ${
+        exclue ? "border-dashed border-militant-ardoise opacity-60" : "border-militant-ardoise"
+      }`}
+    >
       {/* Confirmation d'un collage : voile bordeaux qui s'efface (rejoué à chaque collage grâce à la clé). */}
       {etat.confirme > 0 && <span key={etat.confirme} aria-hidden className="source-confirmee pointer-events-none absolute inset-0" />}
       <span aria-hidden className={`absolute inset-y-0 left-0 w-[6px] transition-colors duration-300 ${rail}`} />
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="font-condensed text-xl font-bold leading-tight">{nom}</span>
+          <span className={`font-condensed text-xl font-bold leading-tight ${exclue ? "line-through decoration-2" : ""}`}>{nom}</span>
+          {exclue && <span className="rounded-full border border-militant-charbon px-2 py-px text-[11px] font-bold">Retirée du brouillon</span>}
           {source.alerte && (
             <span className="rounded-full border border-militant-ardoise px-2 py-px text-[11px] font-semibold">via alerte Google</span>
           )}
@@ -448,7 +490,7 @@ function LigneSource({
         >
           <ExternalLink size={15} aria-hidden /> Ouvrir
         </a>
-        {lisible && !texteMots && (
+        {!exclue && lisible && !texteMots && (
           <button
             type="button"
             aria-pressed={lue}
@@ -462,19 +504,28 @@ function LigneSource({
             <span className="sr-only"> : {nom}</span>
           </button>
         )}
-        <button
-          type="button"
-          onClick={onColler}
-          disabled={desactive}
-          className={etat.lisible === "non" && !texteMots ? BOUTON_PLEIN : BOUTON_CONTOUR}
-        >
-          <ClipboardPaste size={15} aria-hidden />
-          {texteMots ? "Recoller" : "Coller"}
-          <span className="sr-only"> le texte de {nom}</span>
-        </button>
+        {!exclue && (
+          <button
+            type="button"
+            onClick={onColler}
+            disabled={desactive}
+            className={etat.lisible === "non" && !texteMots ? BOUTON_PLEIN : BOUTON_CONTOUR}
+          >
+            <ClipboardPaste size={15} aria-hidden />
+            {texteMots ? "Recoller" : "Coller"}
+            <span className="sr-only"> le texte de {nom}</span>
+          </button>
+        )}
+        {multiple && (
+          <button type="button" onClick={onExclure} disabled={desactive} aria-pressed={exclue} className={BOUTON_DISCRET}>
+            {exclue ? <RotateCcw size={15} aria-hidden /> : <X size={15} aria-hidden />}
+            {exclue ? "Remettre" : "Retirer"}
+            <span className="sr-only"> : {nom}</span>
+          </button>
+        )}
       </div>
 
-      {(texteMots > 0 || etat.ouvert || etat.message) && (
+      {!exclue && (texteMots > 0 || etat.ouvert || etat.message) && (
         <div className="sm:col-span-2">
           {etat.message && (
             <p role="status" className="mb-2 flex items-start gap-1.5 text-sm font-semibold text-militant-bordeaux">
