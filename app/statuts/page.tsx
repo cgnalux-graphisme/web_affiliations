@@ -98,12 +98,7 @@ export default function StatutsPage() {
   return (
     <main className="bg-white font-barlow text-militant-charbon">
       <header className="mx-auto max-w-6xl px-4 pb-8 pt-12 sm:px-6 sm:pt-16 lg:px-8">
-        <p className="font-condensed text-xl font-bold leading-tight">
-          REGIONALE NAMUR-LUXEMBOURG
-          <br />
-          &quot;CENTRALE GENERALE - FGTB&quot;
-        </p>
-        <h1 className="mt-3 font-condensed text-5xl font-extrabold uppercase leading-[0.88] tracking-tight sm:text-7xl">STATUTS</h1>
+        <h1 className="font-condensed text-5xl font-extrabold uppercase leading-[0.88] tracking-tight sm:text-7xl">STATUTS</h1>
         <div className="mt-6 h-2 w-24 bg-militant-rouge" aria-hidden />
       </header>
 

@@ -23,6 +23,7 @@ import { contenuProceduresEnvoi } from "./lib/preavis/contenu-procedures-envoi";
 import { LettrePDF, ADRESSE_VIDE, adresseVide, adresseComplete, type Adresse } from "./lib/preavis/courriers/LettrePDF";
 import type { ContenuInformatif } from "./lib/preavis/types";
 
+import { EnteteFormulaire, EtapesFormulaire } from "./app/formulaires/Charte";
 type RuptureChoix = QuiRompt | "commun-accord";
 type ModeEmployeur = "preavis" | "indemnite";
 type Etape = "situation" | "complement" | "resultat";
@@ -262,13 +263,13 @@ function calculerResultat(d: DonneesFormulaire): Resultat {
   };
 }
 
-const CLASSE_INPUT =
-  "w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors border-gray-300 focus:ring-red-200";
-const CLASSE_LABEL = "block text-sm font-medium text-gray-700 mb-1.5";
-const CLASSE_BOUTON_PRIMAIRE =
-  "inline-flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
-const CLASSE_BOUTON_SECONDAIRE =
-  "inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+// Apparence commune des formulaires : app/formulaires/Charte.tsx et .formulaire (app/globals.css).
+const CLASSE_INPUT = "w-full border rounded-xl px-4 py-2.5 focus:outline-none border-gray-300";
+const CLASSE_LABEL = "form-libelle mb-1.5 block";
+const CLASSE_BOUTON_PRIMAIRE = "form-btn-principal";
+const CLASSE_BOUTON_SECONDAIRE = "form-btn-secondaire";
+const ETAPES: Etape[] = ["situation", "complement", "resultat"];
+const LIBELLES_ETAPES = ["Votre situation", "Votre rémunération", "Votre préavis"];
 
 /**
  * Champ date au format JJ/MM/AAAA saisi au clavier (comme dans les autres
@@ -412,7 +413,7 @@ function ChampCommissionParitaire({
           )}
         </ul>
       )}
-      <p className="text-xs text-gray-500 mt-1.5">
+      <p className="form-aide mt-1.5">
         Recherchez par numéro ou par nom. Si vous ne connaissez pas votre commission paritaire, choisissez «{" "}
         {OPTION_CP_INCONNUE} » — le calcul utilisera alors le régime légal général, à titre informatif.
       </p>
@@ -427,10 +428,10 @@ function ChampMonnaie({ montant }: { montant: number }): React.ReactElement {
 
 function BlocInformatif({ contenu }: { contenu: ContenuInformatif }): React.ReactElement {
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+    <div className="form-carte etape-entree space-y-4">
       {contenu.sections.map((section) => (
         <div key={section.titre}>
-          <h3 className="font-semibold text-gray-900 mb-2">{section.titre}</h3>
+          <h3 className="mb-2 font-condensed text-[22px] font-extrabold uppercase leading-tight">{section.titre}</h3>
           <div className="space-y-1.5">
             {section.phrases.map((phrase, i) => (
               <p key={i} className="text-sm text-gray-700 leading-relaxed">
@@ -736,15 +737,15 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+    <div className="form-carte etape-entree space-y-4">
       <div>
         <label className={CLASSE_LABEL}>Souhaitez-vous un modèle de lettre ?</label>
         <div className="flex gap-4">
-          <label className="flex items-center gap-2 text-sm text-gray-800">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
             <input type="radio" name="souhaiteLettre" checked={souhaite} onChange={() => setSouhaite(true)} />
             Oui
           </label>
-          <label className="flex items-center gap-2 text-sm text-gray-800">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
             <input type="radio" name="souhaiteLettre" checked={!souhaite} onChange={() => setSouhaite(false)} />
             Non
           </label>
@@ -757,7 +758,7 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
             <div>
               <label className={CLASSE_LABEL}>Quel type de courrier ?</label>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm text-gray-800">
+                <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                   <input
                     type="radio"
                     name="typeLettre"
@@ -766,7 +767,7 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
                   />
                   Démission par courrier recommandé
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-800">
+                <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                   <input
                     type="radio"
                     name="typeLettre"
@@ -959,19 +960,22 @@ export default function FormulairePreavis() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-5">
-        <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
-          <h1 className="text-xl font-semibold leading-snug">Calcul de préavis</h1>
-          <p className="text-red-100 text-sm mt-1.5">Centrale Générale FGTB Namur-Luxembourg</p>
-        </header>
+    <div className="min-h-screen bg-white px-4 py-8">
+      <div className="form-cadre">
+        <EnteteFormulaire titre="Calcul de préavis" />
+        {/* Sans étape intermédiaire (rémunération inutile), l'indicateur n'en montre que deux. */}
+        <EtapesFormulaire
+          libelles={afficheEtapeIntermediaire ? LIBELLES_ETAPES : [LIBELLES_ETAPES[0], LIBELLES_ETAPES[2]]}
+          courant={afficheEtapeIntermediaire ? ETAPES.indexOf(etape) : etape === "situation" ? 0 : 1}
+          className="px-1 py-2"
+        />
 
         {etape === "situation" && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+          <div className="form-carte etape-entree space-y-6">
             <div>
               <label className={CLASSE_LABEL}>Type de contrat</label>
               <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-gray-800">
+                <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                   <input
                     type="radio"
                     name="typeContrat"
@@ -980,7 +984,7 @@ export default function FormulairePreavis() {
                   />
                   CDI (durée indéterminée)
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-800">
+                <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                   <input
                     type="radio"
                     name="typeContrat"
@@ -1031,7 +1035,7 @@ export default function FormulairePreavis() {
 
                 {donnees.casCdd === "premiere-moitie" && (
                   <>
-                    <label className="flex items-center gap-2 text-sm text-gray-800">
+                    <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                       <input
                         type="checkbox"
                         checked={donnees.premierCdd}
@@ -1055,7 +1059,7 @@ export default function FormulairePreavis() {
                   />
                 )}
 
-                <p className="text-xs text-gray-500 mt-1.5">
+                <p className="form-aide mt-1.5">
                   La rupture anticipée d'un CDD n'est possible que dans des cas précis. En dehors de ces cas, elle est
                   illégale et peut entraîner une indemnité à payer à l'employeur.
                 </p>
@@ -1111,7 +1115,7 @@ export default function FormulairePreavis() {
               <div>
                 <label className={CLASSE_LABEL}>Comment le préavis est-il donné ?</label>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-800">
+                  <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                     <input
                       type="radio"
                       name="modeEmployeur"
@@ -1120,7 +1124,7 @@ export default function FormulairePreavis() {
                     />
                     Préavis presté (vous continuez à travailler pendant le préavis)
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-800">
+                  <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                     <input
                       type="radio"
                       name="modeEmployeur"
@@ -1150,7 +1154,7 @@ export default function FormulairePreavis() {
                   valeurIso={donnees.dateRupture}
                   onChange={(iso) => majChamp("dateRupture", iso)}
                 />
-                <p className="text-xs text-gray-500 mt-1.5">
+                <p className="form-aide mt-1.5">
                   Le préavis démarre toujours un lundi. Nous calculerons la date limite pour envoyer le recommandé et
                   atteindre cette date — vous pourrez toujours ajuster la date choisie après avoir vu le résultat.
                 </p>
@@ -1174,7 +1178,7 @@ export default function FormulairePreavis() {
         )}
 
         {etape === "complement" && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+          <div className="form-carte etape-entree space-y-6">
             <div>
               <label className={CLASSE_LABEL}>Rémunération annuelle brute (€)</label>
               <input
@@ -1185,7 +1189,7 @@ export default function FormulairePreavis() {
                 onChange={(e) => majChamp("remunerationAnnuelle", e.target.value)}
                 placeholder="Ex : 35000"
               />
-              <p className="text-xs text-gray-500 mt-1.5">
+              <p className="form-aide mt-1.5">
                 {donnees.ruptureChoix === "employeur" && donnees.modeEmployeur === "indemnite"
                   ? "Nécessaire pour estimer le montant de l'indemnité."
                   : "Nécessaire car votre ancienneté avant 2014 dépend d'un seuil de rémunération légal."}
@@ -1223,9 +1227,9 @@ export default function FormulairePreavis() {
             )}
 
             {resultat.type === "indemnite" && (
-              <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
-                <h3 className="font-semibold text-gray-900">Durée de préavis équivalente</h3>
-                <p className="text-2xl font-bold text-red-700">{formaterDureePreavis(resultat.jours)}</p>
+              <div className="form-carte etape-entree space-y-3">
+                <h3 className="font-condensed text-[22px] font-extrabold uppercase leading-tight">Durée de préavis équivalente</h3>
+                <p className="font-condensed text-4xl font-extrabold leading-none text-militant-rouge">{formaterDureePreavis(resultat.jours)}</p>
                 {resultat.montantIndemnite !== null ? (
                   <p className="text-sm text-gray-700">
                     Indemnité compensatoire estimée :{" "}
@@ -1247,11 +1251,11 @@ export default function FormulairePreavis() {
 
             {resultat.type === "cdd" && (
               <>
-                <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
-                  <h3 className="font-semibold text-gray-900">Rupture anticipée de votre CDD</h3>
+                <div className="form-carte etape-entree space-y-3">
+                  <h3 className="font-condensed text-[22px] font-extrabold uppercase leading-tight">Rupture anticipée de votre CDD</h3>
                   {resultat.resultat.valide ? (
                     <>
-                      <p className="text-2xl font-bold text-red-700">
+                      <p className="font-condensed text-4xl font-extrabold leading-none text-militant-rouge">
                         {resultat.resultat.dureePreavis ? formaterDureePreavis(resultat.resultat.dureePreavis.jours) : "Sans préavis"}
                       </p>
                       {resultat.resultat.dateLimitePremiereMoitie && (
@@ -1303,9 +1307,9 @@ export default function FormulairePreavis() {
 
             {resultat.type === "preavis" && (
               <>
-                <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
-                  <h3 className="font-semibold text-gray-900">Votre préavis</h3>
-                  <p className="text-2xl font-bold text-red-700">{formaterDureePreavis(resultat.jours)}</p>
+                <div className="form-carte etape-entree space-y-3">
+                  <h3 className="font-condensed text-[22px] font-extrabold uppercase leading-tight">Votre préavis</h3>
+                  <p className="font-condensed text-4xl font-extrabold leading-none text-militant-rouge">{formaterDureePreavis(resultat.jours)}</p>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-gray-500">Début du préavis</p>
@@ -1381,7 +1385,7 @@ export default function FormulairePreavis() {
               </>
             )}
 
-            <div className="bg-gray-100 rounded-2xl p-4">
+            <div className="rounded-2xl border border-militant-ardoise p-4">
               <p className="text-xs text-gray-600">
                 Cet outil donne une estimation basée sur les informations que vous avez fournies. Il ne remplace pas
                 un conseil personnalisé. Pour toute question sur votre situation, contactez votre secrétariat FGTB.

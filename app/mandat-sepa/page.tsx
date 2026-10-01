@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function MandatSepaPage() {
   return (
-    <main className="p-4 bg-gray-50 min-h-screen">
+    <main className="formulaire min-h-screen bg-white px-4 py-8">
       <FormulaireChangementCompte />
     </main>
   );

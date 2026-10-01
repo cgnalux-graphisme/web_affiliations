@@ -6,6 +6,7 @@ import { insererDemande } from "./lib/insertion-demande";
 import { postJson } from "./lib/post-json";
 import { useOnceSubmit } from "./lib/use-once-submit";
 import { enregistrerPolicesPdf } from "./lib/pdf/charte";
+import { BureauxPdf } from "./lib/pdf/BureauxPdf";
 import {
   pdf,
   Document,
@@ -17,6 +18,7 @@ import {
 } from "@react-pdf/renderer";
 import { FileDown, CheckCircle, MapPin } from "lucide-react";
 import { IconeChargement } from "./app/Chargement";
+import { EnteteFormulaire } from "./app/formulaires/Charte";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type AccordCloture = "avec_cloture" | "sans_cloture" | "";
@@ -258,7 +260,7 @@ const pdfStyles = StyleSheet.create({
   page: {
     fontFamily: "Barlow",
     fontSize: 9,
-    paddingTop: 36,
+    paddingTop: 28,
     paddingBottom: 52,
     paddingLeft: 40,
     paddingRight: 40,
@@ -272,7 +274,7 @@ const pdfStyles = StyleSheet.create({
     borderBottomWidth: 4,
     borderBottomColor: "#222222",
     borderBottomStyle: "solid",
-    paddingBottom: 8,
+    paddingBottom: 6,
   },
   headerLeft: {
     flexDirection: "row",
@@ -312,7 +314,7 @@ const pdfStyles = StyleSheet.create({
   body: {
     paddingLeft: 0,
     paddingRight: 0,
-    paddingTop: 10,
+    paddingTop: 6,
   },
   sectionTitle: {
     fontFamily: "Barlow Condensed",
@@ -324,10 +326,10 @@ const pdfStyles = StyleSheet.create({
     borderBottomColor: "#222222",
     borderBottomStyle: "solid",
     paddingBottom: 2,
-    marginBottom: 5,
-    marginTop: 9,
+    marginBottom: 4,
+    marginTop: 4,
   },
-  section: { marginBottom: 3 },
+  section: { marginBottom: 2 },
   twoCol: { flexDirection: "row" },
   colLeft: { flex: 1, marginRight: 12 },
   colRight: { flex: 1 },
@@ -337,7 +339,7 @@ const pdfStyles = StyleSheet.create({
     borderBottomColor: "#7C90A0",
     borderBottomStyle: "solid",
     paddingBottom: 2,
-    marginBottom: 2.5,
+    marginBottom: 1.5,
   },
   label: {
     width: "42%",
@@ -355,8 +357,8 @@ const pdfStyles = StyleSheet.create({
     borderColor: "#7C90A0",
     borderStyle: "dashed",
     borderRadius: 3,
-    paddingTop: 6,
-    paddingBottom: 6,
+    paddingTop: 4,
+    paddingBottom: 4,
     paddingLeft: 10,
     paddingRight: 10,
     marginTop: 4,
@@ -398,8 +400,8 @@ const pdfStyles = StyleSheet.create({
     borderLeftColor: "#931510",
     borderLeftStyle: "solid",
     borderRadius: 3,
-    paddingTop: 6,
-    paddingBottom: 6,
+    paddingTop: 4,
+    paddingBottom: 4,
     paddingLeft: 10,
     paddingRight: 8,
     marginTop: 4,
@@ -415,8 +417,8 @@ const pdfStyles = StyleSheet.create({
     borderColor: "#7C90A0",
     borderStyle: "solid",
     borderRadius: 3,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 5,
+    paddingBottom: 5,
     paddingLeft: 8,
     paddingRight: 8,
     marginTop: 3,
@@ -436,7 +438,7 @@ const pdfStyles = StyleSheet.create({
   luApprouve: {
     fontSize: 7,
     color: "#222222",
-    marginTop: 6,
+    marginTop: 4,
     lineHeight: 1.5,
     borderTopWidth: 1,
     borderTopColor: "#7C90A0",
@@ -511,9 +513,8 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure, dateDocument }: {
           {logoBase64 ? (
             <PDFImage src={logoBase64} style={pdfStyles.logoImage} />
           ) : (
-            <Text style={{ fontFamily: "Barlow Condensed", fontWeight: 800, fontSize: 13, color: "#E32119" }}>
-              Centrale Générale FGTB Namur-Luxembourg
-            </Text>
+            // Logo pas encore préchargé : react-pdf le télécharge lui-même depuis le site (jamais de nom en texte).
+            <PDFImage src={`${typeof window !== "undefined" ? window.location.origin : ""}/logo-cg-rouge.png`} style={pdfStyles.logoImage} />
           )}
           <View style={pdfStyles.headerRight}>
             <Text style={pdfStyles.headerTitle}>{titreDemande}</Text>
@@ -668,6 +669,9 @@ function MandatPDF({ data, logoBase64, ipAddress, dateHeure, dateDocument }: {
           </View>
 
         </View>
+
+        {/* Nos bureaux : au-dessus du pied de page, sur l'unique page du mandat. */}
+        <BureauxPdf page={1} haut={738} />
 
         <Text style={pdfStyles.footer} fixed>
           Centrale Générale FGTB Namur-Luxembourg · admin.nalux@accg.be · Données traitées conformément au RGPD
@@ -935,38 +939,28 @@ export default function FormulaireChangementCompte() {
   // ── Écran succès ─────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
-        <div className="max-w-2xl mx-auto space-y-5">
-          <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
-            <div className="flex items-center gap-4">
-              <div className="bg-white/10 rounded-xl p-2.5 shrink-0">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-white text-lg font-semibold leading-snug">
-                  Demande enregistrée
-                </p>
-                <p className="text-red-100 text-sm mt-1">
-                  Votre demande a bien été transmise.
-                </p>
-              </div>
-            </div>
-          </header>
+      <div>
+        <div className="form-cadre">
+          <EnteteFormulaire
+            icone={<CheckCircle className="h-6 w-6 text-white" />}
+            titre="Demande enregistrée"
+            sousTitre="Votre demande a bien été transmise."
+          />
 
-          <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
+          <div className="form-carte etape-entree text-center">
             {!pdfError ? (
-              <p className="text-gray-600 text-sm mb-6">
+              <p className="mb-6 text-[16px]">
                 Un email de confirmation a été envoyé à <strong>{form.email}</strong>.
               </p>
             ) : (
-              <p className="text-amber-700 bg-amber-50 rounded-xl p-3 text-sm mb-4">
+              <p className="form-encart mb-4 text-left">
                 L&apos;e-mail n&apos;a pas pu être envoyé, mais vos données sont bien enregistrées. Vous pouvez télécharger le PDF ci-dessous.
               </p>
             )}
             {pdfBlob && (
               <button
                 onClick={downloadPdf}
-                className="inline-flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-colors"
+                className="form-btn-principal"
               >
                 <FileDown size={16} /> Télécharger le PDF
               </button>
@@ -981,23 +975,23 @@ export default function FormulaireChangementCompte() {
   const err = errors;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-5">
+    <div>
+      <div className="form-cadre">
         {/* Titre */}
-        <header className="bg-red-700 rounded-2xl px-6 py-5 text-white shadow-lg">
-          <h1 className="text-xl font-semibold leading-snug">Mandat SEPA — Nouveau mandat ou changement de compte</h1>
-          <p className="text-red-100 text-sm mt-1.5">Centrale Générale FGTB Namur-Luxembourg</p>
-        </header>
+        <EnteteFormulaire
+          titre="Mandat SEPA"
+          sousTitre="Nouveau mandat ou changement de compte"
+        />
 
         {/* Note légale */}
-        <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 text-sm text-red-800 leading-relaxed">
+        <div className="form-encart">
           En signant ce mandat de domiciliation, vous autorisez la Centrale Générale FGTB Namur-Luxembourg à envoyer des instructions à votre banque pour débiter votre compte bancaire. Vous bénéficiez d&apos;un droit de remboursement par votre banque selon les conditions légales.
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm space-y-0">
+        <form onSubmit={handleSubmit} noValidate className="etape-entree overflow-hidden rounded-2xl border border-militant-ardoise bg-white">
 
         {/* ── CHOIX TYPE DE DEMANDE ── */}
-        <div className="px-6 py-6 border-b border-gray-100">
+        <div className="px-6 py-6 sm:px-8">
           <Field
             label="Que souhaitez-vous faire ? *"
             error={err.typeDemande}
@@ -1018,13 +1012,13 @@ export default function FormulaireChangementCompte() {
               ] as [TypeDemande, string, string][]).map(([val, title, description]) => (
                 <label
                   key={val}
-                  className={`rounded-xl border p-4 cursor-pointer transition-colors ${
+                  className={`cursor-pointer rounded-xl p-4 transition-colors ${
                     form.typeDemande === val
-                      ? "border-red-400 bg-red-50"
-                      : "border-gray-200 hover:border-red-200"
+                      ? "border-2 border-militant-bordeaux"
+                      : "border-2 border-militant-ardoise/60 hover:border-militant-charbon"
                   }`}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
                     <input
                       type="radio"
                       name="typeDemande"
@@ -1033,8 +1027,8 @@ export default function FormulaireChangementCompte() {
                       className="mt-1 accent-red-700"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">{title}</p>
-                      <p className="text-xs text-gray-500 mt-1">{description}</p>
+                      <p className="text-[16px] font-bold">{title}</p>
+                      <p className="mt-1 text-[14px] leading-snug">{description}</p>
                     </div>
                   </div>
                 </label>
@@ -1045,16 +1039,16 @@ export default function FormulaireChangementCompte() {
 
         {/* ── SECTION A ── */}
         <SectionTitle>A. Identification du mandat</SectionTitle>
-        <div className="px-6 py-3 bg-gray-50 text-xs text-gray-500 space-y-1 border-b border-gray-100">
-          <p><span className="font-semibold text-gray-700">Type d&apos;encaissement :</span> Récurrent</p>
-          <p><span className="font-semibold text-gray-700">Périodicité :</span> Mensuel</p>
-          <p><span className="font-semibold text-gray-700">Description :</span> Convention pour la perception syndicale</p>
-          <p className="text-amber-700 font-medium">La catégorie de cotisation et le numéro de mandat seront complétés par notre service.</p>
+        <div className="mx-6 mt-4 space-y-1 rounded-xl border border-militant-ardoise px-4 py-3 text-[14px] sm:mx-8">
+          <p><span className="font-bold">Type d&apos;encaissement :</span> Récurrent</p>
+          <p><span className="font-bold">Périodicité :</span> Mensuel</p>
+          <p><span className="font-bold">Description :</span> Convention pour la perception syndicale</p>
+          <p className="pt-1 font-semibold text-militant-bordeaux">La catégorie de cotisation et le numéro de mandat seront complétés par notre service.</p>
         </div>
 
         {/* ── SECTION B ── */}
         <SectionTitle>B. Coordonnées & Identification bancaire</SectionTitle>
-        <div className="px-6 py-6 space-y-5">
+        <div className="space-y-5 px-6 py-6 sm:px-8">
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Nom *" error={err.nom}>
@@ -1128,7 +1122,7 @@ export default function FormulaireChangementCompte() {
             <input className={input(err.pays)} value={form.pays} onChange={e => set("pays", e.target.value)} />
           </Field>
 
-          <div className="border-t border-gray-100 pt-4 space-y-4">
+          <div className="space-y-4 border-t border-militant-ardoise pt-5">
             <Field label="Nouveau IBAN * (belge ou européen)" error={err.nouveauIban} hint="Commencez par BE pour un IBAN belge">
               <input
                 className={input(err.nouveauIban)}
@@ -1169,12 +1163,12 @@ export default function FormulaireChangementCompte() {
 
         {/* ── SECTION C ── */}
         <SectionTitle>C. Autorisation & Signature</SectionTitle>
-        <div className="px-6 py-6 space-y-5">
+        <div className="space-y-5 px-6 py-6 sm:px-8">
 
           <Field label="Êtes-vous le titulaire du compte ? *">
             <div className="flex gap-6 mt-1">
               {[true, false].map(v => (
-                <label key={String(v)} className="flex items-center gap-2 text-sm cursor-pointer">
+                <label key={String(v)} className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                   <input
                     type="radio"
                     name="titulaire"
@@ -1201,7 +1195,7 @@ export default function FormulaireChangementCompte() {
                   ["avec_cloture", "Oui, avec clôture du compte précédent"],
                   ["sans_cloture", "Oui, sans clôture du compte précédent"],
                 ] as [AccordCloture, string][]).map(([val, label]) => (
-                  <label key={val} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <label key={val} className="flex min-h-[44px] cursor-pointer items-center gap-3 text-[16px]">
                     <input
                       type="radio"
                       name="accordCloture"
@@ -1213,7 +1207,7 @@ export default function FormulaireChangementCompte() {
                   </label>
                 ))}
               </div>
-              {err.accordCloture && <p className="text-red-600 text-xs mt-1">{err.accordCloture}</p>}
+              {err.accordCloture && <p role="alert" className="form-erreur mt-1.5">{err.accordCloture}</p>}
             </Field>
           )}
 
@@ -1235,24 +1229,24 @@ export default function FormulaireChangementCompte() {
           </div>
 
           <Field label="Signature du titulaire *" error={err.signature}>
-            <p className="text-xs text-gray-500 mb-2">Dessinez votre signature dans le cadre ci-dessous</p>
+            <p className="form-aide mb-2">Dessinez votre signature dans le cadre ci-dessous</p>
             <SignaturePad onSave={(dataUrl) => set("signature", dataUrl)} />
-            {err.signature && <p className="text-red-600 text-xs mt-1">{err.signature}</p>}
+            {err.signature && <p role="alert" className="form-erreur mt-1.5">{err.signature}</p>}
           </Field>
 
           {/* RGPD */}
-          <p className="text-sm text-gray-500 leading-relaxed border-t border-gray-100 pt-5">
+          <p className="border-t border-militant-ardoise pt-5 text-[14px] leading-relaxed">
             Vos données personnelles sont traitées conformément au règlement européen RGPD.{" "}
-            <a href="https://www.accg.be/fr/protection-de-la-vie-privee" target="_blank" rel="noopener noreferrer" className="text-red-700 underline">
+            <a href="https://www.accg.be/fr/protection-de-la-vie-privee" target="_blank" rel="noopener noreferrer" className="font-semibold text-militant-bordeaux underline decoration-militant-rouge underline-offset-2">
               Politique de confidentialité
             </a>{" "}
-            · Questions : <a href="mailto:privacy@accg.be" className="text-red-700 underline">privacy@accg.be</a>
+            · Questions : <a href="mailto:privacy@accg.be" className="font-semibold text-militant-bordeaux underline decoration-militant-rouge underline-offset-2">privacy@accg.be</a>
           </p>
 
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 bg-red-700 hover:bg-red-800 disabled:bg-red-300 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+            className="form-btn-principal w-full"
           >
             {loading ? <><IconeChargement size={18} /> Envoi en cours…</> : "Envoyer ma demande"}
           </button>
@@ -1266,8 +1260,8 @@ export default function FormulaireChangementCompte() {
 // ── Composants UI ────────────────────────────────────────────────────────────
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-red-700 text-white px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em]">
-      {children}
+    <div className="px-6 pt-8 sm:px-8">
+      <h2 className="form-section !mb-0 !mt-0">{children}</h2>
     </div>
   );
 }
@@ -1280,16 +1274,16 @@ function Field({ label, error, hint, children }: {
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
-      {hint && <p className="text-xs text-gray-400 mb-1.5">{hint}</p>}
+      <label className="form-libelle mb-1.5 block">{label}</label>
+      {hint && <p className="form-aide mb-1.5">{hint}</p>}
       {children}
-      {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+      {error && <p role="alert" className="form-erreur mt-1.5">{error}</p>}
     </div>
   );
 }
 
 function input(error?: string) {
-  return `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
+  return `w-full border rounded-xl px-4 py-2.5 focus:outline-none ${
     error
       ? "border-red-400 focus:ring-red-300 bg-red-50"
       : "border-gray-300 focus:ring-red-200"

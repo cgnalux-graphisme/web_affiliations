@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function FormulaireC32Page() {
   return (
-    <main className="bg-gray-50 min-h-screen py-4 px-4">
+    <main className="formulaire min-h-screen bg-white">
       <FormulaireC32 />
     </main>
   );

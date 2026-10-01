@@ -58,10 +58,7 @@ export default function LivraisonFormulaires({
 
   const serviceAutorise = peutEnvoyerAuServiceChomage(province);
   const envoiDejaFait = chomageEnvoye || emailEnvoye.length > 0;
-  const boutonPrincipal =
-    accent === "red"
-      ? "bg-red-900 hover:bg-red-950 disabled:bg-red-300"
-      : "bg-blue-700 hover:bg-blue-800 disabled:bg-blue-300";
+  // Boutons : même bouton bordeaux que tous les formulaires (form-btn-principal), quel que soit `accent`.
 
   function telechargerTout() {
     documents.forEach((document, index) => {
@@ -118,13 +115,13 @@ export default function LivraisonFormulaires({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="rounded-2xl bg-white p-8 shadow-lg">
-        <CheckCircle className="mx-auto mb-4 text-green-500" size={52} />
-        <h2 className="mb-2 text-center text-xl font-bold text-gray-900">{titre}</h2>
-        <p className="mb-6 text-center text-sm text-gray-600">{description}</p>
+      <div className="form-carte etape-entree">
+        <CheckCircle className="mx-auto mb-4 text-militant-bordeaux" size={56} strokeWidth={2.2} />
+        <h2 className="mb-2 text-center font-condensed text-3xl font-extrabold uppercase leading-tight">{titre}</h2>
+        <p className="mb-6 text-center text-[16px]">{description}</p>
 
         <label className="mb-6 block text-left">
-          <span className="mb-1 block text-sm font-medium text-gray-800">Votre province</span>
+          <span className="form-libelle mb-1.5 block">Votre province</span>
           <select
             value={province}
             onChange={(event) => setProvince(event.target.value)}
@@ -137,15 +134,15 @@ export default function LivraisonFormulaires({
               </option>
             ))}
           </select>
-          <span className="mt-1 block text-xs text-gray-500">
+          <span className="form-aide mt-1.5 block">
             L&apos;envoi automatique au service chômage est réservé aux provinces de Namur et du Luxembourg.
           </span>
         </label>
 
         <div className="space-y-4 text-left">
-          <section className="rounded-xl border border-gray-200 p-4">
-            <h3 className="mb-1 text-sm font-semibold text-gray-900">Télécharger les PDF</h3>
-            <p className="mb-3 text-xs text-gray-500">
+          <section className="rounded-2xl border border-militant-ardoise p-5">
+            <h3 className="mb-1 font-condensed text-xl font-bold uppercase leading-tight">Télécharger les PDF</h3>
+            <p className="form-aide mb-3">
               Les fichiers restent sur votre appareil.
             </p>
             <div className="space-y-2">
@@ -154,11 +151,11 @@ export default function LivraisonFormulaires({
                   key={document.fileName}
                   type="button"
                   onClick={() => downloadPdfFromBase64(document.pdfBase64, document.fileName)}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm transition hover:border-gray-300 hover:bg-gray-100"
+                  className="flex min-h-[56px] w-full items-center justify-between gap-3 rounded-xl border-2 border-militant-ardoise/60 bg-white px-4 py-3 text-left text-[15px] hover:border-militant-charbon"
                 >
                   <span>
-                    <span className="block font-medium text-gray-900">{document.label}</span>
-                    <span className="block text-xs text-gray-500">{document.fileName}</span>
+                    <span className="block font-bold">{document.label}</span>
+                    <span className="block text-[13px]">{document.fileName}</span>
                   </span>
                   <FileDown className="h-4 w-4 shrink-0 text-gray-700" />
                 </button>
@@ -168,7 +165,7 @@ export default function LivraisonFormulaires({
               <button
                 type="button"
                 onClick={telechargerTout}
-                className={`mt-3 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white ${boutonPrincipal}`}
+                className="form-btn-principal mt-3"
               >
                 <FileDown size={16} />
                 Tout télécharger
@@ -176,15 +173,15 @@ export default function LivraisonFormulaires({
             )}
           </section>
 
-          <section className="rounded-xl border border-gray-200 p-4">
-            <h3 className="mb-1 text-sm font-semibold text-gray-900">Envoyer au service chômage</h3>
+          <section className="rounded-2xl border border-militant-ardoise p-5">
+            <h3 className="mb-1 font-condensed text-xl font-bold uppercase leading-tight">Envoyer au service chômage</h3>
             {chomageEnvoye ? (
-              <p className="text-sm text-green-700">Les formulaires ont été envoyés au service chômage.</p>
+              <p className="text-[15px] font-semibold text-militant-bordeaux">Les formulaires ont été envoyés au service chômage.</p>
             ) : emailEnvoye ? (
-              <p className="text-sm text-gray-600">Vous avez choisi l&apos;envoi vers une adresse e-mail.</p>
+              <p className="text-[15px]">Vous avez choisi l&apos;envoi vers une adresse e-mail.</p>
             ) : (
               <>
-                <p className="mb-3 text-xs text-gray-500">
+                <p className="form-aide mb-3">
                   {!province
                     ? "Choisissez d'abord votre province."
                     : serviceAutorise
@@ -195,7 +192,7 @@ export default function LivraisonFormulaires({
                   type="button"
                   onClick={envoyerAuServiceChomage}
                   disabled={!serviceAutorise || envoiDejaFait || envoiEnCours !== null}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed ${boutonPrincipal}`}
+                  className="form-btn-principal"
                 >
                   {envoiEnCours === "chomage" ? <IconeChargement size={16} /> : <Send size={16} />}
                   {envoiEnCours === "chomage" ? "Envoi en cours…" : "Envoyer au service chômage"}
@@ -204,19 +201,19 @@ export default function LivraisonFormulaires({
             )}
           </section>
 
-          <section className="rounded-xl border border-gray-200 p-4">
-            <h3 className="mb-1 text-sm font-semibold text-gray-900">Envoyer à une adresse e-mail</h3>
+          <section className="rounded-2xl border border-militant-ardoise p-5">
+            <h3 className="mb-1 font-condensed text-xl font-bold uppercase leading-tight">Envoyer à une adresse e-mail</h3>
             {emailEnvoye ? (
-              <p className="text-sm text-green-700">Les formulaires ont été envoyés à {emailEnvoye}.</p>
+              <p className="text-[15px] font-semibold text-militant-bordeaux">Les formulaires ont été envoyés à {emailEnvoye}.</p>
             ) : chomageEnvoye ? (
-              <p className="text-sm text-gray-600">Vous avez choisi l&apos;envoi au service chômage.</p>
+              <p className="text-[15px]">Vous avez choisi l&apos;envoi au service chômage.</p>
             ) : (
               <form onSubmit={envoyerParEmail}>
-                <p className="mb-3 text-xs text-gray-500">
+                <p className="form-aide mb-3">
                   Indiquez l&apos;adresse qui doit recevoir les formulaires. Seule cette adresse les reçoit.
                 </p>
                 <label className="mb-3 block">
-                  <span className="mb-1 block text-sm font-medium text-gray-800">Adresse e-mail</span>
+                  <span className="form-libelle mb-1.5 block">Adresse e-mail</span>
                   <input
                     type="email"
                     autoComplete="email"
@@ -233,12 +230,12 @@ export default function LivraisonFormulaires({
                         : "border-gray-300 focus:ring-blue-200"
                     }`}
                   />
-                  {emailErreur && <span className="mt-1 block text-xs text-red-600">{emailErreur}</span>}
+                  {emailErreur && <span role="alert" className="form-erreur mt-1.5">{emailErreur}</span>}
                 </label>
                 <button
                   type="submit"
                   disabled={envoiDejaFait || envoiEnCours !== null}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed ${boutonPrincipal}`}
+                  className="form-btn-principal"
                 >
                   {envoiEnCours === "email" ? <IconeChargement size={16} /> : <Mail size={16} />}
                   {envoiEnCours === "email" ? "Envoi en cours…" : "Envoyer à cette adresse"}

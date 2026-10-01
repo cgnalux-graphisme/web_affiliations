@@ -535,8 +535,9 @@ reformuler, citer et lier la source, jamais recopier.
       1 à 3 c. sans lecture, **environ 10 c. avec une lecture** (4 sources, RTBF
       lue : ~25 000 jetons en entrée, ~40 s).
 - [x] **Plusieurs sources** (01/10/2026, demande de Fred) : un brouillon part d'un
-      article du fil **ou de tous les articles d'un sujet du Check IA** (6 max,
-      `SOURCES_MAX`) → **un seul article de synthèse** (consigne : fait commun dit
+      article du fil **ou de tous les articles d'un sujet du Check IA** (12 max,
+      `SOURCES_MAX` ; bouton « Retirer » / « Remettre » sur chaque source, les sources au-delà de 12
+      sont retirées d'office) → **un seul article de synthèse** (consigne : fait commun dit
       une fois, fait d'une seule source attribué « selon L'Avenir… »,
       contradictions entre sources signalées sans trancher, toutes les sources
       dans la liste des sources).
@@ -889,7 +890,13 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   page blanche, logo rouge en tête, titre en majuscules condensées sur filet
   charbon, sections numérotées en rouge sur filet, lignes libellé / valeur sur
   filets ardoise, encadrés en bordeaux, pied de page avec filet rouge. Polices
-  Barlow via `enregistrerPolicesPdf()` (`lib/pdf/charte.ts`). **Ne jamais supprimer
+  Barlow via `enregistrerPolicesPdf()` (`lib/pdf/charte.ts`). **Bloc « Nos bureaux »** (01/10/2026, demande de Fred) :
+  adresse et téléphone des 4 bureaux (`lib/bureaux.ts`) au-dessus du pied de page, composant
+  `BureauxPdf` (`lib/pdf/BureauxPdf.tsx`, `fixed` + `render` sur une seule page) : **page 2** du PDF
+  d'affiliation, **page 1** du mandat SEPA (une seule page : espacements resserrés pour lui faire
+  place, tailles de texte et mentions inchangées ; position `haut={738}`). Vérifié le 01/10/2026 sur
+  le cas le plus long (changement de compte, titulaire tiers, signature réelle) : rien ne se chevauche.
+  Toute ligne ajoutée au mandat doit être revérifiée contre ce bloc. **Ne jamais supprimer
   une mention légale** (surtout le mandat SEPA : texte de domiciliation, créancier,
   ICS, RGPD, certification de signature). Les PDF officiels C1 / C3.2 et le
   courrier de préavis ne suivent pas cette charte.
@@ -919,6 +926,23 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   anciens formulaires sont **remappées sur la palette** (teintes claires → blanc,
   bordures → ardoise, soutenues → bordeaux ou charbon, jamais de grand fond
   noir). Pour tout **nouveau** code, utiliser les couleurs `militant-*`.
+- **Formulaires** (uniformisation visuelle du 01/10/2026, demande de Fred : apparence seulement,
+  aucun champ ni fonctionnement modifié, PDF intacts) : affiliation, mandat SEPA, C1, C3.2, préavis,
+  parcours de transfert et écran d'envoi partagent la même charte, calquée sur le formulaire de
+  contact. **Socle CSS** `.formulaire` (posé sur chaque page, `app/globals.css`) : champs 48 px,
+  texte 16 px (pas de zoom iPhone), **réponse saisie en charbon demi-gras, exemple (placeholder) en
+  ardoise maigre** (jamais de `placeholder:text-gray-400`, que la couche de compatibilité rendait
+  charbon), bordure ardoise → charbon au survol → charbon + filet rouge au focus, erreur = bordure
+  bordeaux 2 px (repérée par `aria-invalid` ou une classe `border-red-*`), listes à flèche du site,
+  cases et radios dessinées (bordeaux, coche qui « claque »), messages d'erreur qui glissent,
+  boutons qui s'enfoncent. Le sélecteur de base est sous `:where()` pour que les états l'emportent.
+  **Composants** `app/formulaires/Charte.tsx` : `EnteteFormulaire` (bandeau bordeaux, grand titre
+  condensé ; **pas de « Centrale Générale FGTB Namur-Luxembourg » dans les en-têtes**, demande de
+  Fred) et `EtapesFormulaire` (pastilles numérotées, filet qui se remplit, « Étape 2 sur 6 · … »,
+  retour en arrière cliquable si `onRevenir`). **Classes** : `form-cadre`, `form-carte`,
+  `form-section`, `form-libelle`, `form-aide`, `form-erreur`, `form-encart`, `form-actions`,
+  `form-btn-principal` / `-secondaire` / `-retour`, `etape-entree` (le contenu d'une étape monte en
+  fondu ; `key={step}` sur son conteneur). Tout nouveau formulaire les utilise.
 - **Motion** : animations sobres, une seule à l'ouverture d'un écran au maximum ;
   toujours respecter `prefers-reduced-motion`.
 - **Chargement : toujours visible** (règle de Fred, 29/09/2026). Indicateur

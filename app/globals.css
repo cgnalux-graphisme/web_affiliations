@@ -313,3 +313,157 @@
     animation: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   FORMULAIRES (affiliation, mandat SEPA, C1, C3.2, préavis, parcours de transfert)
+   Uniformisation visuelle du 01/10/2026 : même apparence que le formulaire de contact.
+   Portée : tout ce qui est dans un élément .formulaire (posé sur la page). Les sélecteurs
+   sont plus précis que les classes Tailwind des anciens formulaires : ils l'emportent sans
+   toucher au balisage des champs ni à leur fonctionnement.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Champs de saisie ── */
+/* :where() garde ce sélecteur « léger » : les états (survol, focus, erreur) l'emportent sur lui,
+   et il l'emporte encore sur les classes Tailwind (une seule classe). */
+.formulaire :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="color"]),
+    select,
+    textarea
+  ):not(.sr-only) {
+  min-height: 48px;
+  font-size: 16px; /* 16 px : pas de zoom automatique sur iPhone */
+  line-height: 1.4;
+  color: #222222;
+  font-weight: 500; /* la réponse saisie, plus affirmée que l'exemple */
+  background-color: #ffffff;
+  border: 1.5px solid #7c90a0;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 #e32119;
+  transition: border-color 0.15s ease, box-shadow 0.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.formulaire textarea:not(.sr-only) { min-height: 96px; }
+/* Texte d'exemple : ardoise, maigre, nettement plus clair que la réponse (charbon, demi-gras). */
+.formulaire :is(input, textarea)::placeholder {
+  color: #7c90a0;
+  font-weight: 400;
+  opacity: 1;
+}
+.formulaire :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not(:disabled):not(:focus):hover {
+  border-color: #222222;
+}
+/* Focus : bordure charbon et filet rouge qui monte sous le champ (comme le formulaire de contact). */
+.formulaire :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):focus,
+.formulaire :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):focus-visible {
+  outline: none;
+  border-color: #222222;
+  box-shadow: inset 0 -3px 0 #e32119;
+}
+/* Champ en erreur : bordure bordeaux épaisse (le message, lui, dit ce qui ne va pas). */
+.formulaire :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):is([aria-invalid="true"], [class*="border-red-"]) {
+  border-width: 2px;
+  border-color: #931510 !important; /* reste bordeaux au survol et au focus */
+  background-color: #ffffff;
+}
+.formulaire :is(input, select, textarea):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+/* Listes déroulantes : flèche du site, même hauteur que les champs. */
+.formulaire select:not(.sr-only):not([multiple]) {
+  appearance: none;
+  padding-right: 2.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23222222' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* ── Cases à cocher et boutons radio : dessinés, avec une coche qui « claque » ── */
+.formulaire input:is([type="checkbox"], [type="radio"]):not(.sr-only):not(.hidden) {
+  appearance: none;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  border: 2px solid #222222;
+  background: #ffffff center / 14px no-repeat;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.formulaire input[type="checkbox"]:not(.sr-only):not(.hidden) { border-radius: 6px; }
+.formulaire input[type="radio"]:not(.sr-only):not(.hidden) { border-radius: 50%; }
+.formulaire input:is([type="checkbox"], [type="radio"]):not(.sr-only):not(.hidden):hover:not(:disabled) {
+  border-color: #931510;
+}
+.formulaire input[type="checkbox"]:not(.sr-only):not(.hidden):checked {
+  background-color: #931510;
+  border-color: #931510;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  animation: formulaire-coche 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.formulaire input[type="radio"]:not(.sr-only):not(.hidden):checked {
+  border-color: #931510;
+  background-color: #931510;
+  box-shadow: inset 0 0 0 4px #ffffff;
+  animation: formulaire-coche 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.formulaire input:is([type="checkbox"], [type="radio"]):focus-visible {
+  outline: 3px solid #e32119;
+  outline-offset: 2px;
+}
+.formulaire input:is([type="checkbox"], [type="radio"]):disabled { opacity: 0.45; cursor: not-allowed; }
+@keyframes formulaire-coche {
+  0% { transform: scale(0.72); }
+  100% { transform: scale(1); }
+}
+
+/* ── Messages d'erreur : apparaissent en glissant ── */
+.formulaire [role="alert"],
+.formulaire .text-red-600 {
+  animation: formulaire-message 0.28s ease-out both;
+}
+@keyframes formulaire-message {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Boutons : léger enfoncement au clic ── */
+.formulaire button:not(:disabled),
+.formulaire a.form-btn {
+  transition-property: color, background-color, border-color, transform, box-shadow;
+  transition-duration: 0.15s;
+}
+.formulaire button:not(:disabled):active { transform: scale(0.97); }
+
+/* ── Changement d'étape : le contenu monte en fondu ── */
+@keyframes formulaire-etape {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.etape-entree { animation: formulaire-etape 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .formulaire *,
+  .formulaire *::before,
+  .formulaire *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── Composants communs des formulaires (app/formulaires/Charte.tsx) ── */
+@layer components {
+  .form-cadre { @apply mx-auto w-full max-w-2xl space-y-5; }
+  .form-carte { @apply rounded-2xl border border-militant-ardoise bg-white p-6 sm:p-8; }
+  .form-section { @apply mb-4 mt-8 border-b-[3px] border-militant-charbon pb-2 font-condensed text-[22px] font-extrabold uppercase leading-tight text-militant-charbon first:mt-0; }
+  .form-libelle { @apply text-[15px] font-bold text-militant-charbon; }
+  .form-aide { @apply text-[13px] leading-snug text-militant-charbon; }
+  .form-erreur { @apply flex items-start gap-1.5 text-[14px] font-semibold text-militant-bordeaux; }
+  .form-encart { @apply rounded-xl border-l-[6px] border-militant-rouge bg-white py-3 pl-4 pr-3 text-[15px] leading-relaxed text-militant-charbon; }
+  .form-actions { @apply mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-militant-ardoise pt-6; }
+  .form-btn { @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-6 text-[16px] font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50; }
+  .form-btn-principal { @apply form-btn bg-militant-bordeaux text-white hover:bg-militant-charbon; }
+  .form-btn-secondaire { @apply form-btn border-2 border-militant-charbon bg-white text-militant-charbon hover:bg-militant-charbon hover:text-white; }
+  .form-btn-retour { @apply form-btn px-3 text-militant-charbon underline-offset-4 hover:underline hover:decoration-militant-rouge hover:decoration-2 disabled:invisible; }
+}

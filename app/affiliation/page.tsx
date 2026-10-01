@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function AffiliationPage() {
   return (
-    <main className="bg-gray-50 min-h-screen py-4">
+    <main className="formulaire min-h-screen bg-white px-4 py-8">
       <FormulaireWebIndependant />
     </main>
   );

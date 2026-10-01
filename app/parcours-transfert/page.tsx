@@ -7,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function ParcoursTransfertPage() {
-  return <ParcoursTransfert />;
+  return (
+    <div className="formulaire">
+      <ParcoursTransfert />
+    </div>
+  );
 }

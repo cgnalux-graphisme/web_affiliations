@@ -7,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function PreavisPage() {
-  return <FormulairePreavis />;
+  return (
+    <div className="formulaire">
+      <FormulairePreavis />
+    </div>
+  );
 }

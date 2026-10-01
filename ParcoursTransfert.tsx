@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeftRight,
-  CheckCircle,
   ChevronRight,
   ClipboardList,
   FileDown,
@@ -31,6 +30,7 @@ import {
 } from "./lib/transfer-journey";
 import { postJson } from "./lib/post-json";
 
+import { EtapesFormulaire } from "./app/formulaires/Charte";
 const STEPS = [
   { key: "affiliation" as const, label: "Affiliation", Icon: FileSignature },
   { key: "c1" as const, label: "Formulaire C1", Icon: ClipboardList },
@@ -45,39 +45,11 @@ function JourneyStepper({ phase }: { phase: JourneyPhase }) {
     phase === "c1" ? 1 :
     phase === "c32" ? 2 : 3;
 
+  // Même indicateur d'étapes que les formulaires (app/formulaires/Charte.tsx).
   return (
-    <nav aria-label="Étapes du parcours de transfert" className="mb-8">
-      <ol className="flex items-center justify-between gap-2">
-        {STEPS.map(({ label, Icon }, i) => (
-          <li key={label} className="flex flex-1 flex-col items-center gap-2">
-            <div
-              className={[
-                "flex h-11 w-11 items-center justify-center rounded-full border-2 transition-all",
-                i < currentIndex
-                  ? "border-red-500 bg-red-100 text-red-800"
-                  : i === currentIndex
-                    ? "scale-110 border-red-900 bg-red-900 text-white shadow-md"
-                    : "border-gray-300 bg-gray-100 text-gray-400",
-              ].join(" ")}
-            >
-              {i < currentIndex ? (
-                <CheckCircle className="h-5 w-5" aria-hidden />
-              ) : (
-                <Icon className="h-5 w-5" aria-hidden />
-              )}
-            </div>
-            <span
-              className={[
-                "hidden text-center text-xs font-medium sm:block",
-                i === currentIndex ? "text-red-900" : i < currentIndex ? "text-red-500" : "text-gray-400",
-              ].join(" ")}
-            >
-              {label}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </nav>
+    <div className="form-cadre mb-8 px-1">
+      <EtapesFormulaire libelles={STEPS.map((e) => e.label)} courant={Math.min(currentIndex, STEPS.length - 1)} />
+    </div>
   );
 }
 
@@ -86,21 +58,19 @@ function IntroScreen({ onStart, onResume }: { onStart: () => void; onResume: () 
   const canResume = saved && saved.phase !== "intro" && saved.phase !== "complete";
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="rounded-3xl bg-white p-8 shadow-lg">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-2xl bg-red-900 p-3 text-white">
-            <ArrowLeftRight className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-red-700">
-              Parcours guidé
-            </p>
-            <h1 className="text-2xl font-bold text-gray-900">Transfert vers la FGTB</h1>
-          </div>
+    <div className="form-cadre">
+      <header className="etape-entree flex items-start gap-4 rounded-2xl bg-militant-bordeaux px-6 py-6 text-white sm:px-8">
+        <span aria-hidden className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-white/40">
+          <ArrowLeftRight className="h-6 w-6" />
+        </span>
+        <div>
+          <p className="font-condensed text-[15px] font-bold uppercase tracking-[0.12em]">Parcours guidé</p>
+          <h1 className="mt-1 font-condensed text-3xl font-extrabold uppercase leading-[0.95] sm:text-[40px]">Transfert vers la FGTB</h1>
         </div>
+      </header>
+      <div className="form-carte etape-entree">
 
-        <p className="mb-6 text-sm leading-7 text-gray-600">
+        <p className="mb-6 max-w-prose text-[16px] leading-relaxed">
           Vous quittez un autre syndicat pour rejoindre la FGTB ? Ce parcours vous guide à travers
           les <strong>3 formulaires obligatoires</strong>, dans le bon ordre. Vos informations
           (nom, adresse, coordonnées…) sont reprises automatiquement d&apos;une étape à l&apos;autre.
@@ -112,8 +82,8 @@ function IntroScreen({ onStart, onResume }: { onStart: () => void; onResume: () 
             "Formulaire C1 — déclaration de situation ONEM",
             "Formulaire C3.2 — chômage temporaire ONEM",
           ].map((text, i) => (
-            <li key={text} className="flex items-start gap-3 rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-700">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-900 text-xs font-bold text-white">
+            <li key={text} className="flex items-center gap-3 rounded-xl border border-militant-ardoise px-4 py-3 text-[16px] font-semibold">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-militant-bordeaux font-condensed text-[17px] font-bold text-white">
                 {i + 1}
               </span>
               {text}
@@ -125,7 +95,7 @@ function IntroScreen({ onStart, onResume }: { onStart: () => void; onResume: () 
           <button
             type="button"
             onClick={onStart}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-950"
+            className="form-btn-principal"
           >
             Commencer le parcours
             <ChevronRight className="h-4 w-4" />
@@ -134,7 +104,7 @@ function IntroScreen({ onStart, onResume }: { onStart: () => void; onResume: () 
             <button
               type="button"
               onClick={onResume}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-gray-200 px-6 py-3 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+              className="form-btn-secondaire"
             >
               Reprendre où j&apos;en étais
             </button>
@@ -178,7 +148,7 @@ function CompleteScreen({
         <button
           type="button"
           onClick={onRestart}
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-gray-700"
+          className="form-btn-retour"
         >
           <RotateCcw className="h-4 w-4" />
           Recommencer un nouveau parcours
@@ -196,9 +166,9 @@ function TransitionBanner({
   description: string;
 }) {
   return (
-    <div className="mx-auto mb-6 max-w-2xl rounded-xl border border-green-200 bg-green-50 px-5 py-4">
-      <p className="font-semibold text-green-800">{title}</p>
-      <p className="mt-1 text-sm text-green-700">{description}</p>
+    <div role="status" className="etape-entree mx-auto mb-6 max-w-2xl rounded-2xl border-2 border-militant-bordeaux px-5 py-4">
+      <p className="font-condensed text-xl font-bold uppercase leading-tight text-militant-bordeaux">{title}</p>
+      <p className="mt-1 text-[15px]">{description}</p>
     </div>
   );
 }
@@ -349,8 +319,8 @@ export default function ParcoursTransfert() {
   const c1Pdf = state.pdfs.find((p) => p.key === "c1");
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="mx-auto max-w-4xl">
+    <div className="min-h-screen bg-white px-4 py-8">
+      <div className="mx-auto max-w-2xl">
         {state.phase !== "intro" && state.phase !== "complete" && (
           <JourneyStepper phase={state.phase} />
         )}
@@ -398,14 +368,14 @@ export default function ParcoursTransfert() {
         )}
 
         {state.phase === "c32" && c32Initial && !c1Pdf && (
-          <div className="mx-auto max-w-lg rounded-2xl bg-white p-8 text-center shadow-lg">
-            <p className="mb-4 text-sm text-gray-600">
+          <div className="form-carte mx-auto max-w-lg text-center">
+            <p className="mb-4 text-[16px]">
               Le formulaire C1 est introuvable. Veuillez reprendre l&apos;étape C1 avant de continuer.
             </p>
             <button
               type="button"
               onClick={() => persist({ ...state, phase: "c1", updatedAt: new Date().toISOString() })}
-              className="rounded-xl bg-red-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-950"
+              className="form-btn-principal"
             >
               Retour au formulaire C1
             </button>

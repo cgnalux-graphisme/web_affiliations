@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FileDown, ChevronRight, ChevronLeft } from "lucide-react";
 import { IconeChargement } from "./app/Chargement";
+import { EnteteFormulaire, EtapesFormulaire } from "./app/formulaires/Charte";
 import type { C1Data, CohabitantRow } from "./app/api/fill-c1/route";
 import LivraisonFormulaires from "./LivraisonFormulaires";
 import { insererDemande } from "./lib/insertion-demande";
@@ -114,13 +115,13 @@ function InfoTooltip({ n }: { n: string }) {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center justify-center px-1 min-w-[22px] h-4 rounded bg-blue-50 text-blue-600 text-[9px] font-bold hover:bg-blue-200 border border-blue-200 leading-none"
+        className="inline-flex h-6 min-w-[32px] items-center justify-center rounded-md border-[1.5px] border-militant-charbon bg-white px-1.5 text-[11px] font-bold leading-none hover:border-militant-bordeaux hover:bg-militant-bordeaux hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
       >
         ({n})
       </button>
       {open && (
-        <div className="absolute z-50 top-5 left-0 w-72 bg-white border border-blue-200 rounded-lg shadow-xl p-3 text-xs text-gray-700 leading-relaxed whitespace-pre-line">
-          <p className="font-bold text-blue-700 mb-1.5">({n})</p>
+        <div className="etape-entree absolute z-50 top-8 left-0 w-72 max-w-[80vw] rounded-xl border-2 border-militant-charbon bg-white p-4 text-[13px] leading-relaxed text-militant-charbon shadow-lg whitespace-pre-line">
+          <p className="mb-1.5 font-bold text-militant-bordeaux">({n})</p>
           {text}
         </div>
       )}
@@ -132,20 +133,20 @@ function Field({ label, hint, error, tip, children }: {
   label: string; hint?: string; error?: string; tip?: string; children: React.ReactNode;
 }) {
   return (
-    <div className="mb-3">
-      <div className="flex items-center gap-1.5 mb-1">
-        <label className="text-xs font-semibold text-gray-700">{label}</label>
+    <div className="mb-5">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <label className="form-libelle">{label}</label>
         {tip && <InfoTooltip n={tip} />}
       </div>
-      {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
+      {hint && <p className="form-aide mb-1.5">{hint}</p>}
       {children}
-      {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+      {error && <p role="alert" className="form-erreur mt-1.5">{error}</p>}
     </div>
   );
 }
 
 const inp = (err?: string) =>
-  `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${err ? "border-red-400 focus:ring-red-200 bg-red-50" : "border-gray-300 focus:ring-blue-200"}`;
+  `w-full border rounded-xl px-4 py-2.5 focus:outline-none ${err ? "border-red-400 focus:ring-red-200 bg-red-50" : "border-gray-300 focus:ring-blue-200"}`;
 
 function formatDateFrInput(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 8);
@@ -277,7 +278,7 @@ function AddressAutocomplete({
 
 function SectionTitle({ children, tip }: { children: React.ReactNode; tip?: string }) {
   return (
-    <h3 className="text-sm font-bold text-gray-800 bg-gray-100 rounded-lg px-3 py-2 mb-3 mt-4 flex items-center gap-2">
+    <h3 className="form-section flex items-center gap-2">
       <span className="flex-1">{children}</span>
       {tip && <InfoTooltip n={tip} />}
     </h3>
@@ -372,20 +373,6 @@ function SignaturePad({ value, onChange, error }: { value: string; onChange: (v:
   );
 }
 
-function StepIndicator({ step, total }: { step: number; total: number }) {
-  return (
-    <div className="flex items-center gap-1 mb-6">
-      {Array.from({ length: total }, (_, i) => (
-        <React.Fragment key={i}>
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${i + 1 === step ? "bg-blue-600 text-white" : i + 1 < step ? "bg-blue-200 text-blue-700" : "bg-gray-200 text-gray-500"}`}>
-            {i + 1}
-          </div>
-          {i < total - 1 && <div className={`flex-1 h-0.5 ${i + 1 < step ? "bg-blue-300" : "bg-gray-200"}`} />}
-        </React.Fragment>
-      ))}
-    </div>
-  );
-}
 
 function formatNiss(value: string): string {
   const d = value.replace(/\D/g, "").slice(0, 11);
@@ -570,17 +557,14 @@ export default function FormulaireC1({
 
   // ── Wizard ────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <div className="bg-militant-bordeaux text-white rounded-t-2xl px-6 py-4">
-        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Office National de l&apos;Emploi</p>
-        <h1 className="text-base font-bold">Formulaire C1 — Déclaration de situation personnelle et familiale</h1>
-        <p className="text-xs text-gray-400 mt-1">Étape {step}/{TOTAL_STEPS} : {STEP_LABELS[step - 1]}</p>
-      </div>
+    <div className="form-cadre px-4 py-8">
+      <EnteteFormulaire surtitre="Office National de l'Emploi" titre="Formulaire C1" sousTitre="Déclaration de situation personnelle et familiale" />
 
-      <div className="bg-white shadow rounded-b-2xl px-6 py-6">
-        <StepIndicator step={step} total={TOTAL_STEPS} />
+      <div className="form-carte">
+        <EtapesFormulaire libelles={STEP_LABELS} courant={step - 1} className="mb-8" />
 
         {/* ══ ÉTAPE 1 — Identité & Adresse ══ */}
+        <div key={step} className="etape-entree">
         {step === 1 && (
           <>
             <SectionTitle>Mon identité</SectionTitle>
@@ -739,7 +723,7 @@ export default function FormulaireC1({
         {step === 3 && (
           <>
             {form.motifDemandeAlloc && form.motifFormationAlternance !== "oui" ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+              <div className="form-encart">
                 Cette section ne doit pas être complétée pour une demande d&apos;allocations de chômage temporaire (sauf formation en alternance). Passez à l&apos;étape suivante.
               </div>
             ) : (
@@ -1092,7 +1076,7 @@ export default function FormulaireC1({
               <SignaturePad value={form.signature} onChange={v => { set("signature", v); setErrors(prev => ({ ...prev, signature: undefined })); }} error={errors.signature} />
             </Field>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mt-4">
+            <div className="form-encart mt-4">
               <strong>Important :</strong>{" "}
               {journeyMode
                 ? "À la fin du parcours, vous pourrez télécharger les formulaires, les envoyer au service chômage (Namur et Luxembourg) ou les envoyer à une adresse e-mail."
@@ -1101,20 +1085,22 @@ export default function FormulaireC1({
           </>
         )}
 
+        </div>
+
         {/* ── Navigation ── */}
-        <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+        <div className="form-actions">
           <button type="button" onClick={prev} disabled={step === 1}
-            className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed">
+            className="form-btn-retour">
             <ChevronLeft size={16} /> Précédent
           </button>
           {step < TOTAL_STEPS ? (
             <button type="button" onClick={next}
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-xl text-sm">
+              className="form-btn-principal">
               Suivant <ChevronRight size={16} />
             </button>
           ) : (
             <button type="button" onClick={handleSubmit} disabled={loading}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2 px-5 rounded-xl text-sm">
+              className="form-btn-principal">
               {loading ? <><IconeChargement size={16} /> Génération…</> : <><FileDown size={15} /> Générer le PDF</>}
             </button>
           )}
