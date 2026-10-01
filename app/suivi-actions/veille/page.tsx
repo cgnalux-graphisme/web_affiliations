@@ -6,7 +6,11 @@ import { dateArticle } from "../../../lib/articles";
 import { getSuperAdmin, getSupabaseServer } from "../../../lib/supabase-server";
 import { LIBELLES_STATUT, STATUTS_VEILLE, VEILLE_NOUVEAU, type StatutVeille } from "../../../lib/veille";
 import { motsClesTrouves, preparerCorrespondance } from "../../../lib/themes";
-import { ActionsItem, BoutonRamassage, FiltresVeille } from "./ControlesVeille";
+import { idsDuSujet, ramassageRecent, type AnalyseEnregistree } from "../../../lib/veille-tri";
+import { CLE_DERNIER_RAMASSAGE } from "../../../lib/veille-ramassage";
+import { ActionsItem, BoutonCheckIA, BoutonRamassage, FiltresVeille } from "./ControlesVeille";
+import ConferenceRedaction from "./ConferenceRedaction";
+import LogoMedia from "./LogoMedia";
 import RepereSection from "../RepereSection";
 
 export const metadata: Metadata = {
@@ -35,7 +39,7 @@ const AFFICHAGE_MAX = 200;
 export default async function VeillePage({
   searchParams,
 }: {
-  searchParams: Promise<{ source?: string; statut?: string; pertinence?: string }>;
+  searchParams: Promise<{ source?: string; statut?: string; pertinence?: string; vue?: string }>;
 }) {
   if (!(await getSuperAdmin())) redirect("/login?next=/suivi-actions/veille");
   const params = await searchParams;
@@ -66,11 +70,19 @@ export default async function VeillePage({
   };
 
   // Sans filtre de statut : les nouveaux d'abord, puis le reste, chacun du plus récent au plus ancien.
-  const [resItems, resAutres, resSources, resThemes, ...comptes] = await Promise.all([
+  const [resItems, resAutres, resSources, resThemes, resAnalyse, resRamassage, ...comptes] = await Promise.all([
     statut ? requete(statut) : requete(VEILLE_NOUVEAU),
     statut ? Promise.resolve({ data: [], error: null }) : requete(null, true, LIMITE_AUTRES),
     supabase.from("site_sources").select("id, nom").order("nom"),
     supabase.from("site_themes").select("mot_cle").eq("actif", true),
+    // Dernier « Check IA » (absent si la table n'existe pas encore : le fil s'affiche quand même).
+    supabase
+      .from("site_veille_analyses")
+      .select("id, created_at, origine, nb_articles, resultat")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("site_parametres").select("valeur").eq("cle", CLE_DERNIER_RAMASSAGE).maybeSingle(),
     ...STATUTS_VEILLE.map(compte),
   ]);
   const erreur = resItems.error || resAutres.error || resThemes.error;
@@ -87,26 +99,84 @@ export default async function VeillePage({
   const nombres = Object.fromEntries(STATUTS_VEILLE.map((s, i) => [s, comptes[i].count ?? 0])) as Record<StatutVeille, number>;
   const serviceConfigure = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
+  // Statut actuel des articles du classement (un article absent a été effacé du fil après 3 jours).
+  const analyse = resAnalyse.error ? null : ((resAnalyse.data as AnalyseEnregistree | null) ?? null);
+  const idsAnalyse = [...new Set((analyse?.resultat?.sujets ?? []).flatMap(idsDuSujet))];
+  const statutsAnalyse: Record<string, string> = {};
+  if (idsAnalyse.length) {
+    const { data } = await supabase.from("site_veille").select("id, statut").in("id", idsAnalyse);
+    for (const l of (data ?? []) as { id: string; statut: string }[]) statutsAnalyse[l.id] = l.statut;
+  }
+  const dernierRamassage = (resRamassage.data?.valeur as string | undefined) ?? null;
+  const filFrais = ramassageRecent(dernierRamassage);
+  const nbSujets = (analyse?.resultat?.sujets ?? []).filter((s) => s.rang === "S" || s.rang === "A" || s.rang === "B").length;
+
+  // Deux vues : « Check IA » (par défaut s'il existe un classement) et « Le fil » (articles, filtres).
+  const filtresActifs = Boolean(statut || sourceId || tous);
+  const vue: "check" | "fil" =
+    params.vue === "fil" || params.vue === "check" ? params.vue : analyse && !filtresActifs ? "check" : "fil";
+  const lienFil = (() => {
+    const q = new URLSearchParams({ vue: "fil" });
+    if (sourceId) q.set("source", sourceId);
+    if (statut) q.set("statut", statut);
+    if (tous) q.set("pertinence", "tous");
+    return `/suivi-actions/veille?${q}`;
+  })();
+  const checkIAPossible = serviceConfigure && Boolean(process.env.ANTHROPIC_API_KEY) && filFrais;
+
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b-[6px] border-militant-charbon pb-5">
+    <div className="mx-auto max-w-6xl">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b-[6px] border-militant-charbon pb-5">
         <div>
           <RepereSection />
           <h1 className="font-condensed text-5xl font-extrabold uppercase leading-none tracking-tight">Le fil</h1>
-          <p className="mt-2 text-base">
-            {nombres[VEILLE_NOUVEAU]} nouveau{nombres[VEILLE_NOUVEAU] > 1 ? "x" : ""} à trier. Articles ramassés
-            chaque matin dans les{" "}
+          {/* Barre d'état : le fil et le classement sont-ils à jour ? */}
+          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span className="inline-flex items-center gap-1.5 font-semibold">
+              <span aria-hidden className={`inline-block h-2.5 w-2.5 rounded-full ${filFrais ? "bg-militant-bordeaux" : "border-2 border-militant-ardoise"}`} />
+              {dernierRamassage ? `Fil rafraîchi ${quand(dernierRamassage)}` : "Fil jamais rafraîchi"}
+              {!filFrais && dernierRamassage && <span className="font-normal"> · à rafraîchir</span>}
+            </span>
+            {analyse && (
+              <span>
+                Check IA {quand(analyse.created_at)} · {analyse.nb_articles} articles
+              </span>
+            )}
             <Link
               href="/suivi-actions/sources"
               className="font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux"
             >
-              sources actives
+              Sources
             </Link>
-            .
           </p>
         </div>
-        <BoutonRamassage />
+        <div className="flex flex-wrap items-start gap-3">
+          <BoutonRamassage />
+          <BoutonCheckIA actif={checkIAPossible} />
+        </div>
       </div>
+
+      <nav aria-label="Vues de Scan News" className="flex gap-1 border-b border-militant-ardoise">
+        {[
+          { cle: "check", libelle: "Check IA", n: nbSujets, href: "/suivi-actions/veille?vue=check" },
+          { cle: "fil", libelle: "Le fil", n: nombres[VEILLE_NOUVEAU], href: lienFil, suffixe: " nouveaux" },
+        ].map((o) => (
+          <Link
+            key={o.cle}
+            href={o.href}
+            aria-current={vue === o.cle ? "page" : undefined}
+            className={`-mb-px inline-flex min-h-[48px] items-center gap-1.5 border-b-4 px-3 pt-1 text-[15px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge ${
+              vue === o.cle ? "border-militant-rouge" : "border-transparent hover:border-militant-ardoise"
+            }`}
+          >
+            {o.libelle}
+            <span className="font-semibold tabular-nums">
+              {o.n}
+              {o.suffixe && <span className="sr-only">{o.suffixe}</span>}
+            </span>
+          </Link>
+        ))}
+      </nav>
 
       {!serviceConfigure && (
         <div role="alert" className="mt-6 flex items-start gap-2.5 rounded-xl border-2 border-militant-bordeaux px-4 py-3 text-sm">
@@ -119,6 +189,21 @@ export default async function VeillePage({
         </div>
       )}
 
+      {vue === "check" &&
+        (analyse ? (
+          <ConferenceRedaction key={analyse.id} analyse={analyse} statutsInitiaux={statutsAnalyse} />
+        ) : (
+          <div className="mt-10 border-l-[6px] border-militant-rouge py-2 pl-5">
+            <p className="font-condensed text-3xl font-bold">Pas encore de classement.</p>
+            <p className="mt-2 text-lg">
+              Rafraîchissez le fil, puis cliquez sur « Check IA » : l&apos;IA classe les sujets des 48 dernières heures.
+              Le classement se fait aussi tout seul chaque matin vers 8 h.
+            </p>
+          </div>
+        ))}
+
+      {vue === "fil" && (
+      <>
       <FiltresVeille
         sources={(resSources.data ?? []) as { id: string; nom: string }[]}
         source={sourceId ?? ""}
@@ -177,7 +262,10 @@ export default async function VeillePage({
                     {dateArticle(it.date_publication ?? it.created_at)}
                   </span>
                   <span className="h-4 w-[3px] bg-militant-rouge" aria-hidden />
-                  <span>{it.source_nom ?? "Source supprimée"}</span>
+                  <span className="inline-flex items-center gap-2">
+                    <LogoMedia lien={it.lien} nom={it.source_nom} taille={22} />
+                    {it.source_nom ?? "Source supprimée"}
+                  </span>
                   {traite && (
                     <span className="rounded-full border-2 border-militant-ardoise px-2.5 text-xs font-bold">
                       {LIBELLES_STATUT[s] ?? it.statut}
@@ -223,6 +311,16 @@ export default async function VeillePage({
           Filtrez par statut ou par source pour voir les autres.
         </p>
       )}
+      </>
+      )}
     </div>
   );
+}
+
+/** « à 08:02 » aujourd'hui, sinon « le 30/09/2026 à 08:02 » (heure de Bruxelles). */
+function quand(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const h = new Intl.DateTimeFormat("fr-BE", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit" }).format(d);
+  return dateArticle(iso) === dateArticle(new Date().toISOString()) ? `à ${h}` : `le ${dateArticle(iso)} à ${h}`;
 }

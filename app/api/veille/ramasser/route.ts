@@ -1,6 +1,6 @@
-import { timingSafeEqual } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { appelCron } from "../../../../lib/cron";
 import { getSuperAdmin } from "../../../../lib/supabase-server";
 import { getSupabaseService } from "../../../../lib/supabase-service";
 import { ramasserFlux } from "../../../../lib/veille-ramassage";
@@ -8,19 +8,10 @@ import { ramasserFlux } from "../../../../lib/veille-ramassage";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Appel du Vercel Cron : en-tête « Authorization: Bearer <CRON_SECRET> ». */
-function appelCron(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  const recu = request.headers.get("authorization");
-  if (!secret || !recu) return false;
-  const attendu = Buffer.from(`Bearer ${secret}`);
-  const donne = Buffer.from(recu);
-  return attendu.length === donne.length && timingSafeEqual(attendu, donne);
-}
-
 /**
  * Ramassage des flux RSS de la veille.
- * GET = Vercel Cron (une fois par jour à 6 h UTC, voir vercel.json) ; POST = bouton « Rafraîchir maintenant ».
+ * POST = bouton « Rafraîchir maintenant ». GET = appel manuel avec CRON_SECRET (le cron quotidien passe par
+ * /api/veille/analyse, qui ramasse puis analyse). Ramasse, puis purge les articles de plus de 3 jours.
  * Accès : le cron (CRON_SECRET) ou un super admin connecté.
  */
 async function ramasser(request: NextRequest) {
@@ -42,7 +33,7 @@ async function ramasser(request: NextRequest) {
 
   try {
     const bilan = await ramasserFlux(supabase);
-    if (bilan.ajoutes) revalidatePath("/suivi-actions/veille");
+    if (bilan.ajoutes || bilan.purges) revalidatePath("/suivi-actions/veille");
     return NextResponse.json(bilan);
   } catch (err) {
     console.error("veille :", err);

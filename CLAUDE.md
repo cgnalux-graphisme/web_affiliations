@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **29/09/2026**
+> Dernière mise à jour : **01/10/2026**
 
 ---
 
@@ -57,6 +57,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/contact` | public | (29/09/2026) **Nos bureaux** (4 bureaux de `lib/bureaux.ts` : bascule année / été, statut « ouvert maintenant » + « Ferme à… / Ouvre… » (`prochainChangement()`), résumé « En ce moment », Appeler, Itinéraire, **cartes Google Maps affichées directement si le visiteur a accepté les cookies**, sinon plan décoratif + « Afficher les cartes » (= accepter) ; cartes **en couleurs d'origine** (choix de Fred du 29/09/2026 : exception à la règle vert / bleu, c'est un contenu de Google)) · **Nous joindre** (e-mail + copier, WhatsApp, réseaux de `app/ReseauxSociaux.tsx`) · **formulaire de contact** |
 | `/api/contact` | public | Formulaire de contact (POST `{ nom, email, sujet, message, site_web }`) → un e-mail Resend vers `cg.nalux@accg.be`, « Répondre à » = le visiteur. Validation `lib/contact.ts` (partagée navigateur / serveur) ; champ piège `site_web` rempli = réponse « succès » sans envoi ; **rien d'enregistré**, contenu jamais journalisé |
 | `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026 ; politique cookies réécrite et vie privée complétée — formulaire de contact, Google Maps — le même jour) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **Validés par Fred le 29/09/2026.** Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
+| `/statuts` | public | Statuts de la régionale (01/10/2026) : texte repris **tel quel** du document officiel (`statuts.pdf` transmis par Fred), **ne jamais le reformuler ni le corriger** ; mise en page propre (sommaire collant par chapitre, articles en deux colonnes). Lien dans le pied de page et dans la case « Accord général » du formulaire d'affiliation (nouvel onglet) |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
 | (adresse inconnue) | public | Page 404 du site (`app/not-found.tsx`, 30/09/2026) : « 404 · Page introuvable » au style des autres pages + liens vers les rubriques ; sert aussi aux `notFound()` (article, explication, mobilisation introuvables) |
 | `/login` | public | Connexion (identifiants CG Link) |
@@ -68,12 +69,12 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/demandes` | SUPER_ADMIN | Back-office des demandes : historique des formulaires par type (onglets), recherche, dates, tri, pagination |
 | `/suivi-actions/demandes/<type>/<id>` | SUPER_ADMIN | Une demande : toutes ses informations, signature, « Régénérer le PDF » + « Télécharger » |
 | `/suivi-actions/articles` | SUPER_ADMIN | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
-| `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article ; `?veille=<id>` pré-remplit depuis la veille et affiche le panneau de rédaction assistée |
+| `/suivi-actions/articles/nouveau` | SUPER_ADMIN | Écrire un article ; `?veille=<id>` pré-remplit depuis un article du fil, `?analyse=<id>&sujet=<n>` depuis un sujet du Check IA (toutes ses sources) ; `&ia=1` met le focus sur le panneau de rédaction assistée |
 | `/suivi-actions/articles/<id>/modifier` · `/apercu` | SUPER_ADMIN | Modifier / supprimer ; aperçu tel que sur le site (brouillon compris) |
 | `/suivi-actions/explications` | SUPER_ADMIN | Liste des explications (« On vous explique ») : modifier, publier / dépublier, réseaux, supprimer |
 | `/suivi-actions/explications/nouvelle` | SUPER_ADMIN | Importer une note FGTB (.docx / .pdf) à vulgariser → formulaire d'article pré-rempli (categorie `explication`) |
 | `/suivi-actions/articles/<id>/reseaux` | SUPER_ADMIN | Déclinaison d'un article publié en posts Facebook, Instagram, TikTok, YouTube : générer, modifier, enregistrer, copier |
-| `/suivi-actions/veille` | SUPER_ADMIN | **Scan News › Le fil** : articles ramassés (résumé du flux en entier) : filtres pertinence / statut / source, ignorer, rédiger un article, brouillon IA, rafraîchir |
+| `/suivi-actions/veille` | SUPER_ADMIN | **Scan News › Le fil** : barre d'état (fil rafraîchi à…, Check IA de…) + « Rafraîchir » et « Check IA », puis **deux onglets** : `?vue=check` = Check IA en « conférence de rédaction » (défaut s'il existe un classement), `?vue=fil` = les articles ramassés (filtres pertinence / statut / source, ignorer, rédiger, brouillon IA) |
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
 | `/suivi-actions/mobilisations` · `/nouvelle` · `/<id>/modifier` · `/<id>/apercu` | SUPER_ADMIN | Mobilisations (manifs, grèves à venir) : créer, modifier, supprimer, interrupteur « mise en avant » (une seule à la fois), aperçu de la page campagne, « pourquoi » rédigé par l'IA |
@@ -84,11 +85,13 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/api/admin/demandes` | SUPER_ADMIN | Liste d'un type de demande (GET `?type=&q=&du=&au=&tri=&page=`) — clé service_role |
 | `/api/admin/demandes/<type>/<id>` · `/pdf` · `/liees` · `/envois` | SUPER_ADMIN | Détail complet d'une demande ; PDF C1 / C3.2 rempli côté serveur ; demandes de la même personne ; historique des e-mails |
 | `/api/image-distante` | SUPER_ADMIN | Télécharge une image glissée depuis une autre page web (POST `{ url }`) |
-| `/api/redaction/lisibilite` | SUPER_ADMIN | L'IA peut-elle lire l'article ? Vérification gratuite du `robots.txt` du média (GET `?veilleId=`) |
-| `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5 (POST `{ veilleId, lire, extrait?, consignes? }`) |
+| `/api/redaction/lisibilite` | SUPER_ADMIN | L'IA peut-elle lire l'article ? Vérification gratuite du `robots.txt` du média (GET `?veilleId=`) ; renvoie aussi l'adresse réelle (alerte Google résolue) |
+| `/api/redaction/brouillon` | SUPER_ADMIN | Brouillon d'article proposé par Claude Sonnet 5, une ou plusieurs sources (POST `{ veilleIds, lire?, textes?, notes?, consignes? }`) |
 | `/api/redaction/note` | SUPER_ADMIN | Note FGTB (multipart, champ `fichier`) → texte extrait, vulgarisé par Claude Sonnet 5, fichier archivé dans `notes-sources` |
 | `/api/reseaux/declinaison` | SUPER_ADMIN | Posts réseaux proposés par Claude Sonnet 5 (POST `{ articleId, reseau? }` ; sans `reseau` = les 4) |
-| `/api/veille/ramasser` | cron ou SUPER_ADMIN | Ramassage des flux (GET = Vercel Cron chaque jour à 6 h UTC, POST = bouton) |
+| `/api/veille/ramasser` | CRON_SECRET ou SUPER_ADMIN | Ramassage des flux + purge des articles de plus de 3 jours (POST = bouton « Rafraîchir maintenant ») |
+| `/api/logo-media` | SUPER_ADMIN | Logo d'un média (GET `?domaine=`) : icône récupérée sur le site du média lui-même (`lib/logo-media.ts`), 404 sans logo |
+| `/api/veille/analyse` | cron ou SUPER_ADMIN | **Check IA** : GET = Vercel Cron (6 h et 7 h UTC : ramassage + purge, puis analyse seulement s'il est 8 h à Bruxelles) ; POST = bouton (fil rafraîchi depuis moins de 2 h) |
 
 **Consentement aux cookies** (29/09/2026, demandes de Fred) : deux catégories soumises à l'accord,
 **cartes Google Maps** (`/contact`) et **vidéos YouTube** (`/actions` : sans accord, ni miniature ni
@@ -179,6 +182,13 @@ Veille (créés côté Supabase avant le 28/09/2026) :
 | `site_sources` | Flux RSS suivis : `nom`, `url_flux`, `actif` | Super admin |
 | `site_themes` | Mots-clés de pertinence : `mot_cle`, `actif` (pré-remplie) | Super admin |
 | `site_veille` | Articles ramassés : `source_id`, `source_nom`, `titre`, `resume`, `lien` (**index unique**), `date_publication`, `statut` (`nouveau` / `traite` / `ignore`) | Super admin ; écriture du ramassage en service_role |
+| `site_veille_analyses` | Classements « Check IA » : `origine` (`manuel` / `auto`), `nb_articles`, `resultat` (jsonb, `ResultatAnalyse` de `lib/veille-tri.ts`), `modele`, `created_at` ; purgés après 7 jours | Lecture super admin ; écriture et purge **uniquement** en service_role |
+
+Migration `supabase/migrations/20261001090000_site_veille_analyses.sql` **demandée par Fred le
+01/10/2026** (idempotente). **À exécuter par Fred** dans l'éditeur SQL : tant qu'elle ne l'est pas,
+le fil s'affiche normalement mais « Check IA » échoue à l'enregistrement (message clair).
+`site_parametres` reçoit aussi la clé `veille_dernier_ramassage` (date ISO du dernier ramassage,
+écrite en service_role).
 
 Mobilisations (créés par Fred avant le 29/09/2026, aucune migration dans le dépôt ;
 colonnes relevées par l'OpenAPI de PostgREST) :
@@ -433,9 +443,10 @@ reformuler, citer et lier la source, jamais recopier.
       insère en `upsert … ignoreDuplicates` sur `lien` avec la clé **service_role**
       (`lib/supabase-service.ts`, serveur uniquement). Route protégée par
       `CRON_SECRET` (en-tête `Authorization: Bearer`) ou session super admin.
-      Cron `vercel.json` : `0 6 * * *` (6 h UTC = 7 h ou 8 h à Bruxelles), compatible
-      plan Hobby (une exécution par jour, décalable dans l'heure) ; en plus,
-      bouton « Rafraîchir maintenant ». Le cron ne tourne qu'en production.
+      Crons `vercel.json` (depuis le 01/10/2026) : `0 6 * * *` et `0 7 * * *` vers
+      `/api/veille/analyse` (ramassage à chaque passage, Check IA à 8 h Bruxelles), compatibles
+      plan Hobby (une exécution par jour chacun, décalable dans l'heure) ; en plus,
+      bouton « Rafraîchir maintenant ». Les crons ne tournent qu'en production.
 - [x] Écran **Veille** : les « nouveau » d'abord, filtres statut / source, résumé
       du flux **en entier**, lien vers l'article d'origine, « Ignorer »,
       « Remettre à trier », « Rédiger un article » (item → `traite`, formulaire
@@ -453,39 +464,119 @@ reformuler, citer et lier la source, jamais recopier.
   le 28/09/2026 ont un résumé coupé à 600 caractères (le ramassage ne réécrit
   jamais une ligne). Le **ramassage** ne lit jamais la page de l'article ; seule
   la rédaction assistée la lit, sur demande.
+- [x] **Mémoire du fil limitée à 3 jours** (choix de Fred, 01/10/2026, `MEMOIRE_JOURS`,
+      `lib/veille.ts`) : chaque ramassage efface les articles de plus de 3 jours (date de publication,
+      sinon date de ramassage, `purgerFil()`) **et n'ajoute plus aucun article publié il y a plus de
+      3 jours** (`dansLaMemoire()`) — sinon un article effacé encore présent dans le flux reviendrait
+      « nouveau » (l'index unique sur `lien` ne le retient plus). Un article sans date reste admis.
+- [x] **Écran « conférence de rédaction »** (01/10/2026, piste 1 choisie par Fred parmi trois
+      maquettes : https://claude.ai/artifact/UNFLDtyEHWKdhSr5rdeofs) :
+      `app/suivi-actions/veille/ConferenceRedaction.tsx`. Synthèse du jour en tête, puis un cadre en
+      deux colonnes : **à gauche la liste** des sujets S, A, B (rangs vides masqués ; « À surveiller »
+      et « Pas pour nous » repliés en bas) avec la barre « Sujets traités : 2 sur 5 » ; **à droite le
+      sujet ouvert** (rang, format, état, intitulé en grand, « Notre angle » mis en avant, pourquoi,
+      sources sur une ligne chacune avec logo, titre tronqué en entier au survol, lisibilité et
+      doublons repliés), boutons « Brouillon IA », « Rédiger un article », « Ignorer ». **État d'un
+      sujet** déduit des statuts de ses articles : « En rédaction » (au moins un traité) ou « Ignoré »
+      (tous ignorés, barré). **Ignorer** enchaîne sur le sujet suivant et affiche un bandeau
+      bordeaux « Sujet ignoré · Annuler » pendant 8 s (statuts d'avant restaurés). **Clavier** :
+      ↑ ↓ dans la liste, B brouillon IA, R rédiger, I ignorer (jamais dans un champ de saisie).
+      Mobile : la liste, puis le sujet en dessous (clic = défilement, « Retour à la liste »).
+      Ne pas revenir à la tier list empilée (rejetée par Fred : trop de lecture, pas de vue d'ensemble).
+- [x] **Logos des médias** (01/10/2026, demande de Fred) : `LogoMedia.tsx` (pastille ronde 22-24 px)
+      dans la conférence et dans le fil, servi par `/api/logo-media` : icône déclarée par la page
+      d'accueil du média (apple-touch-icon d'abord, SVG écartés), sinon `/favicon.ico` ; adresses
+      publiques uniquement (`verifierAdressePublique`, chaque redirection revérifiée), 300 Ko max,
+      cache serveur 24 h et navigateur 7 jours ; jamais de service tiers. Sans logo : initiales du
+      média. Alerte Google : logo et nom du média d'origine (« dhnet.be (alerte Google) »). Vérifié le
+      01/10/2026 : RTBF, L'Avenir, RTL, Le Soir, Trends, DH, Bruxelles Today, Google Actualités.
+- [x] **Check IA** (01/10/2026, demandé par Fred) : bouton à côté de « Rafraîchir maintenant »,
+      actif seulement si le dernier ramassage date de moins de 2 h (`ramassageRecent()`, vérifié
+      aussi par le serveur). Claude Sonnet 5 (`lib/veille-tri-ia.ts`, `lib/veille-analyse.ts`, sortie
+      structurée, effort `medium`) reçoit les articles des **48 dernières heures** hors ignorés
+      (300 max, titre + résumé tronqué à 600 caractères, **jamais la page de l'article**), marqués
+      « déjà traité » s'il y a lieu, et les titres des publications des 15 derniers jours (éviter les
+      doublons). **Grille FGTB / pouvoir d'achat** (`CONSIGNE_TRI`) : index, salaires, énergie,
+      logement, TVA, pensions, chômage, fiscalité, concertation, restructurations, secteurs de la
+      Centrale, mobilisations, bonus Namur-Luxembourg. **Tier list** : S « À poster » (rare) ·
+      A « Ça vaut le coup » · B « Post rapide » · C « À surveiller » · « Pas pour nous » (repliée,
+      sujets plausibles mais à ne pas relayer, avec la raison) ; les articles sans rapport ne sont
+      classés nulle part (comptés). Chaque sujet : intitulé, pourquoi, « Notre angle », format
+      suggéré, articles regroupés (plusieurs médias = un sujet), et sur chaque article « L'IA peut
+      lire » / « À lire vous-même » (rangs S, A, B : `robots.txt` vérifié pendant l'analyse,
+      `lib/lisibilite.ts`). Boutons **du sujet entier** (`ActionsSujet`) : « Brouillon IA » et
+      « Rédiger un article » passent tous ses articles en « traité » et ouvrent le formulaire
+      pré-rempli depuis le sujet (`cheminRedactionSujet()` : intitulé en titre, liens de toutes ses
+      sources, « Angle à prendre : … » en consignes) ; « Ignorer le sujet » (ou « Remettre à
+      trier »). **Alertes Google** (source « Google FGTB », liens `news.google.com/rss/articles/…`
+      chiffrés) : adresse réelle du média retrouvée côté serveur (`lib/lien-reel.ts`, page Google
+      puis point d'accès « batchexecute », méthode **non officielle**, vérifiée le 01/10/2026 ; en
+      cas d'échec le lien Google reste, illisible par l'IA) ; dans un sujet, l'alerte qui reprend
+      l'article d'un média (même adresse, ou même titre sans « - Média ») est **fusionnée** dans
+      celui-ci (`fusionnerDoublons()`, champ `doublons`, traitée et ignorée avec lui). **Garde-fous côté code** (`construireResultat()`) :
+      l'IA ne voit que des références `a1`, `a2`… (jamais les id) ; référence inconnue écartée ; un
+      article dans un seul sujet (le mieux classé) ; rangs triés et plafonnés ; liens retirés ;
+      format cohérent avec le rang. Rappel affiché : « Classement IA indicatif ». Le dernier
+      classement s'affiche dans l'onglet « Check IA » (note s'il a plus de 48 h ; article « Effacé du fil »
+      après la purge). **Analyse automatique à 8 h (Bruxelles)** : deux crons (`0 6` et `0 7` UTC,
+      `vercel.json`) qui ramassent et purgent à chaque passage ; l'analyse ne part que s'il est 8 h
+      à Bruxelles (6 h UTC en été, 7 h UTC en hiver) et qu'aucune analyse auto n'a eu lieu dans les
+      20 h. Sur le plan Hobby, Vercel peut décaler un cron dans l'heure : l'analyse arrive donc entre
+      8 h et 9 h. Essai réel du 01/10/2026 sur le vrai fil (47 articles) : ~30 s, environ
+      11 000 jetons en entrée et 3 000 en sortie (quelques centimes).
 - Une modale « Aperçu » a été essayée puis retirée le 28/09/2026 (n'apportait
   rien de plus que la liste) : **ne pas la reproposer**.
 
 #### Rédaction assistée par IA
 - [x] Modèle **`claude-sonnet-5`** (choix de Fred), appel **uniquement serveur**
       (`app/api/redaction/brouillon`, SDK `@anthropic-ai/sdk`, sortie structurée
-      `zod`, réflexion adaptative, effort `medium`). La route reçoit l'id de
-      l'item et relit titre / résumé / lien en base. Coût indicatif : 1 à 3 c.
-      par brouillon, 5 à 10 c. avec lecture de l'article.
-- [x] **Tunnel en 5 étapes** (panneau IA du formulaire d'article ouvert depuis la
-      veille ; « Brouillon IA » l'ouvre avec le focus sur le panneau, rien ne
-      démarre sans clic) :
-      1. **Lisibilité par l'IA**, vérifiée gratuitement à l'ouverture
-         (`/api/redaction/lisibilite`, `lib/robots.ts`) : règles du `robots.txt`
-         du média pour le robot **`Claude-User`** d'Anthropic (RTBF l'autorise,
-         RTL l'interdit, Le Soir ne se laisse pas vérifier). « Non » est fiable ;
-         « oui » ne garantit pas un article payant. Bouton **Faire lire l'article
-         par l'IA**, **désactivé par défaut** (surcoût).
-      2. **Accéder à l'article** (lien source, nouvel onglet).
-      3. **Notes personnelles ou extrait** (60 000 caractères max).
-      4. **Consignes pour l'IA** (2 000 caractères max) : angle, ton, public,
-         longueur ; elles ne lèvent jamais les règles strictes.
-      5. **Créer le brouillon avec l'IA** (récapitulatif de ce que l'IA utilisera).
-      Limites dans `lib/redaction-limites.ts` (fichier sans dépendance,
-      importable côté navigateur).
-- **Lecture de l'article** (si demandée, dans le même appel que la rédaction) :
+      `zod`, réflexion adaptative, effort `medium`). La route reçoit les ids des
+      sources et relit titre / résumé / lien en base. Coût mesuré le 01/10/2026 :
+      1 à 3 c. sans lecture, **environ 10 c. avec une lecture** (4 sources, RTBF
+      lue : ~25 000 jetons en entrée, ~40 s).
+- [x] **Plusieurs sources** (01/10/2026, demande de Fred) : un brouillon part d'un
+      article du fil **ou de tous les articles d'un sujet du Check IA** (6 max,
+      `SOURCES_MAX`) → **un seul article de synthèse** (consigne : fait commun dit
+      une fois, fait d'une seule source attribué « selon L'Avenir… »,
+      contradictions entre sources signalées sans trancher, toutes les sources
+      dans la liste des sources).
+- [x] **Panneau de rédaction assistée** (`app/suivi-actions/articles/PanneauRedaction.tsx`,
+      « Brouillon IA » l'ouvre avec le focus, rien ne démarre sans clic), 4 étapes :
+      1. **Les sources**, une ligne chacune : média, titre, puce de lisibilité
+         (vérifiée gratuitement à l'ouverture pour chaque source,
+         `/api/redaction/lisibilite`, `lib/lisibilite.ts` : `robots.txt` du média
+         pour le robot **`Claude-User`** d'Anthropic, mis en cache 1 h par site ;
+         RTBF l'autorise, RTL l'interdit ; « non » est fiable, « oui » ne garantit
+         pas un article payant), puis **Ouvrir**, **Faire lire** (sources
+         lisibles, **2 au maximum**, `LECTURES_MAX`, désactivé par défaut) et
+         **Coller** (lit le presse-papiers en un clic ; si le navigateur refuse,
+         champ ouvert avec « Ctrl+V » ; coller retire la demande de lecture de
+         cette source, inutile de payer deux fois). Rail de gauche : ardoise =
+         résumé seul, rouge = lue par l'IA, bordeaux = texte collé (le texte de la
+         ligne le dit aussi). Confirmation de collage : voile bordeaux qui s'efface
+         (`.source-confirmee`, rien en mouvement réduit).
+      2. **Vos notes** (faits, contexte local).
+      3. **Consignes** (2 000 caractères max ; pré-remplies avec l'angle du Check IA).
+      4. **Créer** : récapitulatif de ce que l'IA utilisera et **coût estimé**.
+      **Jauge « Matière »** en tête du panneau (`lib/matiere.ts`, estimation en
+      mots : résumés, lectures demandées, textes collés, notes) : Maigre / Correcte /
+      Solide, remplissage animé à chaque geste, et **conseil du geste suivant**
+      (faire lire la source lisible la plus détaillée, sinon ouvrir et coller la
+      plus détaillée, sinon ajouter des notes). Limites dans
+      `lib/redaction-limites.ts` (fichier sans dépendance) : 60 000 caractères par
+      texte, 120 000 au total.
+- **Lecture des articles** (si demandée, dans le même appel que la rédaction) :
   outil serveur `web_fetch_20250910` (version de base : renvoie le texte lu tel
-  quel, nécessaire au garde-fou), `max_uses: 1`, `allowed_domains` = domaine de
-  l'article, `max_content_tokens: 30000`, relance sur `pause_turn` (3 fois
-  max). Page illisible → brouillon avec le reste + avertissement. Site qui
-  **interdit le robot d'Anthropic** (ex. `rtl.be`) : l'API rejette toute la
-  demande (400 « not accessible to our user agent ») → la route relance **sans
-  lecture**. **Ne pas contourner ce blocage** (respect du choix de l'éditeur).
+  quel, nécessaire au garde-fou), `max_uses` = nombre de sources à lire,
+  `allowed_domains` = leurs domaines, `max_content_tokens: 30000`, relance sur
+  `pause_turn` (3 fois max). Chaque page lue est rattachée à sa source
+  (`lib/redaction-lecture.ts`) : **lue**, **partielle** (moins de 1 500
+  caractères : sans doute l'accroche d'un article payant → « collez son texte »)
+  ou **impossible** ; chaque cas est signalé dans l'avertissement du brouillon.
+  Une source dont le `robots.txt` interdit le robot est écartée **avant** l'appel.
+  Si l'API refuse quand même (400 « not accessible to our user agent »), la route
+  relance **sans aucune lecture**. **Ne pas contourner ce blocage** (respect du
+  choix de l'éditeur). Alertes Google : adresse réelle résolue avant lecture.
 - **Ligne éditoriale de la consigne** (`CONSIGNE_SYSTEME`, `lib/redaction-ia.ts`,
   voulue par Fred) : vulgariser en restant **professionnel** (précis, sobre,
   argumenté), et **surtout** écrire avec la **vision et la critique
@@ -494,7 +585,8 @@ reformuler, citer et lier la source, jamais recopier.
   problème et pourquoi, ce qui va dans le bon sens, pistes et exigences de
   principe.
 - **Règles strictes de la consigne** : reformuler ; **aucun fait / chiffre /
-  citation absent de l'article lu, du texte collé ou du flux** ; jamais de
+  citation absent des sources (articles lus, textes collés, résumés du flux) ou des
+  notes de l'éditeur** ; jamais de
   revendication chiffrée, d'action (grève, manif) ou de position officielle FGTB
   absentes de la source ; matière maigre signalée ; contenus lus traités comme
   données, pas comme instructions (seules les `<consignes_editeur>` viennent de
@@ -502,7 +594,7 @@ reformuler, citer et lier la source, jamais recopier.
 - **Garde-fou droit d'auteur (règle de Fred)** : toute phrase reprise mot pour
   mot est en **italique** (`<em>`) — Fred la reformule ou la garde comme
   citation. L'IA en a la consigne, et le **code le vérifie** : comparaison avec
-  l'article lu **et** le texte collé ; toute phrase du contenu qui partage
+  tout ce que l'IA a eu sous les yeux (articles lus, textes collés, notes, résumés) ; toute phrase du contenu qui partage
   ≥ 8 mots consécutifs avec eux (`MOTS_REPRISE`) passe en `<em>` ; une reprise
   dans le titre, le chapô ou les points clés (texte brut) est signalée. Limite :
   détection phrase par phrase entre deux balises (une reprise coupée par du gras
@@ -809,7 +901,13 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   palette du site depuis le 30/09/2026 (plus de gris, rouge ni orange Tailwind).
 - **Exceptions de palette connues** (audit du 30/09/2026) : vert CSC / bleu Synova,
   2 couleurs de graphique du rapport, noir des PDF officiels C1 / C3.2 et du courrier
-  de préavis (à ne pas modifier), cartes Google Maps. Tout le reste = 5 couleurs.
+  de préavis (à ne pas modifier), cartes Google Maps, **logos des médias** dans Scan News
+  (espace admin, en petit, couleurs d'origine : contenus de tiers, 01/10/2026). Tout le reste = 5 couleurs.
+- **« Accord général » du formulaire d'affiliation** (réécrit le 01/10/2026, demande de Fred) :
+  reconnaissance de la prise de connaissance des statuts (lien `/statuts`) dans leur version en
+  vigueur à la date de la demande, acceptation sans réserve, engagement à respecter statuts,
+  règlements et décisions des congrès (reprend l'art. 5.2 des statuts). Résumé repris dans le PDF
+  d'affiliation (`mentionsList`). Colonne en base inchangée (`mention_accord`).
 - **Adresses e-mail** : contact général `cg.nalux@accg.be` (site, page Contact) ;
   administration `admin.nalux@accg.be` (PDF affiliation et SEPA, envois
   automatiques). `cg.namurluxembourg@accg.be` est obsolète.

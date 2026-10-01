@@ -275,7 +275,7 @@ export function BoutonRamassage() {
             <CheckCircle size={15} className="mt-0.5 shrink-0 text-militant-rouge" aria-hidden />
             {bilan.sources.length === 0
               ? "Aucune source active à lire."
-              : `${bilan.ajoutes} nouvel${bilan.ajoutes > 1 ? "s" : ""} article${bilan.ajoutes > 1 ? "s" : ""} (${bilan.sources.length} source${bilan.sources.length > 1 ? "s" : ""} lue${bilan.sources.length > 1 ? "s" : ""}).`}
+              : `${bilan.ajoutes} nouvel${bilan.ajoutes > 1 ? "s" : ""} article${bilan.ajoutes > 1 ? "s" : ""} (${bilan.sources.length} source${bilan.sources.length > 1 ? "s" : ""} lue${bilan.sources.length > 1 ? "s" : ""})${bilan.purges ? `, ${bilan.purges} de plus de 3 jours effacé${bilan.purges > 1 ? "s" : ""}` : ""}.`}
           </p>
         )}
         {enErreur.map((s) => (
@@ -283,6 +283,69 @@ export function BoutonRamassage() {
             {s.source} : {s.erreur}
           </p>
         ))}
+        {erreur && (
+          <p role="alert" className="flex items-start gap-1.5 font-semibold text-militant-bordeaux">
+            <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
+            {erreur}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * « Check IA » : classement des sujets des 48 dernières heures par l'IA (tier list).
+ * Actif seulement sur un fil rafraîchi depuis moins de 2 h (contrôlé aussi par le serveur).
+ */
+export function BoutonCheckIA({ actif }: { actif: boolean }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  async function lancer() {
+    setEnCours(true);
+    setErreur("");
+    try {
+      const reponse = await fetch("/api/veille/analyse", { method: "POST" });
+      const json = await reponse.json().catch(() => ({}));
+      if (!reponse.ok) {
+        setErreur(
+          reponse.status === 401
+            ? "Votre session a expiré. Reconnectez-vous puis réessayez."
+            : json.erreur ?? "L'analyse a échoué. Réessayez dans quelques minutes."
+        );
+        return;
+      }
+      // Le nouveau classement s'ouvre dans la vue « Check IA ».
+      router.push("/suivi-actions/veille?vue=check");
+      router.refresh();
+    } catch {
+      setErreur("Le serveur ne répond pas. Vérifiez votre connexion et réessayez.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <div className="flex max-w-xs flex-col items-start gap-2 sm:items-end">
+      <button
+        type="button"
+        onClick={lancer}
+        disabled={!actif || enCours}
+        aria-describedby={!actif ? "aide-check-ia" : undefined}
+        className={BOUTON_PRINCIPAL}
+      >
+        {enCours ? <IconeChargement size={16} /> : <Sparkles size={15} aria-hidden />}
+        {enCours ? "Analyse en cours…" : "Check IA"}
+      </button>
+      <div aria-live="polite" className="text-sm sm:text-right">
+        {enCours && <p className="font-semibold">L&apos;IA lit le fil des 48 dernières heures (20 à 60 s).</p>}
+        {!actif && !enCours && (
+          <p id="aide-check-ia" className="font-semibold">
+            Rafraîchissez d&apos;abord le fil.
+          </p>
+        )}
         {erreur && (
           <p role="alert" className="flex items-start gap-1.5 font-semibold text-militant-bordeaux">
             <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />

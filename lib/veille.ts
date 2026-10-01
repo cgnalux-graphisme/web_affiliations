@@ -15,6 +15,25 @@ export const LIBELLES_STATUT: Record<StatutVeille, string> = {
   [VEILLE_IGNORE]: "Ignoré",
 };
 
+/** Mémoire du fil : au-delà, les articles sont effacés et plus jamais ramassés (choix de Fred, 01/10/2026). */
+export const MEMOIRE_JOURS = 3;
+const JOUR_MS = 24 * 60 * 60 * 1000;
+
+/** Date limite de la mémoire du fil (ISO) : tout article plus ancien est purgé. */
+export function limiteMemoire(maintenant: Date = new Date()): string {
+  return new Date(maintenant.getTime() - MEMOIRE_JOURS * JOUR_MS).toISOString();
+}
+
+/**
+ * Un article du flux peut-il entrer dans le fil ? Oui s'il a moins de MEMOIRE_JOURS jours,
+ * ou s'il n'a pas de date. Sans ce filtre, un article purgé encore présent dans le flux reviendrait « nouveau ».
+ */
+export function dansLaMemoire(datePublication: string | null, maintenant: Date = new Date()): boolean {
+  if (!datePublication) return true;
+  const t = new Date(datePublication).getTime();
+  return Number.isNaN(t) || t >= maintenant.getTime() - MEMOIRE_JOURS * JOUR_MS;
+}
+
 /** Adresse http(s) complète, ou null. */
 export function lienValide(url: string): string | null {
   try {

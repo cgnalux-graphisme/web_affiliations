@@ -299,3 +299,17 @@
 @media (prefers-reduced-motion: reduce) {
   .consentement-entree { animation: none; }
 }
+
+/* Rédaction assistée : confirmation d'un texte collé sur la ligne de la source (une fois, puis s'efface). */
+@keyframes source-confirmee {
+  from { background-color: rgb(147 21 16 / 0.12); }
+  to { background-color: rgb(147 21 16 / 0); }
+}
+.source-confirmee {
+  animation: source-confirmee 1.4s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .source-confirmee {
+    animation: none;
+  }
+}

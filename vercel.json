@@ -2,8 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
-      "path": "/api/veille/ramasser",
+      "path": "/api/veille/analyse?passage=1",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/veille/analyse?passage=2",
+      "schedule": "0 7 * * *"
     }
   ]
 }

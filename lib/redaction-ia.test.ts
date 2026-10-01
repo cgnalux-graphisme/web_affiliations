@@ -3,8 +3,9 @@ import {
   construireBrouillon,
   contientReprise,
   empreintesSource,
+  etatLecture,
   marquerReprises,
-  messageSource,
+  messageSources,
   raisonLecture,
   type ReponseIA,
 } from "./redaction-ia";
@@ -31,8 +32,10 @@ const reponse: ReponseIA = {
   avertissement: "",
 };
 
+const LU = [{ source: "RTBF Info", etat: "lu" as const }];
+
 describe("construireBrouillon", () => {
-  const b = construireBrouillon(reponse, item, { lectureDemandee: true, articleLu: true, extrait: false }, ARTICLE);
+  const b = construireBrouillon(reponse, [item], LU, ARTICLE);
 
   it("nettoie le titre et en déduit l'adresse", () => {
     expect(b.titre).toBe("Incapacité : les mutuelles sonnent l'alarme");
@@ -53,19 +56,23 @@ describe("construireBrouillon", () => {
 
   it("n'avertit pas quand l'article est lu et la source suffit", () => {
     expect(b.avertissement).toBeNull();
-    expect(b.article_lu).toBe(true);
+    expect(b.lectures).toEqual(LU);
     expect(b.suggestion_image).toBe("Une salle d'attente de mutuelle.");
   });
 
   it("n'avertit pas quand la lecture n'a pas été demandée", () => {
-    expect(construireBrouillon(reponse, item, { lectureDemandee: false, articleLu: false, extrait: false }).avertissement).toBeNull();
+    expect(construireBrouillon(reponse, [item]).avertissement).toBeNull();
   });
 
-  it("avertit quand la source est maigre ou l'article non lu", () => {
-    expect(construireBrouillon({ ...reponse, source_suffisante: false }, item, { lectureDemandee: true, articleLu: true, extrait: false }).avertissement).toMatch(/trop maigre/);
-    const nonLu = construireBrouillon(reponse, item, { lectureDemandee: true, articleLu: false, raisonEchec: raisonLecture("url_not_accessible"), extrait: false });
-    expect(nonLu.article_lu).toBe(false);
-    expect(nonLu.avertissement).toMatch(/non lu \(page inaccessible/);
+  it("avertit quand la source est maigre, la lecture impossible ou partielle", () => {
+    expect(construireBrouillon({ ...reponse, source_suffisante: false }, [item], LU).avertissement).toMatch(/trop maigre/);
+    const nonLu = construireBrouillon(reponse, [item], [
+      { source: "RTBF Info", etat: "echec", raison: raisonLecture("url_not_accessible") },
+    ]);
+    expect(nonLu.avertissement).toMatch(/Lecture impossible pour RTBF Info \(page inaccessible/);
+    expect(nonLu.avertissement).toMatch(/seul résumé du flux/);
+    const partiel = construireBrouillon(reponse, [item], [{ source: "Le Soir", etat: "partiel" }]);
+    expect(partiel.avertissement).toMatch(/Lecture partielle pour Le Soir/);
   });
 
   it("met en italique une phrase recopiée que l'IA a oublié de marquer", () => {
@@ -75,8 +82,8 @@ describe("construireBrouillon", () => {
         contenu_html:
           "<p>Une étude est sortie. Près d'une personne en invalidité sur trois souhaite reprendre le travail. Et après ?</p>",
       },
-      item,
-      { lectureDemandee: true, articleLu: true, extrait: false },
+      [item],
+      LU,
       ARTICLE
     );
     expect(copie.contenu).toBe(
@@ -88,11 +95,38 @@ describe("construireBrouillon", () => {
   it("signale une reprise dans le chapô", () => {
     const c = construireBrouillon(
       { ...reponse, chapo: "Près d'une personne en invalidité sur trois souhaite reprendre le travail, dit l'étude." },
-      item,
-      { lectureDemandee: true, articleLu: true, extrait: false },
+      [item],
+      LU,
       ARTICLE
     );
     expect(c.avertissement).toMatch(/Reprise mot pour mot dans le chapô/);
+  });
+
+  it("plusieurs sources : toutes listées dans l'ordre, reprise du texte collé de la 2e repérée", () => {
+    const autre = { titre: "Invalidité", resume: null, lien: "https://www.lesoir.be/inv", source_nom: "Le Soir", texteColle: ARTICLE };
+    const m = construireBrouillon(
+      { ...reponse, contenu_html: "<p>Près d'une personne en invalidité sur trois souhaite reprendre le travail.</p>" },
+      [item, autre]
+    );
+    expect(m.sources.split("\n").slice(0, 2)).toEqual([
+      "RTBF Info – https://www.rtbf.be/article/mutuelles-123",
+      "Le Soir – https://www.lesoir.be/inv",
+    ]);
+    expect(m.contenu).toContain("<em>");
+    expect(m.textes_colles).toBe(1);
+    expect(m.nb_sources).toBe(2);
+  });
+
+  it("une reprise des notes de l'éditeur est aussi repérée", () => {
+    const n = construireBrouillon(
+      { ...reponse, contenu_html: "<p>Près d'une personne en invalidité sur trois souhaite reprendre le travail.</p>" },
+      [item],
+      [],
+      "",
+      ARTICLE
+    );
+    expect(n.reprises).toBe(1);
+    expect(n.notes_utilisees).toBe(true);
   });
 });
 
@@ -113,37 +147,41 @@ describe("marquerReprises", () => {
   });
 });
 
-describe("messageSource", () => {
-  it("joint le texte collé, balisé comme donnée", () => {
-    const m = messageSource(item, { lire: false, extrait: "  Mes notes : réunion le 14/10.  ", consignes: " Insiste sur la construction. " });
-    expect(m).toContain("<texte_colle>\nMes notes : réunion le 14/10.\n</texte_colle>");
+describe("messageSources", () => {
+  it("joint notes et consignes, balisées comme données", () => {
+    const m = messageSources([item], { notes: "  Mes notes : réunion le 14/10.  ", consignes: " Insiste sur la construction. " });
+    expect(m).toContain("<notes_editeur>\nMes notes : réunion le 14/10.\n</notes_editeur>");
     expect(m).toContain("<consignes_editeur>\nInsiste sur la construction.\n</consignes_editeur>");
-    expect(m).toContain("ne pas faire lire l'article");
-    expect(messageSource(item, { lire: true })).not.toContain("<texte_colle>");
-    expect(messageSource(item, { lire: true })).not.toContain("<consignes_editeur>");
+    expect(m).toContain("aucune lecture en ligne");
+    expect(messageSources([item])).not.toContain("<notes_editeur>");
+    expect(messageSources([item])).not.toContain("<consignes_editeur>");
   });
 
-  it("met en italique une reprise du texte collé", () => {
-    const b = construireBrouillon(
-      { ...reponse, contenu_html: "<p>Près d'une personne en invalidité sur trois souhaite reprendre le travail.</p>" },
-      item,
-      { lectureDemandee: false, articleLu: false, extrait: true },
-      ARTICLE
-    );
-    expect(b.contenu).toContain("<em>");
-    expect(b.extrait_utilise).toBe(true);
-    expect(b.avertissement).toBeNull();
-  });
-
-  it("balise la source comme donnée et signale un résumé absent", () => {
-    const m = messageSource({ ...item, resume: null }, { lire: true });
+  it("balise chaque source, son texte collé et la demande de lecture", () => {
+    const m = messageSources([
+      { ...item, resume: null, lire: true },
+      { ...item, lien: "https://www.lavenir.net/x", source_nom: "L'Avenir", texteColle: " Texte de L'Avenir " },
+    ]);
+    expect(m).toContain("synthèse à partir de ces 2 sources");
+    expect(m).toContain('<source numero="1">');
     expect(m).toContain("<lien>https://www.rtbf.be/article/mutuelles-123</lien>");
     expect(m).toContain("(aucun résumé fourni par le flux)");
+    expect(m).toContain("<a_lire>oui</a_lire>");
+    expect(m).toContain("<texte_colle>\nTexte de L'Avenir\n</texte_colle>");
+    // Une seule source à lire (l'autre balise <a_lire> est dans la consigne d'introduction).
+    expect(m.match(/\n<a_lire>oui<\/a_lire>/g)).toHaveLength(1);
   });
 
-  it("prévient l'IA quand l'article ne peut pas être lu", () => {
-    expect(messageSource(item, { lire: true, siteRefuse: true })).toContain("ne peut pas être lu");
-    expect(messageSource(item, { lire: true })).toContain("Lis d'abord l'article");
+  it("prévient l'IA quand un site refuse la lecture", () => {
+    const m = messageSources([{ ...item, lire: true }], { lectureRefusee: true });
+    expect(m).toContain("ne lis aucune page");
+    expect(m).not.toContain("<a_lire>");
     expect(raisonLecture("site_refuse_ia")).toBe("le site refuse la lecture par les robots d'IA");
+  });
+
+  it("une page lue très courte = lecture partielle", () => {
+    expect(etatLecture("")).toBe("echec");
+    expect(etatLecture("Accroche seulement.")).toBe("partiel");
+    expect(etatLecture("x".repeat(2000))).toBe("lu");
   });
 });

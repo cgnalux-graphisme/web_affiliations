@@ -3,53 +3,44 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   CONSIGNE_SYSTEME,
-  MODELE_REDACTION,
-  SchemaBrouillon,
   CONSIGNES_MAX,
   EXTRAIT_MAX,
+  LECTURES_MAX,
+  MODELE_REDACTION,
+  SOURCES_MAX,
+  SchemaBrouillon,
   construireBrouillon,
-  messageSource,
+  messageSources,
   raisonLecture,
-  type ItemSource,
-  type Lecture,
+  type LectureSource,
+  type SourceRedaction,
 } from "../../../../lib/redaction-ia";
 import { messageErreurApi } from "../../../../lib/anthropic-erreurs";
+import { lienReel } from "../../../../lib/lien-reel";
+import { lecturesDepuis, type SourceLue } from "../../../../lib/redaction-lecture";
+import { verifierLisibilite } from "../../../../lib/lisibilite";
 import { getSuperAdmin, getSupabaseServer } from "../../../../lib/supabase-server";
 
 export const dynamic = "force-dynamic";
-// Lecture de l'article + rédaction : jusqu'à 2 ou 3 minutes pour un long article.
+// Lecture de 2 articles + rédaction : jusqu'à 2 ou 3 minutes.
 export const maxDuration = 300;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_REPRISES_PAUSE = 3;
+/** Total des textes collés et des notes. */
+const TEXTES_TOTAL_MAX = 2 * EXTRAIT_MAX;
 
 function erreur(message: string, status: number) {
   return NextResponse.json({ erreur: message }, { status });
 }
 
-/** Texte de l'article lu par l'outil web_fetch (et le code d'erreur si la lecture a échoué). */
-function lectureDepuis(blocs: Anthropic.ContentBlock[]): { lecture: Lecture; texte: string } {
-  let texte = "";
-  let codeErreur: string | undefined;
-  for (const b of blocs) {
-    if (b.type !== "web_fetch_tool_result") continue;
-    if (b.content.type === "web_fetch_tool_result_error") {
-      codeErreur = b.content.error_code;
-    } else if (b.content.content.source.type === "text") {
-      texte += `\n${b.content.content.source.data}`;
-    }
-  }
-  return texte.trim()
-    ? { lecture: { lectureDemandee: true, articleLu: true, extrait: false }, texte }
-    : { lecture: { lectureDemandee: true, articleLu: false, raisonEchec: raisonLecture(codeErreur), extrait: false }, texte: "" };
-}
-
 /**
- * Brouillon d'article proposé par Claude Sonnet 5 à partir d'un item de la veille.
- * Entrée : { veilleId, lire, extrait?, consignes? }. L'item est relu en base.
- * - lire : l'IA lit l'article en ligne (outil web_fetch : une lecture, domaine de l'article) — choix de
- *   l'éditeur, car la lecture coûte plus cher ; si le site refuse les robots d'IA, relance sans lecture.
- * - extrait : texte de l'article ou notes personnelles collés par l'éditeur.
+ * Brouillon d'article proposé par Claude Sonnet 5 à partir d'une ou plusieurs sources de la veille
+ * (un article du fil, ou les articles d'un sujet du Check IA).
+ * Entrée : { veilleIds, lire?, textes?, notes?, consignes? }. Les sources sont relues en base.
+ * - lire : ids des sources que l'IA lit en ligne (outil web_fetch, LECTURES_MAX au plus) ; une source dont le
+ *   site interdit les robots d'IA est écartée d'avance ; si l'API refuse quand même, relance sans lecture.
+ * - textes : { [id]: texte de l'article collé par l'éditeur } ; notes : notes personnelles.
  * - consignes : consignes de rédaction propres à cet article (sans jamais lever les règles strictes).
  * Réservé aux super admins. La clé API ne quitte jamais le serveur.
  */
@@ -60,59 +51,86 @@ export async function POST(request: NextRequest) {
   }
 
   const corps = (await request.json().catch(() => ({}))) as {
-    veilleId?: unknown;
+    veilleIds?: unknown;
     lire?: unknown;
-    extrait?: unknown;
+    textes?: unknown;
+    notes?: unknown;
     consignes?: unknown;
   };
-  const veilleId = typeof corps.veilleId === "string" && UUID.test(corps.veilleId) ? corps.veilleId : null;
-  if (!veilleId) return erreur("Article de Scan News manquant.", 400);
-  const extrait = typeof corps.extrait === "string" ? corps.extrait.trim() : "";
-  if (extrait.length > EXTRAIT_MAX) {
-    return erreur(`Le texte collé est trop long (${extrait.length} caractères, ${EXTRAIT_MAX} maximum). Gardez les passages utiles.`, 413);
-  }
+  const ids = Array.isArray(corps.veilleIds)
+    ? [...new Set(corps.veilleIds.filter((v): v is string => typeof v === "string" && UUID.test(v)))]
+    : [];
+  if (!ids.length) return erreur("Article de Scan News manquant.", 400);
+  if (ids.length > SOURCES_MAX) return erreur(`${SOURCES_MAX} sources au maximum par brouillon.`, 400);
+  const aLire = new Set(Array.isArray(corps.lire) ? corps.lire.filter((v) => typeof v === "string" && ids.includes(v)) : []);
+  if (aLire.size > LECTURES_MAX) return erreur(`L'IA lit ${LECTURES_MAX} sources au maximum par brouillon.`, 400);
+  const textes =
+    corps.textes && typeof corps.textes === "object" ? (corps.textes as Record<string, unknown>) : {};
+  const texteDe = (id: string) => (typeof textes[id] === "string" ? (textes[id] as string).trim() : "");
+  const notes = typeof corps.notes === "string" ? corps.notes.trim() : "";
   const consignes = typeof corps.consignes === "string" ? corps.consignes.trim() : "";
+  if (ids.some((id) => texteDe(id).length > EXTRAIT_MAX) || notes.length > EXTRAIT_MAX) {
+    return erreur(`Un texte collé est trop long (${EXTRAIT_MAX} caractères maximum). Gardez les passages utiles.`, 413);
+  }
+  if (ids.reduce((n, id) => n + texteDe(id).length, notes.length) > TEXTES_TOTAL_MAX) {
+    return erreur(`Les textes collés sont trop longs au total (${TEXTES_TOTAL_MAX} caractères maximum).`, 413);
+  }
   if (consignes.length > CONSIGNES_MAX) {
     return erreur(`Les consignes sont trop longues (${consignes.length} caractères, ${CONSIGNES_MAX} maximum).`, 413);
   }
-  const lire = corps.lire === true;
 
   const supabase = await getSupabaseServer();
-  const { data, error } = await supabase
-    .from("site_veille")
-    .select("titre, resume, lien, source_nom")
-    .eq("id", veilleId)
-    .maybeSingle();
-  if (error) return erreur("L'article de Scan News ne peut pas être lu. Reconnectez-vous puis réessayez.", 500);
-  if (!data) return erreur("Cet article de Scan News n'existe plus.", 404);
-  const item = data as ItemSource;
+  const { data, error } = await supabase.from("site_veille").select("id, titre, resume, lien, source_nom").in("id", ids);
+  if (error) return erreur("Les articles de Scan News ne peuvent pas être lus. Reconnectez-vous puis réessayez.", 500);
+  const lignes = (data ?? []) as { id: string; titre: string; resume: string | null; lien: string; source_nom: string | null }[];
+  if (!lignes.length) return erreur("Ces articles ont été effacés de Scan News (plus de 3 jours).", 404);
 
-  let domaine: string;
-  try {
-    domaine = new URL(item.lien).hostname;
-  } catch {
-    return erreur("Le lien de cet article de Scan News n'est pas valide.", 422);
-  }
+  // Ordre de l'éditeur ; alertes Google résolues vers l'adresse du média.
+  const sources: SourceLue[] = await Promise.all(
+    ids
+      .map((id) => lignes.find((l) => l.id === id))
+      .filter((l): l is (typeof lignes)[number] => Boolean(l))
+      .map(async (l) => {
+        const { lien } = await lienReel(l.lien);
+        let domaine = "";
+        try {
+          domaine = new URL(lien).hostname;
+        } catch {}
+        return { ...l, lien, domaine, texteColle: texteDe(l.id), lire: aLire.has(l.id) };
+      })
+  );
 
-  // Version de base de web_fetch : elle renvoie le texte lu tel quel, ce qui permet au code
-  // de repérer les phrases reprises mot pour mot (garde-fou droit d'auteur).
-  const outils: Anthropic.ToolUnion[] = [
-    {
-      type: "web_fetch_20250910",
-      name: "web_fetch",
-      max_uses: 1,
-      allowed_domains: [domaine],
-      max_content_tokens: 30000,
-    },
-  ];
+  // Lectures interdites d'avance (robots.txt) : écartées, et signalées dans le brouillon.
+  const refusees: LectureSource[] = [];
+  await Promise.all(
+    sources
+      .filter((s) => s.lire)
+      .map(async (s) => {
+        if (!s.domaine || (await verifierLisibilite(s.lien)).lisible === "non") {
+          s.lire = false;
+          refusees.push({ source: s.source_nom ?? (s.domaine || "source"), etat: "echec", raison: raisonLecture("site_refuse_ia") });
+        }
+      })
+  );
+  const demandees = sources.filter((s) => s.lire);
 
   const client = new Anthropic({ timeout: 240_000 });
 
-  /** Lecture de l'article (si demandée et permise) puis rédaction ; relance le tour s'il est mis en pause. */
-  async function rediger(siteRefuse: boolean) {
-    const avecLecture = lire && !siteRefuse;
+  /** Lecture des sources demandées puis rédaction ; relance le tour s'il est mis en pause. */
+  async function rediger(lectureRefusee: boolean) {
+    const avecLecture = demandees.length > 0 && !lectureRefusee;
+    // Version de base de web_fetch : elle renvoie le texte lu tel quel (garde-fou des reprises mot pour mot).
+    const outils: Anthropic.ToolUnion[] = [
+      {
+        type: "web_fetch_20250910",
+        name: "web_fetch",
+        max_uses: demandees.length,
+        allowed_domains: [...new Set(demandees.map((s) => s.domaine))],
+        max_content_tokens: 30000,
+      },
+    ];
     const messages: Anthropic.MessageParam[] = [
-      { role: "user", content: messageSource(item, { lire, siteRefuse, extrait, consignes }) },
+      { role: "user", content: messageSources(sources, { notes, consignes, lectureRefusee }) },
     ];
     const parametres = {
       model: MODELE_REDACTION,
@@ -140,10 +158,9 @@ export async function POST(request: NextRequest) {
     try {
       resultat = await rediger(false);
     } catch (err) {
-      // Site qui interdit la lecture par les robots d'IA (robots.txt) : l'API refuse toute la
-      // demande dès qu'il figure dans allowed_domains. On respecte ce choix et on rédige
-      // à partir du seul flux. Pas de type d'erreur dédié : seul le message distingue ce cas.
-      if (lire && err instanceof Anthropic.BadRequestError && /not accessible to our user agent/i.test(err.message)) {
+      // Site qui interdit la lecture par les robots d'IA sans que son robots.txt l'ait annoncé : l'API refuse
+      // toute la demande. On respecte ce choix et on rédige sans lecture (seul le message distingue ce cas).
+      if (demandees.length && err instanceof Anthropic.BadRequestError && /not accessible to our user agent/i.test(err.message)) {
         lectureRefusee = true;
         resultat = await rediger(true);
       } else {
@@ -153,23 +170,24 @@ export async function POST(request: NextRequest) {
     const { reponse, blocs } = resultat;
 
     if (reponse.stop_reason === "refusal") {
-      return erreur("L'IA a refusé de rédiger à partir de cet article. Rédigez-le vous-même ou choisissez un autre article.", 422);
+      return erreur("L'IA a refusé de rédiger à partir de ces articles. Rédigez-le vous-même ou choisissez un autre sujet.", 422);
     }
     if (reponse.stop_reason !== "end_turn" || !reponse.parsed_output) {
       console.error("brouillon IA incomplet :", reponse.stop_reason);
       return erreur("L'IA a renvoyé une réponse vide ou incomplète. Réessayez.", 502);
     }
 
-    // Matière réellement utilisée (pour les avertissements et le garde-fou italique).
-    const lu: { lecture: Lecture; texte: string } = !lire
-      ? { lecture: { lectureDemandee: false, articleLu: false, extrait: false }, texte: "" }
-      : lectureRefusee
-        ? { lecture: { lectureDemandee: true, articleLu: false, raisonEchec: raisonLecture("site_refuse_ia"), extrait: false }, texte: "" }
-        : lectureDepuis(blocs);
-    const lecture: Lecture = { ...lu.lecture, extrait: Boolean(extrait) };
-    const texte = `${lu.texte}
-${extrait}`;
-    const brouillon = construireBrouillon(reponse.parsed_output, item, lecture, texte);
+    const lu = lectureRefusee
+      ? {
+          lectures: demandees.map((s): LectureSource => ({
+            source: s.source_nom ?? s.domaine,
+            etat: "echec",
+            raison: raisonLecture("site_refuse_ia"),
+          })),
+          texte: "",
+        }
+      : lecturesDepuis(blocs, demandees);
+    const brouillon = construireBrouillon(reponse.parsed_output, sources, [...refusees, ...lu.lectures], lu.texte, notes);
     if (!brouillon.contenu.trim()) {
       return erreur("L'IA a renvoyé un contenu vide. Réessayez.", 502);
     }

@@ -7,18 +7,12 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowLeft,
-  Ban,
-  BookOpen,
   Camera,
-  CheckCircle,
   Clock,
-  ExternalLink,
   Eye,
   FileText,
   Globe,
-  HelpCircle,
   ImagePlus,
-  Italic,
   RefreshCw,
   Sparkles,
   X,
@@ -47,11 +41,10 @@ import {
   type StatutArticle,
 } from "../../../lib/articles";
 import type { Brouillon } from "../../../lib/redaction-ia";
-import { CONSIGNES_MAX, EXTRAIT_MAX } from "../../../lib/redaction-limites";
-import type { Lisibilite } from "../../api/redaction/lisibilite/route";
 import EditeurTexte from "./EditeurTexte";
 import { IconeChargement } from "../../Chargement";
 import PanneauNote, { RAPPEL_NOTE, type ResultatNote } from "./PanneauNote";
+import PanneauRedaction, { RAPPEL_IA, type DemandeBrouillon, type EtatIA, type SourcePanneau } from "./PanneauRedaction";
 import { rafraichirBlog } from "./revalidation";
 
 /** Ligne de site_articles, pour le mode modification. */
@@ -112,29 +105,28 @@ function formDepuis(a?: ArticleEnregistre, pre?: PreRemplissage): Form {
   };
 }
 
-/** Formulaire d'article : création (sans `article`) ou modification. */
-/** État de la rédaction assistée (brouillon proposé par l'IA à partir d'un item de veille). */
-type EtatIA =
-  | { etape: "inactif" }
-  | { etape: "en_cours" }
-  | {
-      etape: "propose";
-      avertissement: string | null;
-      suggestionImage: string;
-      articleLu: boolean;
-      lectureDemandee: boolean;
-      extraitUtilise: boolean;
-      reprises: number;
-    }
-  | { etape: "erreur"; message: string };
+/** Résumé, pour le bandeau du brouillon proposé, de la matière réellement utilisée par l'IA. */
+function phraseMatiere(b: Brouillon): string {
+  const lues = b.lectures.filter((l) => l.etat !== "echec").length;
+  const parties = [
+    b.nb_sources > 1 ? `les ${b.nb_sources} résumés du flux` : "le résumé du flux",
+    lues && `${lues} article${lues > 1 ? "s" : ""} lu${lues > 1 ? "s" : ""} par l'IA`,
+    b.textes_colles && `${b.textes_colles} texte${b.textes_colles > 1 ? "s" : ""} collé${b.textes_colles > 1 ? "s" : ""}`,
+    b.notes_utilisees && "vos notes",
+  ].filter(Boolean) as string[];
+  const debut = b.nb_sources > 1 ? `Synthèse de ${b.nb_sources} sources, à partir de ` : "Rédigé à partir de ";
+  return `${debut}${parties.join(", ").replace(/, ([^,]*)$/, " et $1")}.`;
+}
 
+/** Formulaire d'article : création (sans `article`) ou modification. */
 export default function FormulaireArticle({
   article,
   categorie: categorieNouvelle,
   lienNote,
   preRemplissage,
-  veilleId,
-  veilleLien,
+  sourcesIA,
+  consignesIA,
+  origine,
   mettreEnAvantIA,
 }: {
   article?: ArticleEnregistre;
@@ -143,11 +135,13 @@ export default function FormulaireArticle({
   /** Lien temporaire de téléchargement de la note d'origine (On vous explique). */
   lienNote?: string | null;
   preRemplissage?: PreRemplissage;
-  /** Item de veille à l'origine de l'article : active « Proposer un brouillon avec l'IA ». */
-  veilleId?: string;
-  /** Lien de l'article d'origine (étape « Accéder à l'article »). */
-  veilleLien?: string;
-  /** Ouverture depuis « Brouillon IA » de la veille : le panneau de rédaction assistée reçoit le focus. */
+  /** Articles du fil à l'origine de l'article (un seul, ou ceux d'un sujet du Check IA) : active la rédaction assistée. */
+  sourcesIA?: SourcePanneau[];
+  /** Consignes pré-remplies (angle proposé par le Check IA). */
+  consignesIA?: string;
+  /** D'où vient le pré-remplissage (message sous le titre). */
+  origine?: "fil" | "check-ia";
+  /** Ouverture depuis « Brouillon IA » : le panneau de rédaction assistée reçoit le focus. */
   mettreEnAvantIA?: boolean;
 }) {
   const router = useRouter();
@@ -176,31 +170,20 @@ export default function FormulaireArticle({
   const [ia, setIa] = useState<EtatIA>({ etape: "inactif" });
   // L'éditeur riche ne relit sa valeur qu'à sa création : on le recrée après un brouillon IA.
   const [versionEditeur, setVersionEditeur] = useState(0);
-  // Texte de l'article ou notes collés par l'éditeur (facultatif) : source principale s'il est rempli.
-  const [extrait, setExtrait] = useState("");
-  // Tunnel de rédaction assistée : lecture en ligne (payante, sur demande), extrait, consignes.
-  const [lire, setLire] = useState(false);
-  const [consignes, setConsignes] = useState("");
-  const [lisibilite, setLisibilite] = useState<EtatLisibilite>({ etat: "chargement" });
   const panneauIA = useRef<HTMLElement>(null);
 
-  async function proposerBrouillon(confirme = false) {
-    if (!veilleId || ia.etape === "en_cours") return;
+  async function proposerBrouillon(demande: DemandeBrouillon) {
+    if (!sourcesIA?.length || ia.etape === "en_cours") return;
     const dejaRedige = Boolean(form.contenu.trim() || form.chapo.trim() || form.pointsCles.trim());
-    if (dejaRedige && !confirme && !window.confirm("Le brouillon de l'IA remplacera le titre, le chapô, les points clés, le contenu et les sources déjà saisis. Continuer ?")) {
+    if (dejaRedige && !window.confirm("Le brouillon de l'IA remplacera le titre, le chapô, les points clés, le contenu et les sources déjà saisis. Continuer ?")) {
       return;
     }
-    setIa({ etape: "en_cours" });
+    setIa({ etape: "en_cours", lecture: demande.lire.length > 0 });
     try {
       const reponse = await fetch("/api/redaction/brouillon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          veilleId,
-          lire,
-          extrait: extrait.trim() || undefined,
-          consignes: consignes.trim() || undefined,
-        }),
+        body: JSON.stringify(demande),
       });
       const json = (await reponse.json().catch(() => ({}))) as { brouillon?: Brouillon; erreur?: string };
       if (!reponse.ok || !json.brouillon) {
@@ -225,11 +208,11 @@ export default function FormulaireArticle({
         etape: "propose",
         avertissement: b.avertissement,
         suggestionImage: b.suggestion_image,
-        articleLu: b.article_lu,
-        lectureDemandee: lire,
-        extraitUtilise: b.extrait_utilise,
+        matiere: phraseMatiere(b),
         reprises: b.reprises,
       });
+      // Le résultat s'affiche en tête du panneau : on y ramène la lecture.
+      panneauIA.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch {
       setIa({ etape: "erreur", message: "Le serveur ne répond pas. Vérifiez votre connexion et réessayez." });
     }
@@ -255,29 +238,9 @@ export default function FormulaireArticle({
     setSuggestionNote(v.suggestion_image);
   }
 
-  // Étape 1 : l'IA pourra-t-elle lire l'article ? (vérification gratuite du robots.txt du média)
+  // Ouverture depuis « Brouillon IA » : le panneau reçoit le focus.
   useEffect(() => {
-    if (!veilleId) return;
-    let actif = true;
-    fetch(`/api/redaction/lisibilite?veilleId=${veilleId}`)
-      .then(async (r) => {
-        const json = (await r.json().catch(() => ({}))) as Partial<Lisibilite> & { erreur?: string };
-        if (!actif) return;
-        setLisibilite(
-          r.ok && json.lisible
-            ? { etat: json.lisible, explication: json.explication ?? "" }
-            : { etat: "inconnu", explication: json.erreur ?? "La vérification a échoué." }
-        );
-      })
-      .catch(() => actif && setLisibilite({ etat: "inconnu", explication: "La vérification a échoué (réseau)." }));
-    return () => {
-      actif = false;
-    };
-  }, [veilleId]);
-
-  // Ouverture depuis « Brouillon IA » de la veille : le panneau reçoit le focus.
-  useEffect(() => {
-    if (mettreEnAvantIA && veilleId) panneauIA.current?.focus();
+    if (mettreEnAvantIA && sourcesIA?.length) panneauIA.current?.focus();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Libère l'aperçu local de l'image quand il est remplacé ou à la sortie.
@@ -538,7 +501,9 @@ export default function FormulaireArticle({
         )}
         {!article && preRemplissage && ia.etape === "inactif" && (
           <p className="mt-3 border-l-4 border-militant-rouge pl-3 text-sm">
-            Pré-rempli depuis Scan News : titre repris de l&apos;article d&apos;origine et lien ajouté aux sources.
+            {origine === "check-ia"
+              ? "Pré-rempli depuis le Check IA : intitulé du sujet en titre, liens de toutes ses sources, angle en consignes."
+              : "Pré-rempli depuis Scan News : titre repris de l'article d'origine et lien ajouté aux sources."}{" "}
             Reformulez avec vos propres mots avant de publier.
           </p>
         )}
@@ -551,19 +516,13 @@ export default function FormulaireArticle({
         />
       )}
 
-      {veilleId && (
-        <PanneauIA
+      {sourcesIA && sourcesIA.length > 0 && (
+        <PanneauRedaction
           refPanneau={panneauIA}
+          sources={sourcesIA}
+          consignesInitiales={consignesIA}
           ia={ia}
-          onProposer={() => proposerBrouillon()}
-          lisibilite={lisibilite}
-          lire={lire}
-          onLire={setLire}
-          lien={veilleLien}
-          extrait={extrait}
-          onExtrait={setExtrait}
-          consignes={consignes}
-          onConsignes={setConsignes}
+          onLancer={proposerBrouillon}
         />
       )}
 
@@ -912,322 +871,6 @@ function urlImageDeposee(dt: DataTransfer): string | null {
 }
 
 // ── Sous-composants ──────────────────────────────────────────────────────────
-const RAPPEL_IA = "Brouillon IA — à vérifier, corriger et valider avant publication. Recoupez avec la source.";
-
-type EtatLisibilite = { etat: "chargement" } | { etat: "oui" | "non" | "inconnu"; explication: string };
-
-function phraseSource(ia: Extract<EtatIA, { etape: "propose" }>): string {
-  const matieres = [
-    ia.articleLu && "l'article d'origine (lu par l'IA)",
-    ia.extraitUtilise && "votre texte",
-    "le résumé du flux",
-  ].filter(Boolean) as string[];
-  const debut = `Rédigé à partir de ${matieres.join(", ").replace(/, ([^,]*)$/, " et $1")}.`;
-  return ia.lectureDemandee && !ia.articleLu ? `${debut} La lecture de l'article a échoué.` : debut;
-}
-
-/**
- * Tunnel de rédaction assistée :
- * 1. l'IA peut-elle lire l'article ? (vérifié gratuitement ; lecture sur demande car elle coûte plus cher)
- * 2. accéder à l'article original ; 3. notes ou extrait ; 4. consignes ; 5. création du brouillon.
- */
-function PanneauIA({
-  refPanneau,
-  ia,
-  onProposer,
-  lisibilite,
-  lire,
-  onLire,
-  lien,
-  extrait,
-  onExtrait,
-  consignes,
-  onConsignes,
-}: {
-  refPanneau: React.RefObject<HTMLElement | null>;
-  ia: EtatIA;
-  onProposer: () => void;
-  lisibilite: EtatLisibilite;
-  lire: boolean;
-  onLire: (v: boolean) => void;
-  lien?: string;
-  extrait: string;
-  onExtrait: (v: string) => void;
-  consignes: string;
-  onConsignes: (v: string) => void;
-}) {
-  const enCours = ia.etape === "en_cours";
-  const extraitTrop = extrait.trim().length > EXTRAIT_MAX;
-  const consignesTrop = consignes.trim().length > CONSIGNES_MAX;
-  const lecturePossible = lisibilite.etat === "oui" || lisibilite.etat === "inconnu";
-  const lireEffectif = lire && lecturePossible;
-  const matieres = [
-    lireEffectif && "l'article en ligne",
-    extrait.trim() && "votre texte",
-    consignes.trim() && "vos consignes",
-    "le titre et le résumé du flux",
-  ].filter(Boolean) as string[];
-
-  return (
-    <section
-      ref={refPanneau}
-      tabIndex={-1}
-      aria-labelledby="titre-panneau-ia"
-      className="overflow-hidden rounded-2xl border-2 border-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
-    >
-      {ia.etape === "propose" && (
-        <div aria-live="polite">
-          <div className="flex items-start gap-3 bg-militant-bordeaux px-5 py-4 text-white">
-            <Sparkles size={22} className="mt-0.5 shrink-0" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="font-condensed text-2xl font-extrabold leading-tight">{RAPPEL_IA}</p>
-              <p className="mt-1 text-sm">
-                {phraseSource(ia)} Tous les champs sont modifiables ; la date et le statut n&apos;ont pas été touchés
-                (l&apos;article reste un brouillon).
-              </p>
-            </div>
-          </div>
-          {(ia.reprises > 0 || ia.avertissement) && (
-            <div className="space-y-2 border-b-2 border-militant-bordeaux px-5 py-3 text-sm">
-              {ia.reprises > 0 && (
-                <p className="flex items-start gap-2">
-                  <Italic size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
-                  <span>
-                    <span className="font-bold text-militant-bordeaux">
-                      {ia.reprises} passage{ia.reprises > 1 ? "s" : ""} repris mot pour mot, mis en italique dans le
-                      contenu.
-                    </span>{" "}
-                    Reformulez-les, ou gardez-les comme citations (entre guillemets, en citant le média).
-                  </span>
-                </p>
-              )}
-              {ia.avertissement && (
-                <p className="flex items-start gap-2">
-                  <AlertTriangle size={17} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
-                  <span>
-                    <span className="font-bold text-militant-bordeaux">À vérifier : </span>
-                    {ia.avertissement}
-                  </span>
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="px-5 py-5">
-        <h2 id="titre-panneau-ia" className="flex items-center gap-2 font-condensed text-2xl font-extrabold leading-none">
-          <Sparkles size={20} className="text-militant-bordeaux" aria-hidden />
-          Rédaction assistée par l&apos;IA
-        </h2>
-        <p className="mt-1.5 text-sm">
-          Préparez ce que l&apos;IA doit utiliser, puis lancez la création. Le brouillon est reformulé ; les passages
-          repris mot pour mot sont mis en italique.
-        </p>
-
-        <ol className="mt-4 space-y-5">
-          {/* 1. Lecture par l'IA */}
-          <Etape numero={1} titre="Lecture de l'article par l'IA">
-            <p className="flex items-start gap-2 text-sm" aria-live="polite">
-              {lisibilite.etat === "chargement" ? (
-                <>
-                  <IconeChargement size={16} className="mt-0.5 text-militant-rouge" />
-                  Vérification en cours…
-                </>
-              ) : (
-                <>
-                  {lisibilite.etat === "oui" ? (
-                    <CheckCircle size={16} className="mt-0.5 shrink-0 text-militant-rouge" aria-hidden />
-                  ) : lisibilite.etat === "non" ? (
-                    <Ban size={16} className="mt-0.5 shrink-0 text-militant-bordeaux" aria-hidden />
-                  ) : (
-                    <HelpCircle size={16} className="mt-0.5 shrink-0" aria-hidden />
-                  )}
-                  <span>
-                    <span className="font-bold">
-                      {lisibilite.etat === "oui"
-                        ? "Lisible par l'IA : oui."
-                        : lisibilite.etat === "non"
-                          ? "Lisible par l'IA : non."
-                          : "Lisible par l'IA : impossible à vérifier."}
-                    </span>{" "}
-                    {lisibilite.explication}
-                  </span>
-                </>
-              )}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-              <button
-                type="button"
-                aria-pressed={lireEffectif}
-                onClick={() => onLire(!lire)}
-                disabled={enCours || !lecturePossible}
-                className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border-2 px-3.5 py-1.5 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge disabled:opacity-50 ${
-                  lireEffectif
-                    ? "border-militant-bordeaux bg-militant-bordeaux text-white hover:border-militant-charbon hover:bg-militant-charbon"
-                    : "border-militant-charbon hover:bg-militant-charbon hover:text-white"
-                }`}
-              >
-                {lireEffectif ? <CheckCircle size={15} aria-hidden /> : <BookOpen size={15} aria-hidden />}
-                {lireEffectif ? "Lecture demandée (cliquer pour annuler)" : "Faire lire l'article par l'IA"}
-              </button>
-              <span className="text-xs">
-                Facultatif : environ 5 à 10 centimes de plus. La lecture a lieu à la création (étape 5).
-              </span>
-            </div>
-          </Etape>
-
-          {/* 2. Article original */}
-          <Etape numero={2} titre="Lire l'article original">
-            {lien ? (
-              <a
-                href={lien}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border-2 border-militant-charbon px-3.5 py-1.5 text-sm font-bold transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
-              >
-                Accéder à l&apos;article <ExternalLink size={15} aria-hidden />
-                <span className="sr-only"> (nouvel onglet)</span>
-              </a>
-            ) : (
-              <p className="text-sm">Lien de l&apos;article indisponible.</p>
-            )}
-          </Etape>
-
-          {/* 3. Notes ou extrait */}
-          <Etape numero={3} titre="Vos notes ou un extrait de l'article" id="extrait-ia" facultatif>
-            <p id="aide-extrait-ia" className="mb-1.5 text-xs">
-              Collez le passage utile de l&apos;article (indispensable si l&apos;IA ne peut pas le lire) ou vos propres
-              notes : faits, chiffres, contexte local.
-            </p>
-            <textarea
-              id="extrait-ia"
-              aria-describedby="aide-extrait-ia"
-              value={extrait}
-              onChange={(e) => onExtrait(e.target.value)}
-              disabled={enCours}
-              rows={4}
-              placeholder="Collez ici un extrait de l'article ou vos notes…"
-              className={champIA(extraitTrop)}
-            />
-            <Compteur valeur={extrait} max={EXTRAIT_MAX} />
-          </Etape>
-
-          {/* 4. Consignes */}
-          <Etape numero={4} titre="Consignes pour l'IA" id="consignes-ia" facultatif>
-            <p id="aide-consignes-ia" className="mb-1.5 text-xs">
-              L&apos;angle, le ton, le public, la longueur, les points à mettre en avant. Elles ne lèvent jamais les règles
-              de base : pas d&apos;invention, pas de recopie.
-            </p>
-            <textarea
-              id="consignes-ia"
-              aria-describedby="aide-consignes-ia"
-              value={consignes}
-              onChange={(e) => onConsignes(e.target.value)}
-              disabled={enCours}
-              rows={3}
-              placeholder={"Ex. Insiste sur l'impact pour les ouvriers de la construction.\nTon plus sobre, 400 mots maximum."}
-              className={champIA(consignesTrop)}
-            />
-            <Compteur valeur={consignes} max={CONSIGNES_MAX} />
-          </Etape>
-
-          {/* 5. Création */}
-          <Etape numero={5} titre={ia.etape === "propose" ? "Créer un autre brouillon" : "Créer le brouillon"}>
-            <p className="text-sm">
-              L&apos;IA utilisera : {matieres.join(", ").replace(/, ([^,]*)$/, " et $1")}.
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onProposer}
-                disabled={enCours || extraitTrop || consignesTrop}
-                className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
-              >
-                {enCours ? (
-                  <IconeChargement size={16} />
-                ) : ia.etape === "propose" ? (
-                  <RefreshCw size={16} aria-hidden />
-                ) : (
-                  <Sparkles size={16} aria-hidden />
-                )}
-                {enCours
-                  ? "Création en cours…"
-                  : ia.etape === "propose"
-                    ? "Créer un autre brouillon avec l'IA"
-                    : "Créer le brouillon avec l'IA"}
-              </button>
-              {enCours && (
-                <p className="text-sm font-semibold" aria-live="polite">
-                  {lireEffectif
-                    ? "L'IA lit l'article puis rédige… Comptez 30 secondes à 2 minutes."
-                    : "L'IA rédige… Comptez 20 secondes à 1 minute."}{" "}
-                  Ne fermez pas la page.
-                </p>
-              )}
-            </div>
-            {ia.etape === "erreur" && (
-              <p role="alert" className="mt-2 flex items-start gap-1.5 text-sm font-semibold text-militant-bordeaux">
-                <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
-                {ia.message}
-              </p>
-            )}
-          </Etape>
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-function Etape({
-  numero,
-  titre,
-  id,
-  facultatif,
-  children,
-}: {
-  numero: number;
-  titre: string;
-  id?: string;
-  facultatif?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <li className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3">
-      <span aria-hidden className="font-condensed text-3xl font-extrabold leading-none text-militant-rouge">
-        {numero}
-      </span>
-      <div className="min-w-0">
-        {id ? (
-          <label htmlFor={id} className="mb-1 block text-[15px] font-bold">
-            {titre}
-            {facultatif && <span className="font-medium"> (facultatif)</span>}
-          </label>
-        ) : (
-          <p className="mb-1 text-[15px] font-bold">{titre}</p>
-        )}
-        {children}
-      </div>
-    </li>
-  );
-}
-
-function Compteur({ valeur, max }: { valeur: string; max: number }) {
-  const n = valeur.trim().length;
-  if (!n) return null;
-  return (
-    <p className={`mt-1 text-right text-xs tabular-nums ${n > max ? "font-bold text-militant-bordeaux" : ""}`}>
-      {n.toLocaleString("fr-BE")} / {max.toLocaleString("fr-BE")} caractères{n > max ? " : raccourcissez" : ""}
-    </p>
-  );
-}
-
-function champIA(trop: boolean) {
-  return `w-full resize-y rounded-xl border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-militant-rouge disabled:opacity-60 ${
-    trop ? "border-2 border-militant-bordeaux" : "border-militant-ardoise focus:border-militant-charbon"
-  }`;
-}
-
 const BOUTON_SECONDAIRE =
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-militant-charbon bg-white px-4 py-2 text-sm font-bold transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50";
 
