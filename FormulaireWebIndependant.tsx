@@ -1772,7 +1772,7 @@ function AffiliationDocument({
     { key: "assistance",  label: "Assistance juridique",     desc: "Intervention de la CG FGTB Namur-Luxembourg uniquement pour les dossiers liés au droit du travail belge." },
     { key: "continuite",  label: "Continuité d'affiliation", desc: "Autorisation de prélèvement des cotisations en retard sur tout avantage sectoriel confié pour paiement." },
     { key: "information", label: "Obligation d'information", desc: "Engagement de signaler tout changement de coordonnées ou de situation professionnelle par écrit." },
-    { key: "accord",      label: "Accord général",           desc: "Prise de connaissance et accord sur les droits et obligations des membres CG FGTB Namur-Luxembourg." },
+    { key: "accord",      label: "Accord général",           desc: "Prise de connaissance des statuts de la CG FGTB Namur-Luxembourg (version en vigueur à la date de la demande, publiés sur le site), acceptation sans réserve et engagement à respecter les statuts, règlements et décisions des congrès." },
     { key: "rgpd",        label: "RGPD",                     desc: "Accord sur le traitement des données personnelles conformément à la politique de confidentialité." },
   ];
 
@@ -3795,8 +3795,21 @@ export default function FormulaireWebIndependant({
                     label: (
                       <>
                         <span className="font-semibold">Accord général —</span>{" "}
-                        Je déclare avoir pris connaissance des droits et obligations des membres de la
-                        Centrale Générale FGTB Namur Luxembourg et marque mon accord à ce sujet.
+                        Je reconnais avoir pris connaissance des{" "}
+                        {/* Nouvel onglet : le formulaire en cours n'est pas perdu. */}
+                        <a
+                          href="/statuts"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-militant-bordeaux underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-charbon"
+                        >
+                          statuts de la Centrale Générale FGTB Namur-Luxembourg
+                          <span className="sr-only"> (nouvel onglet)</span>
+                        </a>
+                        , dans leur version en vigueur à la date de ma demande, qui définissent les droits
+                        et obligations de ses membres. J&apos;en accepte le contenu sans réserve et je
+                        m&apos;engage à respecter les statuts et règlements de l&apos;organisation ainsi que
+                        les décisions de ses congrès.
                       </>
                     ),
                   },

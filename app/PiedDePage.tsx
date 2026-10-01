@@ -29,6 +29,7 @@ const DEMARCHES = [
 
 const LEGAL = [
   { href: "/mentions-legales", label: "Mentions légales" },
+  { href: "/statuts", label: "Statuts" },
   { href: "/vie-privee", label: "Vie privée" },
   { href: "/cookies", label: "Cookies" },
   { href: "/login", label: "Espace admin" },
