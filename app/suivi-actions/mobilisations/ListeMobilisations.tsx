@@ -8,7 +8,13 @@ import { AlertTriangle, CalendarDays, Eye, MapPin, Pencil, Trash2 } from "lucide
 import { IconeChargement } from "../../Chargement";
 import Interrupteur from "../Interrupteur";
 import { BUCKET_BLOG, cheminImageDepuisUrl } from "../../../lib/articles";
-import { dateMobilisation, lienValide, type Mobilisation } from "../../../lib/mobilisations";
+import {
+  dateMobilisation,
+  finMiseEnAvant,
+  lienValide,
+  miseEnAvantTerminee,
+  type Mobilisation,
+} from "../../../lib/mobilisations";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import { rafraichirMobilisation } from "./revalidation";
 
@@ -152,6 +158,13 @@ export default function ListeMobilisations({
                   </div>
                 </div>
 
+                {m.actif && miseEnAvantTerminee(m.date_evenement, Date.now()) && (
+                  <p className="mt-2 text-sm font-semibold text-militant-bordeaux">
+                    Terminée : plus affichée sur le site depuis{" "}
+                    {dateMobilisation(new Date(finMiseEnAvant(m.date_evenement)!).toISOString())} (1 h après
+                    l&apos;événement).
+                  </p>
+                )}
                 {m.actif && !accueilOn && (
                   <p className="mt-2 text-sm font-semibold text-militant-bordeaux">
                     Active, mais invisible : l&apos;affichage sur le site est coupé dans les paramètres.

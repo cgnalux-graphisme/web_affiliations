@@ -4,6 +4,8 @@ import {
   datesEnChiffres,
   depuisHorodatage,
   estLeJourJ,
+  finMiseEnAvant,
+  miseEnAvantTerminee,
   ligneInfo,
   liensPartage,
   lienValide,
@@ -70,5 +72,29 @@ describe("textes", () => {
     expect(l.map((x) => x.reseau)).toEqual(["facebook", "whatsapp", "x", "email"]);
     expect(l[0].href).toContain(encodeURIComponent("https://accg-nalux.com/mobilisation/greve"));
     expect(l[3].href.startsWith("mailto:?subject=")).toBe(true);
+  });
+});
+
+describe("fin de la mise en avant", () => {
+  const h = (iso: string) => new Date(iso).getTime();
+
+  it("s'arrête 1 h après l'heure de l'événement", () => {
+    const debut = versHorodatage("09/10/2026", "10:30")!; // 08:30 UTC
+    expect(finMiseEnAvant(debut)).toBe(h("2026-10-09T09:30:00.000Z"));
+    expect(miseEnAvantTerminee(debut, h("2026-10-09T09:29:59.000Z"))).toBe(false);
+    expect(miseEnAvantTerminee(debut, h("2026-10-09T09:30:00.000Z"))).toBe(true);
+  });
+
+  it("sans heure, reste affichée tout le jour J (jusqu'à minuit à Bruxelles)", () => {
+    const jour = versHorodatage("09/10/2026", "")!;
+    expect(finMiseEnAvant(jour)).toBe(h(versHorodatage("10/10/2026", "00:00")!));
+    expect(miseEnAvantTerminee(jour, h("2026-10-09T20:00:00.000Z"))).toBe(false);
+    // Passage à l'heure d'hiver la nuit du 25/10/2026 : minuit du lendemain reste juste.
+    expect(finMiseEnAvant(versHorodatage("25/10/2026", "")!)).toBe(h("2026-10-25T23:00:00.000Z"));
+  });
+
+  it("sans date, ne s'arrête jamais d'elle-même", () => {
+    expect(finMiseEnAvant(null)).toBeNull();
+    expect(miseEnAvantTerminee(null, Date.now())).toBe(false);
   });
 });

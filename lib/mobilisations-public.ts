@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { COLONNES_PUBLIQUES, type MobilisationPublique } from "./mobilisations";
+import { COLONNES_PUBLIQUES, miseEnAvantTerminee, type MobilisationPublique } from "./mobilisations";
 import { getSupabase } from "./supabase";
 
 /**
@@ -7,6 +7,8 @@ import { getSupabase } from "./supabase";
  * elle ne renvoie une ligne que si l'interrupteur « accueil_mobilisation » est sur « on » ET qu'une
  * mobilisation est active. Sans ligne (ou en cas d'erreur) : null, et le site n'affiche ni bloc, ni bandeau,
  * ni page campagne. Mis en cache pour la requête (layout + page).
+ * Fin automatique : 1 h après l'heure de l'événement, la mobilisation n'est plus mise en avant (même si elle
+ * reste « active » en base) ; les pages publiques étant régénérées toutes les 60 s, elle disparaît dans la minute.
  */
 export const chargerMobilisationActive = cache(async (): Promise<MobilisationPublique | null> => {
   const { data, error } = await getSupabase()
@@ -20,5 +22,6 @@ export const chargerMobilisationActive = cache(async (): Promise<MobilisationPub
     return null;
   }
   const m = data as MobilisationPublique | null;
-  return m?.titre?.trim() ? m : null;
+  if (!m?.titre?.trim() || miseEnAvantTerminee(m.date_evenement, Date.now())) return null;
+  return m;
 });

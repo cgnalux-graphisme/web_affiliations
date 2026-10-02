@@ -2,9 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { X, Zap } from "lucide-react";
-import { cheminMobilisation, dateMobilisation, lienValide, type MobilisationPublique } from "../lib/mobilisations";
+import {
+  cheminMobilisation,
+  dateMobilisation,
+  finMiseEnAvant,
+  lienValide,
+  type MobilisationPublique,
+} from "../lib/mobilisations";
 
 const CLE = "bandeau-mobilisation-ferme";
 
@@ -19,7 +25,10 @@ export default function BandeauMobilisation({
   m: Pick<MobilisationPublique, "id" | "titre" | "slug" | "date_evenement" | "lien_inscription">;
 }) {
   const chemin = usePathname();
+  const router = useRouter();
   const [ferme, setFerme] = useState(false);
+  const [termine, setTermine] = useState(false);
+  const admin = chemin.startsWith("/suivi-actions") || chemin.startsWith("/login");
 
   useEffect(() => {
     try {
@@ -29,9 +38,28 @@ export default function BandeauMobilisation({
     }
   }, [m.id]);
 
-  if (!m.slug) return null;
+  // Fin de la mise en avant (1 h après l'heure de l'événement) : le serveur ne la renvoie plus, mais une page
+  // déjà ouverte ou encore en cache la montrerait. Le bandeau se retire et la page est rechargée sans elle.
+  useEffect(() => {
+    const fin = finMiseEnAvant(m.date_evenement);
+    if (fin === null) return;
+    const terminer = () => {
+      setTermine(true);
+      if (!admin) router.refresh();
+    };
+    const reste = fin - Date.now();
+    if (reste <= 0) {
+      terminer();
+      return;
+    }
+    if (reste > 2_000_000_000) return; // au-delà de ~23 jours, setTimeout déborde ; la page sera rechargée d'ici là
+    const id = window.setTimeout(terminer, reste);
+    return () => window.clearTimeout(id);
+  }, [m.date_evenement, admin, router]);
+
+  if (!m.slug || termine) return null;
   const page = cheminMobilisation(m.slug);
-  if (ferme || chemin.startsWith("/suivi-actions") || chemin.startsWith("/login") || chemin === page) return null;
+  if (ferme || admin || chemin === page) return null;
 
   function fermer() {
     setFerme(true);

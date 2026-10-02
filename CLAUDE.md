@@ -206,7 +206,12 @@ vide. Activer une mobilisation désactive les autres (côté code). Après tout
 changement : `revalidatePath("/", "layout")` ; le layout a `revalidate = 60`
 (toutes les pages publiques sont donc régénérées au plus toutes les minutes).
 Compte à rebours calculé dans le navigateur seulement (`CompteARebours.tsx`) ;
-« C'est aujourd'hui. » le jour J, rien après. Partage : partage natif du
+« C'est aujourd'hui. » le jour J, rien après. **Fin automatique** (02/10/2026, demande de Fred) :
+la mise en avant s'arrête **1 h après l'heure de l'événement** (sans heure saisie : à minuit à la fin
+du jour J), `finMiseEnAvant()` / `miseEnAvantTerminee()` (`lib/mobilisations.ts`), appliquée par
+`chargerMobilisationActive()` (bloc, bandeau et page campagne disparaissent ; `actif` reste vrai en
+base, la liste admin affiche « Terminée ») ; le bandeau se retire aussi dans le navigateur à l'heure
+dite et recharge la page (page déjà ouverte ou encore en cache). Sans date : pas de fin automatique. Partage : partage natif du
 téléphone + Facebook, WhatsApp, X, e-mail, copier le lien (`liensPartage()`),
 icônes monochromes (pas de bleu ni de vert de marque) ; aucune publication depuis
 nos comptes. « Pourquoi » par l'IA (`lib/mobilisation-ia.ts`) : texte percutant
@@ -438,7 +443,11 @@ reformuler, citer et lier la source, jamais recopier.
   uniquement, chaque redirection revérifiée** — `lib/adresse-publique.ts`,
   protection contre les requêtes vers le réseau interne —, images ≤ 20 Mo).
   Rappel affiché : photo de la centrale ou banque libre ; une photo de presse est
-  protégée. Suppression d'un article = image d'abord, puis la ligne.
+  protégée. **Glisser-déposer commun à toutes les insertions d'images** (02/10/2026, demande de
+  Fred) : `app/ZoneDepotImages.tsx` (couverture d'article, photos d'actions `ChoixPhotos.tsx`
+  — plusieurs à la fois —, image de mobilisation) + `lib/image-deposee.ts` (types acceptés
+  JPEG, PNG, WebP, GIF, AVIF, 20 Mo max, tous convertis en JPEG). Un fichier lâché à côté de la
+  zone n'ouvre pas l'image dans l'onglet. Toute nouvelle insertion d'image utilise ce composant. Suppression d'un article = image d'abord, puis la ligne.
 
 #### Veille RSS (sans IA)
 - [x] Écran **Sources** : nom + URL du flux + actif / inactif.

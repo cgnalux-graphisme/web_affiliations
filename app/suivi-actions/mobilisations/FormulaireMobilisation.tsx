@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, ClipboardPaste, Eye, ImagePlus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { IconeChargement } from "../../Chargement";
+import ZoneDepotImages from "../../ZoneDepotImages";
 import Interrupteur from "../Interrupteur";
 import { BUCKET_BLOG, cheminImageDepuisUrl, slugifier, slugValide } from "../../../lib/articles";
 import { formatDateFr } from "../../../lib/dates";
@@ -17,6 +18,7 @@ import {
   versHorodatage,
   type Mobilisation,
 } from "../../../lib/mobilisations";
+import { imageAcceptee, MESSAGE_IMAGE_REFUSEE, TYPES_IMAGE } from "../../../lib/image-deposee";
 import { preparerPhoto } from "../../../lib/photos";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import { useOnceSubmit } from "../../../lib/use-once-submit";
@@ -64,6 +66,7 @@ export default function FormulaireMobilisation({ mobilisation }: { mobilisation?
   const [enCours, setEnCours] = useState(false);
   const [progression, setProgression] = useState("");
   const [erreurEnvoi, setErreurEnvoi] = useState("");
+  const [erreurImage, setErreurImage] = useState("");
   const champFichier = useRef<HTMLInputElement>(null);
   const champTitre = useRef<HTMLInputElement>(null);
 
@@ -108,12 +111,15 @@ export default function FormulaireMobilisation({ mobilisation }: { mobilisation?
   function choisirImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null; // copier avant de vider le champ (Chrome, Edge)
     e.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setErreurEnvoi("Ce fichier n'est pas une image. Choisissez une photo (JPEG, PNG, WebP).");
+    if (file) accepterImage(file);
+  }
+
+  function accepterImage(file: File) {
+    if (!imageAcceptee(file)) {
+      setErreurImage(`Image non ajoutée : ${MESSAGE_IMAGE_REFUSEE}.`);
       return;
     }
-    setErreurEnvoi("");
+    setErreurImage("");
     setImage({ file, apercu: URL.createObjectURL(file) });
   }
 
@@ -372,18 +378,39 @@ export default function FormulaireMobilisation({ mobilisation }: { mobilisation?
           <div>
             <p className="mb-1.5 block text-sm font-semibold">Image</p>
             <p className="mb-2 text-xs">
-              Grande photo en tête de la page campagne et de l&apos;accueil. Photo de la centrale ou banque libre ; une
-              photo de presse est protégée.
+              Grande photo en tête de la page campagne et de l&apos;accueil. Choisissez un fichier ou glissez une image
+              (depuis votre ordinateur ou une autre page web). Photo de la centrale ou banque libre ; une photo de presse
+              est protégée.
             </p>
+            <ZoneDepotImages onImages={([f]) => accepterImage(f)} onErreur={setErreurImage} disabled={enCours}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-militant-ardoise sm:w-64">
-                {apercuImage && (
+              <button
+                type="button"
+                onClick={() => champFichier.current?.click()}
+                disabled={enCours}
+                aria-label={apercuImage ? "Changer l'image" : "Choisir une image"}
+                className="relative grid aspect-[16/9] w-full place-items-center overflow-hidden rounded-xl border-2 border-dashed border-militant-ardoise bg-white transition-colors hover:border-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge sm:w-64"
+              >
+                {apercuImage ? (
                   // eslint-disable-next-line @next/next/no-img-element -- aperçu local (blob:) ou image du bucket
-                  <img src={apercuImage} alt="" className="h-full w-full object-cover" />
+                  <img src={apercuImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <span className="flex flex-col items-center gap-1 px-3 text-center text-sm font-bold">
+                    <ImagePlus size={24} className="text-militant-rouge" aria-hidden />
+                    Glissez une image ici
+                  </span>
                 )}
-              </div>
+              </button>
               <div className="flex flex-wrap gap-2">
-                <input ref={champFichier} type="file" accept="image/*" onChange={choisirImage} className="sr-only" id="image" />
+                <input
+                  ref={champFichier}
+                  type="file"
+                  accept={TYPES_IMAGE.join(",")}
+                  onChange={choisirImage}
+                  className="sr-only"
+                  id="image"
+                  tabIndex={-1}
+                />
                 <button type="button" onClick={() => champFichier.current?.click()} className={BOUTON_SECONDAIRE}>
                   <ImagePlus size={15} aria-hidden /> {apercuImage ? "Changer l'image" : "Choisir une image"}
                 </button>
@@ -398,6 +425,8 @@ export default function FormulaireMobilisation({ mobilisation }: { mobilisation?
                 )}
               </div>
             </div>
+            </ZoneDepotImages>
+            {erreurImage && <p className="mt-2 text-xs font-semibold text-militant-bordeaux">{erreurImage}</p>}
           </div>
         </div>
 
@@ -475,7 +504,8 @@ export default function FormulaireMobilisation({ mobilisation }: { mobilisation?
             etatOff="Pas mise en avant"
           />
           <p className="text-xs">
-            Une seule mobilisation peut être mise en avant : l&apos;activer désactive les autres. Elle n&apos;apparaît sur
+            Une seule mobilisation peut être mise en avant : l&apos;activer désactive les autres. La mise en avant
+            s&apos;arrête d&apos;elle-même 1 h après l&apos;heure de l&apos;événement. Elle n&apos;apparaît sur
             le site que si l&apos;affichage est activé dans les{" "}
             <Link href="/suivi-actions/parametres-site" className="font-semibold underline decoration-militant-rouge underline-offset-2">
               paramètres du site

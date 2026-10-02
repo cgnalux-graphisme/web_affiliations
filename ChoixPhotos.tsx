@@ -2,10 +2,10 @@
 
 import React, { useRef, useState } from "react";
 import { ArrowUp, ImagePlus, Star, X } from "lucide-react";
+import ZoneDepotImages from "./app/ZoneDepotImages";
+import { imageAcceptee, MESSAGE_IMAGE_REFUSEE, TYPES_IMAGE } from "./lib/image-deposee";
 import type { PhotoEdition } from "./lib/photos-sync";
 
-const TYPES_ACCEPTES = ["image/jpeg", "image/png", "image/webp"];
-const TAILLE_MAX = 20 * 1024 * 1024;
 export const PHOTOS_MAX = 12;
 
 /** Libère l'aperçu local d'une nouvelle photo (sans effet sur une photo enregistrée). */
@@ -29,12 +29,11 @@ export default function ChoixPhotos({
   const inputRef = useRef<HTMLInputElement>(null);
   const [avertissement, setAvertissement] = useState("");
 
-  function ajouter(fichiers: FileList | null) {
-    if (!fichiers) return;
+  function ajouter(fichiers: File[]) {
     const refusees: string[] = [];
     const nouvelles: PhotoEdition[] = [];
-    for (const file of Array.from(fichiers)) {
-      if (!TYPES_ACCEPTES.includes(file.type) || file.size > TAILLE_MAX) {
+    for (const file of fichiers) {
+      if (!imageAcceptee(file)) {
         refusees.push(file.name);
         continue;
       }
@@ -46,13 +45,12 @@ export default function ChoixPhotos({
 
     const messages: string[] = [];
     if (refusees.length) {
-      messages.push(`Non ajoutée${refusees.length > 1 ? "s" : ""} (JPEG, PNG ou WebP de 20 Mo max.) : ${refusees.join(", ")}.`);
+      messages.push(`Non ajoutée${refusees.length > 1 ? "s" : ""} (${MESSAGE_IMAGE_REFUSEE}) : ${refusees.join(", ")}.`);
     }
     if (nouvelles.length > place) messages.push(`${PHOTOS_MAX} photos maximum par action.`);
     setAvertissement(messages.join(" "));
 
     onChange([...photos, ...gardees]);
-    if (inputRef.current) inputRef.current.value = "";
   }
 
   function retirer(cle: string) {
@@ -143,6 +141,7 @@ export default function ChoixPhotos({
       )}
 
       {photos.length < PHOTOS_MAX && (
+        <ZoneDepotImages onImages={ajouter} onErreur={setAvertissement} multiple disabled={disabled}>
         <label
           className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-militant-ardoise px-4 py-6 text-center transition-colors hover:border-militant-charbon focus-within:border-militant-charbon focus-within:ring-2 focus-within:ring-militant-rouge ${
             disabled ? "pointer-events-none opacity-60" : ""
@@ -152,17 +151,25 @@ export default function ChoixPhotos({
           <span className="text-sm font-bold text-militant-charbon">
             {photos.length ? "Ajouter d'autres photos" : "Ajouter des photos"}
           </span>
-          <span className="text-xs text-militant-charbon">JPEG, PNG ou WebP. Plusieurs photos possibles.</span>
+          <span className="text-xs text-militant-charbon">
+            Cliquez ou glissez-les ici (depuis l&apos;ordinateur ou une autre page web). Plusieurs photos possibles.
+          </span>
           <input
             ref={inputRef}
             type="file"
-            accept={TYPES_ACCEPTES.join(",")}
+            accept={TYPES_IMAGE.join(",")}
             multiple
             disabled={disabled}
-            onChange={(e) => ajouter(e.target.files)}
+            onChange={(e) => {
+              // Copier les fichiers AVANT de vider le champ : vider le champ vide aussi sa FileList (Chrome, Edge).
+              const fichiers = Array.from(e.target.files ?? []);
+              e.target.value = "";
+              ajouter(fichiers);
+            }}
             className="sr-only"
           />
         </label>
+        </ZoneDepotImages>
       )}
 
       {avertissement && <p className="text-xs font-semibold text-militant-bordeaux">{avertissement}</p>}

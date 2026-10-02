@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getSupabaseAuth } from "../../../lib/supabase";
 import { dateFrToIso, formatDateFr } from "../../../lib/dates";
+import { imageAcceptee, MESSAGE_IMAGE_REFUSEE, TYPES_IMAGE } from "../../../lib/image-deposee";
 import { preparerPhoto } from "../../../lib/photos";
 import { useOnceSubmit } from "../../../lib/use-once-submit";
 import {
@@ -43,6 +44,7 @@ import {
 import type { Brouillon } from "../../../lib/redaction-ia";
 import EditeurTexte from "./EditeurTexte";
 import { IconeChargement } from "../../Chargement";
+import ZoneDepotImages from "../../ZoneDepotImages";
 import PanneauNote, { RAPPEL_NOTE, type ResultatNote } from "./PanneauNote";
 import PanneauRedaction, { RAPPEL_IA, type DemandeBrouillon, type EtatIA, type SourcePanneau } from "./PanneauRedaction";
 import { rafraichirBlog } from "./revalidation";
@@ -80,8 +82,6 @@ type Erreurs = Partial<Record<keyof Form | "image", string>>;
 /** Couverture : celle enregistrée (url), une nouvelle (fichier local) ou aucune. */
 type Couverture = { url: string; file?: undefined } | { file: File; apercu: string; url?: undefined } | null;
 
-const TYPES_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
-const TAILLE_MAX = 20 * 1024 * 1024;
 const CHAPO_MAX = 400;
 // RLS : écriture réservée aux super admins → refus si la session a expiré.
 const CODE_ACCES_REFUSE = "42501";
@@ -165,8 +165,6 @@ export default function FormulaireArticle({
   const [erreurEnvoi, setErreurEnvoi] = useState("");
   const { acquire, release } = useOnceSubmit();
   const champFichier = useRef<HTMLInputElement>(null);
-  const [survolImage, setSurvolImage] = useState(false);
-  const [imageEnCours, setImageEnCours] = useState(false);
   const [ia, setIa] = useState<EtatIA>({ etape: "inactif" });
   // L'éditeur riche ne relit sa valeur qu'à sa création : on le recrée après un brouillon IA.
   const [versionEditeur, setVersionEditeur] = useState(0);
@@ -267,58 +265,12 @@ export default function FormulaireArticle({
   }
 
   function accepterImage(file: File) {
-    if (!TYPES_IMAGE.includes(file.type) || file.size > TAILLE_MAX) {
-      setErreurs((e) => ({ ...e, image: "Image non ajoutée : JPEG, PNG ou WebP de 20 Mo maximum." }));
+    if (!imageAcceptee(file)) {
+      setErreurs((e) => ({ ...e, image: `Image non ajoutée : ${MESSAGE_IMAGE_REFUSEE}.` }));
       return;
     }
     setErreurs((e) => ({ ...e, image: undefined }));
     setCouverture({ file, apercu: URL.createObjectURL(file) });
-  }
-
-  /**
-   * Glisser-déposer : un fichier de l'ordinateur, ou une image tirée d'une autre page web
-   * (le navigateur ne donne alors que son adresse : le serveur la télécharge).
-   */
-  async function deposerImage(e: React.DragEvent) {
-    e.preventDefault();
-    setSurvolImage(false);
-    if (enCours || imageEnCours) return;
-    const fichier = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"));
-    if (fichier) {
-      accepterImage(fichier);
-      return;
-    }
-    const url = urlImageDeposee(e.dataTransfer);
-    if (!url) {
-      setErreurs((x) => ({ ...x, image: "Aucune image reconnue. Glissez l'image elle-même, ou enregistrez-la puis déposez le fichier." }));
-      return;
-    }
-    setImageEnCours(true);
-    setErreurs((x) => ({ ...x, image: undefined }));
-    try {
-      let blob: Blob;
-      if (url.startsWith("data:image/")) {
-        blob = await (await fetch(url)).blob();
-      } else {
-        const reponse = await fetch("/api/image-distante", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
-        });
-        if (!reponse.ok) {
-          const json = (await reponse.json().catch(() => ({}))) as { erreur?: string };
-          setErreurs((x) => ({ ...x, image: json.erreur ?? "L'image n'a pas pu être récupérée. Enregistrez-la puis déposez le fichier." }));
-          return;
-        }
-        blob = await reponse.blob();
-      }
-      const nom = decodeURIComponent(url.split(/[?#]/)[0].split("/").pop() || "image-web") || "image-web";
-      accepterImage(new File([blob], nom.slice(0, 80), { type: blob.type }));
-    } catch {
-      setErreurs((x) => ({ ...x, image: "L'image n'a pas pu être récupérée. Enregistrez-la puis déposez le fichier." }));
-    } finally {
-      setImageEnCours(false);
-    }
   }
 
   function valider(): boolean {
@@ -682,34 +634,11 @@ export default function FormulaireArticle({
               </span>
             </p>
           )}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-              if (!survolImage) setSurvolImage(true);
-            }}
-            onDragLeave={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setSurvolImage(false);
-            }}
-            onDrop={deposerImage}
-            aria-busy={imageEnCours}
-            className={`relative rounded-xl transition-shadow ${survolImage ? "ring-4 ring-militant-rouge ring-offset-2" : ""}`}
+          <ZoneDepotImages
+            onImages={([f]) => accepterImage(f)}
+            onErreur={(m) => setErreurs((x) => ({ ...x, image: m || undefined }))}
+            disabled={enCours}
           >
-            {(survolImage || imageEnCours) && (
-              <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-white/90 text-[15px] font-bold">
-                {imageEnCours ? (
-                  <>
-                    <IconeChargement size={40} className="text-militant-rouge" />
-                    Récupération de l&apos;image…
-                  </>
-                ) : (
-                  <>
-                    <ImagePlus size={28} className="text-militant-rouge" aria-hidden />
-                    Déposez l&apos;image ici
-                  </>
-                )}
-              </div>
-            )}
           {imageAffichee ? (
             <div className="space-y-3">
               {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local ou image du bucket */}
@@ -735,7 +664,7 @@ export default function FormulaireArticle({
               <span className="text-sm font-medium">ou glissez-la ici</span>
             </button>
           )}
-          </div>
+          </ZoneDepotImages>
           <input
             ref={champFichier}
             type="file"
@@ -856,18 +785,6 @@ export default function FormulaireArticle({
       </form>
     </div>
   );
-}
-
-/** Adresse d'une image glissée depuis une page web : <img src> du HTML, sinon la liste d'URL. */
-function urlImageDeposee(dt: DataTransfer): string | null {
-  const html = dt.getData("text/html");
-  const src = html.match(/<img[^>]+src\s*=\s*["']([^"']+)["']/i)?.[1];
-  const liste = dt
-    .getData("text/uri-list")
-    .split(/\r?\n/)
-    .find((l) => l.trim() && !l.startsWith("#"));
-  const candidat = (src ?? liste ?? dt.getData("text/plain")).trim().replace(/&amp;/g, "&");
-  return /^(https?:\/\/|data:image\/)/i.test(candidat) ? candidat : null;
 }
 
 // ── Sous-composants ──────────────────────────────────────────────────────────

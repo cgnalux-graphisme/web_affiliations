@@ -116,6 +116,32 @@ export function rebours(horodatage: string, maintenant: number): Rebours | null 
   return { jours: Math.floor(s / 86400), heures: Math.floor((s % 86400) / 3600), minutes: Math.floor((s % 3600) / 60), secondes: s % 60 };
 }
 
+/** La mise en avant s'arrête d'elle-même 1 h après l'heure de l'événement (compte à rebours à 0). */
+export const FIN_MISE_EN_AVANT_MS = 60 * 60 * 1000;
+
+/**
+ * Instant où la mise en avant s'arrête : 1 h après l'heure de l'événement. Sans heure (00:00 : le compteur
+ * tomberait à 0 à minuit), elle reste affichée tout le jour J, jusqu'à minuit à Bruxelles.
+ * null sans date (elle reste alors affichée).
+ */
+export function finMiseEnAvant(horodatage: string | null | undefined): number | null {
+  if (!horodatage) return null;
+  const t = new Date(horodatage).getTime();
+  if (Number.isNaN(t)) return null;
+  if (aUneHeure(horodatage)) return t + FIN_MISE_EN_AVANT_MS;
+  const b = partiesBruxelles(new Date(t));
+  const lendemain = new Date(Date.UTC(b.annee, b.mois - 1, b.jour + 1));
+  const z = (n: number) => String(n).padStart(2, "0");
+  const minuit = versHorodatage(`${z(lendemain.getUTCDate())}/${z(lendemain.getUTCMonth() + 1)}/${lendemain.getUTCFullYear()}`, "00:00");
+  return minuit ? new Date(minuit).getTime() : t + 24 * 60 * 60 * 1000;
+}
+
+/** La mise en avant est-elle terminée (plus d'1 h après l'heure de l'événement) ? */
+export function miseEnAvantTerminee(horodatage: string | null | undefined, maintenant: number): boolean {
+  const fin = finMiseEnAvant(horodatage);
+  return fin !== null && maintenant >= fin;
+}
+
 /** L'événement a lieu aujourd'hui (à Bruxelles) ? */
 export function estLeJourJ(horodatage: string, maintenant: number): boolean {
   const a = depuisHorodatage(horodatage).date;
