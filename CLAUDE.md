@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **01/10/2026**
+> Dernière mise à jour : **02/10/2026**
 
 ---
 
@@ -185,8 +185,8 @@ Veille (créés côté Supabase avant le 28/09/2026) :
 | `site_veille_analyses` | Classements « Check IA » : `origine` (`manuel` / `auto`), `nb_articles`, `resultat` (jsonb, `ResultatAnalyse` de `lib/veille-tri.ts`), `modele`, `created_at` ; purgés après 7 jours | Lecture super admin ; écriture et purge **uniquement** en service_role |
 
 Migration `supabase/migrations/20261001090000_site_veille_analyses.sql` **demandée par Fred le
-01/10/2026** (idempotente). **À exécuter par Fred** dans l'éditeur SQL : tant qu'elle ne l'est pas,
-le fil s'affiche normalement mais « Check IA » échoue à l'enregistrement (message clair).
+01/10/2026** (idempotente), **exécutée par Fred le 01/10/2026**. Si la table manquait, le fil
+s'afficherait normalement mais « Check IA » échouerait à l'enregistrement (message clair).
 `site_parametres` reçoit aussi la clé `veille_dernier_ramassage` (date ISO du dernier ramassage,
 écrite en service_role).
 
@@ -395,7 +395,11 @@ exception : la migration des envois, voir plus haut, demandée par Fred).
 - [ ] « Trouver votre contact » → voir Phase 4, lié à l'assistant-aiguilleur
 - [x] Refonte graphique « direction D » (éditorial + modulaire, sans fond noir) —
       voir Conventions > Design
-- [ ] Rebrancher le domaine `accg-nalux.com` (quitter e-monsite) — plus tard
+- [ ] Rebrancher le domaine du site (quitter e-monsite) — plus tard. **Attention** : le PDF
+      d'affiliation et les e-mails citent **`accg-nalux.be`** (choix de Fred du 01/10/2026 pour
+      l'adresse des statuts : `www.accg-nalux.be/statuts`), alors que les exemples de `SITE_URL`
+      citent `accg-nalux.com`. À trancher au branchement du domaine ; la page `/statuts` doit
+      répondre à l'adresse imprimée dans les PDF.
 
 ### Phase 1 — Suivi des actions *(fonctionnel sur la branche `suivi-actions`)*
 - [x] Tables, vues et bucket
@@ -477,8 +481,15 @@ reformuler, citer et lier la source, jamais recopier.
       sujet ouvert** (rang, format, état, intitulé en grand, « Notre angle » mis en avant, pourquoi,
       sources sur une ligne chacune avec logo, titre tronqué en entier au survol, lisibilité et
       doublons repliés), boutons « Brouillon IA », « Rédiger un article », « Ignorer ». **État d'un
-      sujet** déduit des statuts de ses articles : « En rédaction » (au moins un traité) ou « Ignoré »
-      (tous ignorés, barré). **Ignorer** enchaîne sur le sujet suivant et affiche un bandeau
+      sujet** (02/10/2026) : **« Brouillon enregistré » / « Publié »** si un article enregistré cite
+      les liens du sujet dans ses sources (`articlesLiesAuxSujets()`, `lib/veille-articles-lies.ts`,
+      rapprochement par adresse, faute de lien en base) — encart avec son titre et bouton
+      « Continuer le brouillon » / « Ouvrir l'article » ; **« Commencé »** si ses articles sont
+      « traités » sans article enregistré (relancer « Brouillon IA ») ; **« Ignoré »** (tous ignorés,
+      barré). **Marquer « traité » avant d'ouvrir le formulaire a un délai de 8 s** (`avecDelai()`,
+      `lib/delai.ts`) : sans réponse, le formulaire s'ouvre quand même (un client de session
+      Supabase bloqué dans le navigateur — vu le 01/10/2026 après de nombreux rechargements à chaud,
+      réglé par F5 — ne bloque plus « Brouillon IA »). **Ignorer** enchaîne sur le sujet suivant et affiche un bandeau
       bordeaux « Sujet ignoré · Annuler » pendant 8 s (statuts d'avant restaurés). **Clavier** :
       ↑ ↓ dans la liste, B brouillon IA, R rédiger, I ignorer (jamais dans un champ de saisie).
       Mobile : la liste, puis le sujet en dessous (clic = défilement, « Retour à la liste »).
@@ -749,6 +760,23 @@ reformuler, citer et lier la source, jamais recopier.
 
 ---
 
+## État au 02/10/2026
+- **Poussé sur `suivi-actions` les 01/10 et 02/10/2026** (rien sur `main`) : Check IA et écran
+  « conférence de rédaction », brouillon IA multi-sources (jusqu'à 12 sources, « Retirer » /
+  « Remettre », jauge « Matière »), logos des médias, fil limité à 3 jours, page `/statuts` et
+  nouvel « Accord général », uniformisation visuelle de tous les formulaires (`app/formulaires/`),
+  question « titulaire du compte » sous le bloc RIB (affiliation), bloc « Nos bureaux » sur les
+  PDF d'affiliation et de mandat, sujets du Check IA reliés à leur article enregistré.
+- **Accès** : deux comptes SUPER_ADMIN dans `profiles` (Frédéric Blanchard, Jonathan Hubert),
+  vérifié le 01/10/2026. **Vercel Authentication est activée sur toutes les adresses
+  `.vercel.app`** (production comprise, sauf domaine propre) : un collègue sans compte dans
+  l'équipe Vercel est bloqué avant la page de connexion. Solutions : lien de partage du
+  déploiement (« Share »), ou désactiver la protection des prévisualisations (Settings ›
+  Deployment Protection) — à décider par Fred ; un domaine propre branché en production n'est pas
+  concerné.
+- Analyse automatique du Check IA à 8 h : seulement en production (les crons Vercel ne tournent
+  pas sur les prévisualisations).
+
 ## État au 29/09/2026
 - Tout le travail est sur la branche **`suivi-actions`** : rien sur `main`, rien
   déployé. À relire puis fusionner quand Fred valide.
@@ -896,7 +924,11 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   d'affiliation, **page 1** du mandat SEPA (une seule page : espacements resserrés pour lui faire
   place, tailles de texte et mentions inchangées ; position `haut={738}`). Vérifié le 01/10/2026 sur
   le cas le plus long (changement de compte, titulaire tiers, signature réelle) : rien ne se chevauche.
-  Toute ligne ajoutée au mandat doit être revérifiée contre ce bloc. **Ne jamais supprimer
+  Toute ligne ajoutée au mandat doit être revérifiée contre ce bloc. **Logo** : si le logo
+  préchargé manque, le PDF le télécharge lui-même depuis le site (`/logo-cg-rouge.png`) — jamais le
+  nom de la centrale en texte à la place (02/10/2026). **Section « Transfert syndical »** du PDF
+  d'affiliation : seules les lignes présentes, réparties à gauche puis à droite (pas de colonne
+  vide). Mention « Accord général » du PDF : adresse des statuts `www.accg-nalux.be/statuts`. **Ne jamais supprimer
   une mention légale** (surtout le mandat SEPA : texte de domiciliation, créancier,
   ICS, RGPD, certification de signature). Les PDF officiels C1 / C3.2 et le
   courrier de préavis ne suivent pas cette charte.
