@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 const liens = [
   { href: "/", label: "Accueil" },
+  { href: "/pourquoi-s-affilier", label: "Pourquoi s’affilier" },
   // Une seule entrée pour les actualités et « On vous explique » (pages de détail comprises).
   { href: "/actualites", label: "Actualités", aussi: ["/blog", "/on-vous-explique"] },
   { href: "/actions", label: "Nos actions" },

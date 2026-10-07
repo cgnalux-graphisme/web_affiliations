@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **02/10/2026**
+> Dernière mise à jour : **06/10/2026**
 
 ---
 
@@ -47,6 +47,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | Route | Accès | Rôle |
 |---|---|---|
 | `/` | public | Accueil (29/09/2026) : 1. ouverture = **mobilisation mise en avant** si la vue `site_accueil_mobilisation` renvoie une ligne (titre, date, lieu, chapô, image, compte à rebours, « Je m'inscris », « Pourquoi on se mobilise »), sinon l'ouverture habituelle ; 2. 4 dernières publications (pastilles) ; 3. démarches ; 4. 3 dernières actions passées (photos) |
+| `/pourquoi-s-affilier` | public | (06/10/2026, maquette validée par Fred, textes repris tels quels) Page « motion design » en 4 temps. **De l'ombre à la lumière** (07/10/2026, Fred trouvait la version toute sombre « triste et austère ») : seule l'ouverture est en charbon (le moment où l'on est seul), puis un biais à 10° (l'angle de l'encart « FGTB » du logo) fait entrer la lumière et le reste est sur fond blanc avec aplats bordeaux / rouges. 1. « Seul, on subit. » + point rouge qui palpite dans un halo, entouré de points isolés pâles qui se rapprochent de lui au défilement (`PointsIsoles.tsx`) ; 2. phrase-pivot (mots allumés au défilement) + 4 preuves, chacune dans une mise en page différente (0 €, 145 € sur une bande bordeaux en biais à rayures qui glissent, banderole rouge penchée des secteurs qui avance **avec le défilement seulement**, 4 bureaux) ; fonds animés dans `Fonds.tsx`, **tous liés au défilement, aucune boucle** ; 3. foule en canvas **épinglée** sur fond blanc, points bordeaux et ardoise (`Foule.tsx`) : le point rouge rejoint par d'autres, compteur 1 → 25 000, légende « 1 point ≈ X affiliés » calculée, place vide « Il ne manque que vous » ; 4. bloc rouge « Ensemble, on décide. » sur photo en bichromie. Photos réelles lues dans `site_photos_public` (choix dans `PHOTOS`, `lib/pourquoi-s-affilier.ts` ; absentes = page sans photo). **Aucun tiret cadratin** sur la page, titre d'onglet compris (demande de Fred). Mouvement réduit : état final d'emblée (règles CSS, même rendu serveur) |
 | `/mobilisation/<slug>` | public | Page campagne de la mobilisation mise en avant (seulement elle, via la vue ; sinon 404) : en-tête bordeaux, compte à rebours, pourquoi, « Ce qu'on demande », « Comment y aller », « Je m'inscris » répété (+ barre fixe sur mobile), partage par le visiteur |
 | `/actions` | public | Vitrine des actions publiées (frise + « unes ») |
 | `/actualites` | public | **Page unifiée** (29/09/2026) : articles du blog **et** explications mélangés, du plus récent au plus ancien (le plus récent en grand) ; pastille de rubrique sur chaque photo ; sélecteur à segments « Tout · Actualités · On vous explique » filtré dans le navigateur (`?rubrique=actualites` / `on-vous-explique` pré-applique le filtre) |
@@ -110,7 +111,7 @@ lecteur ; « Autoriser YouTube et lire » = accord vidéos seulement). Choix dan
   **Rien de tiers ne se charge avant l'accord.** Tout nouveau service tiers ou tout nouvel élément
   stocké = l'ajouter à `ELEMENTS_COOKIES` (et à une catégorie si besoin) et à `PAGES-LEGALES.md`.
 
-Navigation publique (ordre du 29/09/2026) : Accueil · Actualités (une seule entrée
+Navigation publique (ordre du 29/09/2026, + « Pourquoi s’affilier » en 2e position le 06/10/2026 ; liens resserrés entre 1024 et 1280 px pour tenir sur une ligne) : Accueil · Pourquoi s’affilier · Actualités (une seule entrée
 pour le blog et « On vous explique », active aussi sur `/blog/…` et
 `/on-vous-explique/…`) · Nos actions · Démarches en ligne · Contact + bouton
 « S'affilier ». **Bandeau d'alerte** (`app/BandeauMobilisation.tsx`, dans le
@@ -923,6 +924,11 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 - **Logos** (`public/`) : `logo-cg-rouge.png` sur fond blanc (usage principal),
   `logo-cg-blanc.png` sur fond bordeaux ou charbon (connexion, couverture du rapport PDF, pied de page),
   `logo-cg-noir.png` réservé à l'impression noir et blanc — pas sur le site.
+  **Favicon** (07/10/2026, demande de Fred) : l'encart rouge incliné à 10° du logo (celui de
+  « FGTB ») avec « CG » en blanc, Barlow Condensed extra-gras inclinée du même angle (tracés réels
+  de la police). Fichiers servis par Next : `app/icon.svg` (onglets, coins transparents),
+  `app/favicon.ico` (16, 32, 48 px), `app/apple-icon.png` (180 px, carré rouge plein : iOS arrondit
+  lui-même).
 - **Documents PDF** (affiliation, mandat SEPA, rapport) : charte « Registre » —
   page blanche, logo rouge en tête, titre en majuscules condensées sur filet
   charbon, sections numérotées en rouge sur filet, lignes libellé / valeur sur
@@ -1010,7 +1016,7 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 ## Rappels techniques
 - Stack : Next.js 16 (App Router, Node 24), Supabase, Vercel, Resend (envoi
   d'e-mails), Tailwind 3, `@react-pdf/renderer`, Vitest, Tiptap (éditeur),
-  `sanitize-html`, `fast-xml-parser` (flux RSS), `@anthropic-ai/sdk` + `zod`
+  `sanitize-html`, `fast-xml-parser` (flux RSS), `motion` (animations de `/pourquoi-s-affilier`, `motion/react`), `@anthropic-ai/sdk` + `zod`
   (rédaction assistée, déclinaison réseaux et vulgarisation, serveur uniquement ;
   erreurs de l'API traduites par `lib/anthropic-erreurs.ts`), `mammoth` (.docx) et
   `unpdf` (.pdf) pour l'extraction des notes FGTB, serveur uniquement.

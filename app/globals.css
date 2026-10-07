@@ -467,3 +467,84 @@
   .form-btn-secondaire { @apply form-btn border-2 border-militant-charbon bg-white text-militant-charbon hover:bg-militant-charbon hover:text-white; }
   .form-btn-retour { @apply form-btn px-3 text-militant-charbon underline-offset-4 hover:underline hover:decoration-militant-rouge hover:decoration-2 disabled:invisible; }
 }
+
+/* ── Page « Pourquoi s’affilier » ──
+   Ouverture en CSS seul (rendu serveur, rien à attendre) : les deux lignes du titre montent de
+   leur masque, puis la phrase et le bouton, puis le point rouge du travailleur isolé apparaît et
+   palpite dans un halo. Point et halo pulsent deux fois (moins de 5 s), puis restent immobiles.
+   Mouvement réduit : tout est en place d'emblée, sans pulsation. */
+@keyframes pourquoi-monte {
+  from { transform: translateY(105%); }
+  to { transform: translateY(0); }
+}
+@keyframes pourquoi-fondu {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pourquoi-point {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes pourquoi-ping {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+/* Halo chaud autour du point rouge (il respire deux fois, puis reste allumé). */
+.pourquoi-seul::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 360px;
+  height: 360px;
+  margin: -180px 0 0 -180px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(227, 33, 25, 0.28) 0%, rgba(227, 33, 25, 0.08) 38%, rgba(227, 33, 25, 0) 70%);
+  pointer-events: none;
+}
+@keyframes pourquoi-halo {
+  0%, 100% { transform: scale(0.85); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+.pourquoi-seul::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border: 2px solid #e32119;
+  border-radius: 9999px;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pourquoi-ligne { animation: pourquoi-monte 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .pourquoi-ligne-2 { animation-delay: 0.12s; }
+  .pourquoi-suite { animation: pourquoi-fondu 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both; }
+  .pourquoi-seul { animation: pourquoi-point 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both; }
+  .pourquoi-seul::after { animation: pourquoi-ping 2.4s ease-out 1.5s 2; }
+  .pourquoi-seul::before { animation: pourquoi-halo 2.4s ease-in-out 1.5s 2; }
+}
+
+/* Foule : l'étiquette « Il ne manque que vous » apparaît quand la foule est complète. */
+.foule-vous {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s, transform 0.5s;
+}
+.foule-vous.foule-vous-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .foule-vous { transition: none; }
+}
+
+/* Pourquoi s'affilier, mouvement réduit : état final d'emblée. Les styles posés par Motion
+   (opacité, translation) sont neutralisés ici plutôt qu'en JavaScript, pour garder le même
+   rendu serveur et navigateur. La foule n'est plus épinglée : elle s'affiche complète. */
+@media (prefers-reduced-motion: reduce) {
+  .pivot-mot { opacity: 1 !important; }
+  .defile-secteurs, .photo-ensemble { transform: none !important; }
+  .biseau-lumiere { clip-path: polygon(0 0, 100% 0, 100% 0%, 0 100%) !important; }
+  .rayures-prime { background-position: 0 0 !important; }
+  .foule { height: auto !important; } /* l'emporte aussi sur md:h-[320vh] */
+  .foule-cadre { position: relative; height: auto; min-height: 100dvh; }
+}

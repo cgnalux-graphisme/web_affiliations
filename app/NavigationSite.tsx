@@ -40,18 +40,19 @@ export default function NavigationSite({ liens, cta }: { liens: LienNav[]; cta: 
             width={1772}
             height={490}
             alt="Centrale Générale FGTB Namur-Luxembourg, accueil"
-            className="h-11 w-auto lg:h-14"
+            className="h-11 w-auto lg:h-12 xl:h-14"
           />
         </Link>
 
         {/* Écrans larges : liens en ligne */}
-        <ul className="hidden items-center gap-1 lg:flex">
+        {/* Resserrés entre 1024 et 1280 px pour tenir sur une ligne (6 liens + bouton). */}
+        <ul className="hidden items-center lg:flex xl:gap-1">
           {liens.map((l) => (
             <li key={l.href}>
               <Link
                 href={l.href}
                 aria-current={actif(l) ? "page" : undefined}
-                className={`block border-b-[3px] px-3 py-2 text-base font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge ${
+                className={`block whitespace-nowrap border-b-[3px] px-2 py-2 text-[15px] font-semibold xl:px-3 xl:text-base transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge ${
                   actif(l) ? "border-militant-rouge" : "border-transparent hover:border-militant-ardoise"
                 }`}
               >
@@ -63,7 +64,7 @@ export default function NavigationSite({ liens, cta }: { liens: LienNav[]; cta: 
         <Link
           href={cta.href}
           aria-current={actif(cta) ? "page" : undefined}
-          className="hidden shrink-0 rounded-xl bg-militant-bordeaux px-5 py-3 text-base font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 lg:block"
+          className="hidden shrink-0 whitespace-nowrap rounded-xl bg-militant-bordeaux px-4 py-3 text-[15px] font-bold xl:px-5 xl:text-base text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 lg:block"
         >
           {cta.label}
         </Link>
