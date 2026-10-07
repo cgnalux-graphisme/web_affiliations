@@ -456,9 +456,19 @@ export default function FormulaireModification() {
   const haut = useRef<HTMLDivElement>(null);
   const { acquire, release } = useOnceSubmit();
 
-  // Date de signature pré-remplie au jour (dans le navigateur seulement : pas d'écart avec le rendu serveur).
+  // Dates « à partir du » et date de signature pré-remplies au jour (modifiables), dans le navigateur
+  // seulement : pas d'écart avec le rendu serveur.
   useEffect(() => {
-    setForm((f) => (f.dateSig ? f : { ...f, dateSig: aujourdhui() }));
+    const jour = aujourdhui();
+    setForm((f) => ({
+      ...f,
+      adresseDepuis: f.adresseDepuis || jour,
+      contactDepuis: f.contactDepuis || jour,
+      employeurDepuis: f.employeurDepuis || jour,
+      regimeDepuis: f.regimeDepuis || jour,
+      situationDepuis: f.situationDepuis || jour,
+      dateSig: f.dateSig || jour,
+    }));
   }, []);
 
   function set<K extends ChampModification>(champ: K, valeur: FormModification[K]) {
