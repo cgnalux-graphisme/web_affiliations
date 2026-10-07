@@ -3,11 +3,13 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Apparition en cascade des colonnes du pied de page (.pied-col) quand il entre à l'écran, une seule fois.
+ * Révélation à l'entrée à l'écran, une seule fois : pose data-revelation="attente" puis "visible" sur
+ * son conteneur ; les règles CSS de chaque section décident de ce qui bouge (pied de page : .pied-col ;
+ * démarches : .demarche-entree, .demarche-bande).
  * Rendu serveur : tout est visible. Le masquage n'est posé que dans le navigateur, et seulement si le
- * pied de page est encore hors de l'écran (pas de clignotement) et si le mouvement n'est pas réduit.
+ * bloc est encore hors de l'écran (pas de clignotement) et si le mouvement n'est pas réduit.
  */
-export default function RevelationPied({ children }: { children: React.ReactNode }) {
+export default function Revelation({ children, className }: { children: React.ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,5 +31,9 @@ export default function RevelationPied({ children }: { children: React.ReactNode
     return () => observateur.disconnect();
   }, []);
 
-  return <div ref={ref}>{children}</div>;
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
 }

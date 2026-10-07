@@ -17,7 +17,7 @@ export default function DemarchesPage() {
         </p>
       </div>
       <div className="mt-10">
-        <TuilesDemarches />
+        <TuilesDemarches entree="chargement" />
       </div>
     </main>
   );

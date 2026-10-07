@@ -146,6 +146,17 @@ section ; **Le fil** = son écran de consultation des articles ramassés. Les
 tête de la grille des démarches (`app/TuilesDemarches.tsx`) et bouton
 « S'affilier » dans la barre de navigation.
 
+**Grille des démarches** (refonte du 07/10/2026, demande de Fred : plus de tuile seule sur sa
+ligne) : grand écran sur 4 colonnes = affiliation 2 × 2 + 4 tuiles carrées (Changer de syndicat,
+Signaler un changement, Mandat SEPA, Calcul préavis), puis C1 et C3.2 en tuiles larges côte à côte
+(listes `CARREES` / `LARGES` : une démarche ajoutée doit y trouver sa place). Chaque tuile a son
+icône (`Icon` de `app/forms.ts`). Seul geste fort : la **bande rouge à 10°** du logo qui traverse le
+bas de la tuile S'affilier (décor, jamais sous le texte : `pb-44`). Animations (`globals.css`,
+« Démarches en ligne ») : la bande glisse en place et les tuiles montent en cascade, une fois
+(`entree="chargement"` sur `/demarches`, animation dès le premier affichage ; à l'entrée à l'écran
+sur l'accueil) ; au survol, tuile soulevée, icône basculée à 10° et remplie, filet rouge en biais
+sous la tuile. Aucune boucle, rien en mouvement réduit.
+
 ---
 
 ## Base de données — tables du site
@@ -922,7 +933,7 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
   légales · Vie privée · Cookies · Espace admin). **Liens : le texte reste blanc au
   survol** (rouge sur charbon = 3,4:1, trop faible pour du petit texte) ; le rouge
   vient par un soulignement qui se trace (`.pied-lien-texte`). Colonnes en cascade
-  à l'entrée à l'écran (`RevelationPied.tsx`, une fois, rien en mouvement réduit ni
+  à l'entrée à l'écran (`Revelation.tsx`, composant générique partagé avec les démarches, une fois, rien en mouvement réduit ni
   si le pied de page est déjà visible). Mobile : identité, puis « Le site » et
   « Démarches » côte à côte, puis bouton et réseaux. Page campagne mobile : marge
   basse sous la barre fixe « Je m'inscris » (`.barre-inscription-mobile`) ; en

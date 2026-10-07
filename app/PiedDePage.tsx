@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Mail, MessageCircle, Phone } from "lucide-react";
-import RevelationPied from "./RevelationPied";
+import Revelation from "./Revelation";
 import { RESEAUX } from "./ReseauxSociaux";
 
 /** Bureaux affichés dans le pied de page (les 4 bureaux et leurs horaires sont sur /contact). */
@@ -72,12 +72,12 @@ function ListeLiens({ liens }: { liens: { href: string; label: string }[] }) {
 /**
  * Pied de page commun, fond charbon (choix de Fred du 29/09/2026, seule grande surface charbon du site) :
  * filet rouge en haut, 4 colonnes alignées en haut, barre du bas. Les colonnes apparaissent en cascade
- * quand le pied de page entre à l'écran (RevelationPied).
+ * quand le pied de page entre à l'écran (Revelation).
  */
 export default function PiedDePage() {
   return (
     <footer className="pied-de-page mt-auto border-t-[3px] border-militant-rouge bg-militant-charbon font-barlow text-white">
-      <RevelationPied>
+      <Revelation>
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-8 gap-y-12 px-5 pb-14 pt-14 sm:px-8 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-x-12 lg:px-10 lg:pt-16">
           {/* ── Identité ── */}
           <div className="pied-col col-span-2 lg:col-span-1">
@@ -212,7 +212,7 @@ export default function PiedDePage() {
             </nav>
           </div>
         </div>
-      </RevelationPied>
+      </Revelation>
     </footer>
   );
 }

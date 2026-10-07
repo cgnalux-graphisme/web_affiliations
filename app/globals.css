@@ -234,6 +234,120 @@
 @media (max-width: 1023px) {
   body:has(.barre-inscription-mobile) .pied-de-page { padding-bottom: 88px; }
 }
+/* ── Démarches en ligne (app/TuilesDemarches.tsx) ──
+   Un seul geste fort : la bande rouge à 10° du logo (l'encart « FGTB ») qui entre dans la tuile
+   S'affilier. À l'apparition, une seule fois : la bande glisse en place, les tuiles montent en cascade
+   (rang dans --rang). Au survol : la tuile se soulève, l'icône bascule à 10° et se remplit, un filet
+   rouge en biais se trace sous la tuile. Aucune boucle. */
+/* La bande traverse tout le bas de la tuile ; le contenu s'arrête au-dessus de son bord le plus haut (pb-44). */
+.demarche-bande {
+  position: absolute;
+  z-index: -1;
+  left: -12%;
+  right: -12%;
+  bottom: -96px;
+  height: 190px;
+  background: #e32119;
+  transform: rotate(-10deg);
+  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* Filet blanc parallèle au bord : l'écho des rayures de la page « Pourquoi s'affilier ». */
+.demarche-bande::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 16px;
+  height: 3px;
+  background: rgb(255 255 255 / 0.55);
+}
+.demarche-affiliation:hover .demarche-bande { transform: translateX(-14px) rotate(-10deg); }
+
+.demarche-tuile {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.demarche-tuile:hover,
+.demarche-tuile:focus-visible {
+  transform: translateY(-4px);
+  border-color: #931510;
+  box-shadow: inset 0 0 0 1px #931510, 0 14px 28px -18px rgb(34 34 34 / 0.45);
+}
+.demarche-icone {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid #931510;
+  border-radius: 12px;
+  color: #931510;
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s,
+    color 0.2s;
+}
+.demarche-tuile:hover .demarche-icone,
+.demarche-tuile:focus-visible .demarche-icone {
+  transform: rotate(-10deg);
+  background: #931510;
+  color: #ffffff;
+}
+.demarche-cta {
+  text-decoration: underline;
+  text-decoration-color: #e32119;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  transition: color 0.2s;
+}
+.demarche-tuile:hover .demarche-cta { color: #931510; }
+.demarche-filet {
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  bottom: 0;
+  height: 6px;
+  background: #e32119;
+  transform: skewX(-10deg) scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.demarche-tuile:hover .demarche-filet,
+.demarche-tuile:focus-visible .demarche-filet { transform: skewX(-10deg) scaleX(1); }
+
+@keyframes demarche-monte {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes demarche-bande {
+  from { transform: translateX(70%) rotate(-10deg); }
+  to { transform: rotate(-10deg); }
+}
+[data-revelation="attente"] .demarche-entree { opacity: 0; }
+[data-revelation="attente"] .demarche-bande { transform: translateX(70%) rotate(-10deg); }
+:is([data-revelation="chargement"], [data-revelation="visible"]) .demarche-entree {
+  animation: demarche-monte 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: calc(var(--rang, 0) * 70ms);
+}
+:is([data-revelation="chargement"], [data-revelation="visible"]) .demarche-bande {
+  animation: demarche-bande 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.25s backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-revelation] .demarche-entree,
+  [data-revelation] .demarche-bande { animation: none; opacity: 1; }
+  [data-revelation] .demarche-bande { transform: rotate(-10deg); }
+  .demarche-tuile,
+  .demarche-icone,
+  .demarche-filet,
+  .demarche-bande { transition: none; }
+  .demarche-tuile:hover,
+  .demarche-tuile:focus-visible { transform: none; }
+}
 /* ── Page /contact ──
    À l'ouverture, une seule cascade (.contact-entree, rang dans --i). Le reste répond au visiteur :
    onde du statut « ouvert », filet rouge sous le champ actif, coche tracée après l'envoi. */
