@@ -7,7 +7,7 @@ import type { TypeDemande } from "./demandes";
  * table est illisible (migration pas encore exécutée, panne) : les envois ne s'arrêtent jamais.
  */
 
-export const ENVOIS = ["affiliation", "sepa", "changement", "c1", "c32", "parcours_onem"] as const;
+export const ENVOIS = ["affiliation", "sepa", "changement", "c1", "c32", "parcours_onem", "modification"] as const;
 export type Envoi = (typeof ENVOIS)[number];
 /** Envoi journalisé mais sans destinataire interne : copie envoyée à l'adresse choisie par le demandeur. */
 export type EnvoiJournal = Envoi | "copie_personnelle";
@@ -41,6 +41,10 @@ export const INFOS_ENVOIS: Record<Envoi, { titre: string; quand: string }> = {
     titre: "Parcours de transfert — C1 + C3.2 au service chômage",
     quand: "En fin de parcours, quand le demandeur envoie ses C1 et C3.2 ensemble au service chômage.",
   },
+  modification: {
+    titre: "Changement de situation",
+    quand: "Dès qu'un affilié signale un changement (adresse, contact, employeur, régime, situation professionnelle), avec le PDF.",
+  },
 };
 
 export const LIBELLES_ENVOI_JOURNAL: Record<EnvoiJournal, string> = {
@@ -56,6 +60,7 @@ export const DESTINATAIRES_DEFAUT: Record<Envoi, string[]> = {
   c1: ["jonathan.hubert@accg.be", "op.namlux@fgtb.be"],
   c32: ["jonathan.hubert@accg.be", "op.namlux@fgtb.be"],
   parcours_onem: ["jonathan.hubert@accg.be", "op.namlux@fgtb.be"],
+  modification: ["admin.nalux@accg.be"],
 };
 
 export const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

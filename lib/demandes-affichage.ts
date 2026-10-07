@@ -1,4 +1,6 @@
+import { libelleCommission } from "./commissions-paritaires";
 import { isoToDateFr } from "./dates";
+import { INFOS_CHANGEMENT, LIBELLES_REGIME, LIBELLES_SITUATION, LIBELLES_TRANSFERT } from "./modification";
 import { dateHeureBruxelles, type TypeDemande } from "./demandes";
 
 /**
@@ -85,6 +87,47 @@ const PLAN_SEPA: Plan = [
   },
 ];
 
+const PLAN_MODIFICATION: Plan = [
+  {
+    titre: "Demande",
+    cles: [
+      ["created_at", "Reçue le"], ["transfert", "Transfert vers une autre centrale"], ["changements", "Changements signalés"],
+      ["date_signature", "Date de signature"], ["lieu_signature", "Lieu de signature"],
+    ],
+  },
+  { titre: "Identité", cles: [["nom", "Nom"], ["prenom", "Prénom"], ["niss", "NISS"], ["email", "E-mail"]] },
+  {
+    titre: "Adresse",
+    cles: [
+      ["adresse_rue", "Rue"], ["adresse_numero", "Numéro"], ["adresse_boite", "Boîte"], ["adresse_code_postal", "Code postal"],
+      ["adresse_localite", "Localité"], ["adresse_depuis", "À partir du"],
+    ],
+  },
+  { titre: "E-mail ou téléphone", cles: [["nouvel_email", "Nouvel e-mail"], ["nouveau_telephone", "Nouveau téléphone"], ["contact_depuis", "À partir du"]] },
+  {
+    titre: "Employeur",
+    cles: [
+      ["employeur_nom", "Employeur"], ["employeur_onss_tva", "N° ONSS ou TVA"], ["employeur_localite", "Localité"],
+      ["employeur_cp", "Commission paritaire"], ["employeur_depuis", "Date d'entrée"],
+    ],
+  },
+  { titre: "Régime de travail", cles: [["regime", "Régime"], ["regime_heures", "Heures par semaine (moyenne)"], ["regime_depuis", "À partir du"]] },
+  {
+    titre: "Situation professionnelle",
+    cles: [["situation", "Situation"], ["profession", "Profession"], ["profession_cp", "Commission paritaire"], ["situation_depuis", "À partir du"]],
+  },
+];
+
+/** Valeurs codées propres à une colonne (formulaire « Signaler un changement »). */
+const VALEURS_PAR_CLE: Record<string, (v: string) => string> = {
+  changements: (v) => INFOS_CHANGEMENT[v as keyof typeof INFOS_CHANGEMENT]?.titre ?? v,
+  regime: (v) => LIBELLES_REGIME[v as keyof typeof LIBELLES_REGIME] ?? v,
+  situation: (v) => LIBELLES_SITUATION[v as keyof typeof LIBELLES_SITUATION] ?? v,
+  transfert: (v) => LIBELLES_TRANSFERT[v as keyof typeof LIBELLES_TRANSFERT] ?? v,
+  employeur_cp: libelleCommission,
+  profession_cp: libelleCommission,
+};
+
 const PLAN_ONEM: Plan = [
   { titre: "Demande", cles: [["created_at", "Reçue le"]] },
   { titre: "Identité", cles: [["nom", "Nom"], ["prenom", "Prénom"], ["niss", "NISS"], ["email", "E-mail"]] },
@@ -138,7 +181,11 @@ export function formaterValeur(cle: string, v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
   if (typeof v === "boolean") return v ? "Oui" : "Non";
   if (typeof v === "number") return String(v).replace(".", ",");
+  if (Array.isArray(v) && v.every((x) => typeof x === "string")) {
+    return v.length ? v.map((x) => formaterValeur(cle, x)).join(", ") : "—";
+  }
   if (typeof v !== "string") return JSON.stringify(v);
+  if (VALEURS_PAR_CLE[cle]) return VALEURS_PAR_CLE[cle](v);
   if (cle === "created_at") return dateHeureBruxelles(v);
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return isoToDateFr(v);
   if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return dateHeureBruxelles(v);
@@ -168,10 +215,20 @@ const SIGNATURE_IMAGE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
 
 /** Toutes les informations d'une demande, rangées par section (rien n'est omis, sauf l'identifiant technique). */
 export function detailDemande(type: TypeDemande, ligne: Record<string, unknown>): Detail {
-  const plan = type === "affiliation" ? PLAN_AFFILIATION : type === "sepa" || type === "changement" ? PLAN_SEPA : PLAN_ONEM;
+  const plan =
+    type === "affiliation"
+      ? PLAN_AFFILIATION
+      : type === "sepa" || type === "changement"
+        ? PLAN_SEPA
+        : type === "modification"
+          ? PLAN_MODIFICATION
+          : PLAN_ONEM;
   // `status` (affiliations) : jamais utilisé par la centrale, masqué.
   const vues = new Set<string>(["id", "signature", "data", "status"]);
-  const sections: Section[] = plan.map((s) => ({ titre: s.titre, champs: champs(ligne, s.cles, vues) }));
+  const sections: Section[] = plan
+    .map((s) => ({ titre: s.titre, champs: champs(ligne, s.cles, vues) }))
+    // Changement de situation : seuls les blocs remplis (changements cochés) sont affichés.
+    .filter((s, i) => type !== "modification" || i < 2 || s.champs.some((c) => c.valeur !== "—"));
 
   let signature = typeof ligne.signature === "string" ? ligne.signature : null;
 

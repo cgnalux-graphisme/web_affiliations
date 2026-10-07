@@ -1,3 +1,4 @@
+import type { TableDemande } from "./demandes";
 import { getSupabase } from "./supabase";
 
 /**
@@ -8,7 +9,7 @@ import { getSupabase } from "./supabase";
  * enregistrée sans lui : le formulaire ne doit jamais échouer à cause de l'historique.
  */
 export async function insererDemande(
-  table: "web_affiliations" | "web_mandats_sepa" | "web_c1" | "web_c3_2",
+  table: TableDemande,
   ligne: Record<string, unknown>
 ): Promise<{ id: string | null; error: { message: string; code?: string } | null }> {
   const id = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : null;

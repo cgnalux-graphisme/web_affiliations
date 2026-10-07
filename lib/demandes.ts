@@ -7,22 +7,25 @@
  * - web_affiliations  : affiliation (FormulaireWebIndependant) — colonnes à plat, suivi dans `status`.
  * - web_mandats_sepa  : mandat SEPA et changement de compte (FormulaireChangementCompte), `type_demande`.
  * - web_c1, web_c3_2  : formulaires ONEM (FormulaireC1, FormulaireC32) — le formulaire complet dans `data`.
+ * - web_modifications : « Signaler un changement » (FormulaireModification) — colonnes à plat.
  */
 
 import { slugifier } from "./articles";
 
-export const TYPES_DEMANDE = ["affiliation", "sepa", "changement", "c1", "c32"] as const;
+export const TYPES_DEMANDE = ["affiliation", "sepa", "changement", "c1", "c32", "modification"] as const;
 export type TypeDemande = (typeof TYPES_DEMANDE)[number];
 
 export function estTypeDemande(v: unknown): v is TypeDemande {
   return typeof v === "string" && (TYPES_DEMANDE as readonly string[]).includes(v);
 }
 
+export type TableDemande = "web_affiliations" | "web_mandats_sepa" | "web_c1" | "web_c3_2" | "web_modifications";
+
 export type ConfigDemande = {
   libelle: string;
   /** Libellé au singulier (titre de la vue détail). */
   singulier: string;
-  table: "web_affiliations" | "web_mandats_sepa" | "web_c1" | "web_c3_2";
+  table: TableDemande;
   /** Comment le PDF est reproduit : dans le navigateur (react-pdf) ou sur le serveur (formulaire ONEM rempli). */
   pdf: "navigateur" | "serveur";
   /** Préfixe du nom du fichier PDF téléchargé. */
@@ -41,6 +44,13 @@ export const DEMANDES: Record<TypeDemande, ConfigDemande> = {
   },
   c1: { libelle: "C1", singulier: "Formulaire C1", table: "web_c1", pdf: "serveur", fichier: "formulaire-c1" },
   c32: { libelle: "C3.2", singulier: "Formulaire C3.2", table: "web_c3_2", pdf: "serveur", fichier: "formulaire-c3-2" },
+  modification: {
+    libelle: "Changements de situation",
+    singulier: "Changement de situation",
+    table: "web_modifications",
+    pdf: "navigateur",
+    fichier: "changement-situation",
+  },
 };
 
 export const PAR_PAGE = 25;

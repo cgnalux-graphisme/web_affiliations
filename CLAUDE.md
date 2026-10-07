@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **06/10/2026**
+> Dernière mise à jour : **07/10/2026**
 
 ---
 
@@ -60,6 +60,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026 ; politique cookies réécrite et vie privée complétée — formulaire de contact, Google Maps — le même jour) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **Validés par Fred le 29/09/2026.** Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
 | `/statuts` | public | Statuts de la régionale (01/10/2026) : texte repris **tel quel** du document officiel (`statuts.pdf` transmis par Fred), **ne jamais le reformuler ni le corriger** ; mise en page propre (sommaire collant par chapitre, articles en deux colonnes). Lien dans le pied de page et dans la case « Accord général » du formulaire d'affiliation (nouvel onglet) |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
+| `/changement-situation` | public | (07/10/2026) **Signaler un changement** (`FormulaireModification.tsx`, règles `lib/modification.ts`) : 4 étapes (Vous : nom, prénom, NISS, e-mail · Ce qui change : adresse, e-mail / téléphone, employeur, régime, situation professionnelle, plusieurs choix · Le détail, date « à partir du » par bloc · Signature). Employeur : nom obligatoire, ONSS / TVA, localité et CP facultatifs ; régime : temps plein ou temps partiel + moyenne d'heures / semaine (1 à 38) ; situation : nouvelle profession (+ CP), chômage ou mutuelle. **Transfert** : CP « 000 - Autre » → `a_organiser` (« nous nous chargeons de votre transfert, votre nouvelle centrale prendra contact avec vous »), « Je ne sais pas » → `a_verifier`, sinon `non` (`statutTransfert()`). PDF « Registre » d'une page (bloc « Nos bureaux »), table `web_modifications`, e-mail `/api/send-modification` |
 | (adresse inconnue) | public | Page 404 du site (`app/not-found.tsx`, 30/09/2026) : « 404 · Page introuvable » au style des autres pages + liens vers les rubriques ; sert aussi aux `notFound()` (article, explication, mobilisation introuvables) |
 | `/login` | public | Connexion (identifiants CG Link) |
 | `/suivi-actions` | SUPER_ADMIN | **Tableau de bord** : une tuile par domaine (Scan News, Démarches affiliés, Actions syndicales, Publications) avec les chiffres clés ; chaque tuile ouvre sa section |
@@ -83,6 +84,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/api/mobilisations/analyse` | SUPER_ADMIN | Textes collés (articles, tracts, communiqués) → tous les champs d'une nouvelle mobilisation proposés par Claude Sonnet 5 (POST `{ textes }`), rien n'est enregistré |
 | `/api/mobilisations/pourquoi` | SUPER_ADMIN | « Pourquoi on se mobilise » rédigé par Claude Sonnet 5 depuis les points de Fred (POST `{ points, titre?, date?, lieu?, revendications? }`), rien n'est enregistré |
 | `/suivi-actions/parametres` | SUPER_ADMIN | Paramètres : adresses internes qui reçoivent chaque envoi automatique des formulaires (ajouter, activer / désactiver, supprimer) |
+| `/api/send-modification` | public | E-mail « Changement de situation » (PDF joint) à l'affilié (adresse actuelle + nouvelle si donnée) et aux adresses internes de l'envoi `modification` ; le serveur recalcule récapitulatif et transfert depuis les données reçues |
 | `/api/admin/demandes` | SUPER_ADMIN | Liste d'un type de demande (GET `?type=&q=&du=&au=&tri=&page=`) — clé service_role |
 | `/api/admin/demandes/<type>/<id>` · `/pdf` · `/liees` · `/envois` | SUPER_ADMIN | Détail complet d'une demande ; PDF C1 / C3.2 rempli côté serveur ; demandes de la même personne ; historique des e-mails |
 | `/api/image-distante` | SUPER_ADMIN | Télécharge une image glissée depuis une autre page web (POST `{ url }`) |
@@ -296,13 +298,18 @@ adapter `STATUT_*` dans `lib/articles.ts`.
 
 Tables `web_*` écrites par les formulaires avec la clé publique, **jamais lisibles
 par elle** (vérifié le 28/09/2026 : 0 ligne renvoyée à `anon`). **Ne pas les
-modifier, pas de migration.**
+modifier, pas de migration.** **À signaler à Fred** (relevé le 07/10/2026) : sur
+`web_mandats_sepa` et `web_c1` (et sans doute les autres anciennes `web_*`), la
+politique `auth_select` laisse **tout compte connecté** (délégué CG Link compris)
+lire ces tables, NISS et IBAN compris ; et `anon` / `authenticated` ont tous les
+droits SQL (la RLS seule protège). À resserrer sur demande de Fred.
 
 | Table | Formulaire | Contenu |
 |---|---|---|
 | `web_affiliations` | `FormulaireWebIndependant` | Colonnes à plat (identité, adresse, situation, transfert, cotisation, IBAN, mentions, signature) ; colonne `status` (défaut `en_attente`) jamais utilisée par la centrale : **masquée** dans le back-office (choix de Fred, 28/09/2026) |
 | `web_mandats_sepa` | `FormulaireChangementCompte` | Mandat SEPA **et** changement de compte, distingués par `type_demande` (`nouveau_mandat` / `changement_compte` ; vide = compté comme nouveau mandat) |
 | `web_c1`, `web_c3_2` | `FormulaireC1`, `FormulaireC32` | `nom`, `prenom`, `niss`, `email` + le formulaire complet dans `data` (jsonb) |
+| `web_modifications` | `FormulaireModification` | (07/10/2026) Colonnes à plat : identité, `changements` (text[]), un groupe de colonnes par bloc (`adresse_*`, `nouvel_email` / `nouveau_telephone`, `employeur_*`, `regime` / `regime_heures`, `situation` / `profession` / `profession_cp`, chacun avec sa date `*_depuis`), `transfert` (`non` / `a_organiser` / `a_verifier`), signature. Créée par la migration `20261007120000_web_modifications.sql` (**demandée par Fred le 07/10/2026**, idempotente, à exécuter par Fred) : `anon` **insère seulement** ; lecture **super admin uniquement** (plus strict que les autres `web_*`) ; ajoute aussi `modification` aux contrôles de `site_destinataires` (+ `admin.nalux@accg.be`) et `site_envois_mails`. Back-office : onglet « Changements de situation », badge « Transfert à organiser » / « Secteur à vérifier », PDF régénéré dans le navigateur ; table absente = comptée vide (tableau de bord, demandes liées) |
 
 **Back-office des demandes** (28/09/2026) — données personnelles (NISS, IBAN,
 signature) :

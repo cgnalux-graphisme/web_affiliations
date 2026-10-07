@@ -1,4 +1,4 @@
-import { ArrowLeftRight, CreditCard, FileSignature, ClipboardList, FileText, CalendarClock } from "lucide-react";
+import { ArrowLeftRight, CreditCard, FileSignature, ClipboardList, FileText, CalendarClock, RefreshCw } from "lucide-react";
 
 export const transferJourney = {
   title: "Parcours de transfert syndical",
@@ -29,6 +29,15 @@ export const forms = [
     href: "/mandat-sepa",
     cta: "Remplir le formulaire",
     Icon: CreditCard,
+  },
+  {
+    title: "Signaler un changement",
+    shortTitle: "Signaler un changement",
+    category: "Mon dossier",
+    description: "Nouvelle adresse, nouvel employeur, régime de travail ou situation professionnelle : prévenez-nous.",
+    href: "/changement-situation",
+    cta: "Remplir le formulaire",
+    Icon: RefreshCw,
   },
   {
     title: "Formulaire C1 — Déclaration de situation",

@@ -22,6 +22,7 @@ const DEMARCHES = [
   { href: "/affiliation", label: "S'affilier" },
   { href: "/parcours-transfert", label: "Parcours de transfert" },
   { href: "/mandat-sepa", label: "Mandat SEPA" },
+  { href: "/changement-situation", label: "Signaler un changement" },
   { href: "/formulaire-c1", label: "Formulaire C1" },
   { href: "/formulaire-c3-2", label: "Formulaire C3.2" },
   { href: "/preavis", label: "Calcul préavis" },

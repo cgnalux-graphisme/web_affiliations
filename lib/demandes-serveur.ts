@@ -127,6 +127,7 @@ const TYPE_DE_TABLE = {
   web_mandats_sepa: "sepa",
   web_c1: "c1",
   web_c3_2: "c32",
+  web_modifications: "modification",
 } as const satisfies Record<string, TypeDemande>;
 
 /**
@@ -165,6 +166,8 @@ export async function chercherDemandesLiees(
   for (const table of tables) {
     const colonnes = `id, created_at, nom, prenom, email, niss${table === "web_mandats_sepa" ? ", type_demande" : ""}`;
     const { data, error } = await db.from(table).select(colonnes).or(criteres.join(",")).limit(50);
+    // Table pas encore créée (migration de web_modifications pas exécutée) : ignorée.
+    if (error && TABLE_ABSENTE.has(error.code ?? "")) continue;
     if (error) throw new Error(`demandes liées ${table} : ${error.code ?? ""} ${error.message}`);
     for (const l of (data ?? []) as unknown as Record<string, unknown>[]) {
       candidates.push({
@@ -220,6 +223,8 @@ export async function resumerDemandes(db: SupabaseClient): Promise<ResumeDemande
         requete(t, db.from(table).select("id", { count: "exact", head: true })).gte("created_at", ilYa7Jours),
         requete(t, db.from(table).select("created_at")).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
+      // Table pas encore créée (migration de web_modifications pas exécutée) : comptée vide.
+      if (TABLE_ABSENTE.has(total.error?.code ?? "")) return [t, { total: 0, semaine: 0, derniere: null }] as const;
       if (total.error || semaine.error || derniere.error) throw new Error(`résumé ${t} : lecture impossible`);
       return [
         t,

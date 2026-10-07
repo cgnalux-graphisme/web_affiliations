@@ -8,6 +8,7 @@ import { DEMANDES, dateHeureBruxelles, nomFichierPdf, type TypeDemande } from ".
 import { detailDemande } from "../../../../../lib/demandes-affichage";
 import type { DemandeLiee } from "../../../../../lib/demandes-liees";
 import { LIBELLES_ENVOI_JOURNAL, type EnvoiMail } from "../../../../../lib/envois";
+import { LIBELLES_TRANSFERT, MESSAGES_TRANSFERT } from "../../../../../lib/modification";
 
 const BOUTON_PRINCIPAL =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2.5 text-[15px] font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50";
@@ -16,7 +17,7 @@ const BOUTON_SECONDAIRE =
 
 /**
  * Reproduit le PDF d'une demande avec le code des formulaires :
- * - affiliation, mandat SEPA, changement de compte : document react-pdf, dans le navigateur ;
+ * - affiliation, mandat SEPA, changement de compte, changement de situation : document react-pdf, dans le navigateur ;
  * - C1, C3.2 : formulaire ONEM rempli par le serveur (/api/admin/demandes/…/pdf).
  */
 async function produirePdf(type: TypeDemande, id: string, ligne: Record<string, unknown>): Promise<Blob> {
@@ -27,6 +28,10 @@ async function produirePdf(type: TypeDemande, id: string, ligne: Record<string, 
   if (type === "sepa" || type === "changement") {
     const { genererPdfMandatEnregistre } = await import("../../../../../FormulaireChangementCompte");
     return genererPdfMandatEnregistre(ligne);
+  }
+  if (type === "modification") {
+    const { genererPdfModificationEnregistree } = await import("../../../../../FormulaireModification");
+    return genererPdfModificationEnregistree(ligne);
   }
   const res = await fetch(`/api/admin/demandes/${type}/${id}/pdf`, { cache: "no-store" });
   if (!res.ok) {
@@ -138,6 +143,24 @@ export default function DetailDemande({ type, id, retour }: { type: TypeDemande;
         <h1 className="font-condensed text-5xl font-extrabold uppercase leading-none tracking-tight">{nom || "Demande"}</h1>
         {ligne && <p className="mt-2 text-base">Reçue le {dateHeureBruxelles(String(ligne.created_at ?? ""))}</p>}
       </div>
+
+      {type === "modification" && (ligne?.transfert === "a_organiser" || ligne?.transfert === "a_verifier") && (
+        <div
+          className={`mt-6 rounded-2xl p-5 ${
+            ligne.transfert === "a_organiser" ? "bg-militant-bordeaux text-white" : "border-2 border-militant-bordeaux"
+          }`}
+        >
+          <p className="flex items-center gap-2 font-condensed text-2xl font-extrabold uppercase">
+            <AlertTriangle size={22} aria-hidden /> {LIBELLES_TRANSFERT[ligne.transfert]}
+          </p>
+          <p className="mt-1 text-[15px]">
+            {ligne.transfert === "a_organiser"
+              ? "Commission paritaire « Autre » : la nouvelle profession relève d'une autre centrale. À organiser par nos services."
+              : "Commission paritaire inconnue de l'affilié : vérifiez son secteur."}{" "}
+            Message reçu par l&apos;affilié : « {MESSAGES_TRANSFERT[ligne.transfert]} »
+          </p>
+        </div>
+      )}
 
       {erreur && (
         <p role="alert" className="mt-6 border-l-[6px] border-militant-bordeaux py-2 pl-4 text-lg">
