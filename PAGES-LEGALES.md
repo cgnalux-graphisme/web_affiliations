@@ -88,7 +88,8 @@ consentement (par ex. pour certaines communications).
 - Communications : jusqu'à votre désinscription ;
 - Données d'affiliation : 10 ans après la fin de l'affiliation ;
 - Dossiers juridiques : 5 ans après la clôture du dossier ;
-- Documents comptables : 10 ans après l'exercice concerné.
+- Documents comptables : 10 ans après l'exercice concerné ;
+- Demandes transmises via l'Assistant CG : [12 mois] après leur traitement.
 
 **Formulaire de contact**
 Quand vous nous écrivez via le formulaire de la page Contact, nous recevons votre nom, votre
@@ -99,21 +100,29 @@ d'envoi d'e-mails, et sont conservés dans notre messagerie le temps nécessaire
 de votre demande et à son suivi.
 
 **Assistant CG (aide à l'orientation)**
+> Note interne : les deux valeurs entre crochets sont à valider par le DPO (privacy@accg.be) ; sur le site,
+> elles viennent de `lib/vie-privee.ts` (GARANTIE_TRANSFERT, DUREE_DEMANDES). Texte du 08/10/2026.
+
 L'Assistant CG, accessible par la bulle « Une question ? », sert uniquement à vous orienter vers
 le bon service ou la bonne personne. Il ne donne aucun conseil juridique. Ce que vous lui
 écrivez (votre question, votre code postal, votre secteur) sert uniquement à cette orientation.
-La conversation n'est pas conservée : elle n'est enregistrée dans aucune base de données et
-disparaît dès que vous fermez ou rechargez la page. Pour comprendre votre question, le texte est
-analysé par un service d'intelligence artificielle (Anthropic), qui agit pour notre compte.
-Avant cette analyse, nous masquons automatiquement les numéros de registre national, les
-numéros de compte, les adresses e-mail et les numéros de téléphone. N'écrivez pas de données
-personnelles dans la conversation.
+
+Nous ne conservons pas la conversation : elle n'est enregistrée dans aucune de nos bases de
+données et disparaît dès que vous fermez ou rechargez la page. Pour comprendre votre question,
+le texte est analysé par un service d'intelligence artificielle (Anthropic, société établie aux
+États-Unis), qui agit pour notre compte. Ce transfert hors de l'Union européenne est encadré par
+[des clauses contractuelles types approuvées par la Commission européenne]. Anthropic peut
+conserver ces échanges pendant une durée limitée, selon ses conditions. Avant l'analyse, nous
+masquons automatiquement les numéros de registre national, les numéros de compte, les adresses
+e-mail et les numéros de téléphone. N'écrivez pas de données personnelles dans la conversation.
+
 Si vous cliquez sur « Transmettre ma demande », votre nom, votre prénom, votre adresse e-mail,
 votre demande et, si vous le donnez, votre numéro de registre national sont enregistrés et
 transmis au service concerné, uniquement pour traiter votre demande (base juridique : votre
-consentement, donné en cochant la case prévue). Votre numéro de registre national n'est jamais
-envoyé par e-mail ni à l'intelligence artificielle. Ces données sont conservées le temps
-nécessaire au traitement de votre demande et à son suivi.
+consentement, donné en cochant la case prévue). Vous pouvez retirer ce consentement à tout moment
+en écrivant à privacy@accg.be. Votre numéro de registre national n'est jamais envoyé par e-mail
+ni à l'intelligence artificielle. Ces données sont conservées [12 mois] après le traitement de
+votre demande, puis supprimées.
 
 **Cartes Google Maps**
 Si vous acceptez l'affichage des cartes (voir la politique cookies), les cartes de la page

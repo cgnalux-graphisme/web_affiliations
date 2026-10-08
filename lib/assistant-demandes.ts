@@ -54,5 +54,6 @@ export type DemandeChatbot = {
   service_nom: string;
   destinataire_email: string;
   statut: string;
+  traite_le: string | null; // date de traitement (migration du 08/10/2026), null si absente
   aRegistre: boolean; // le numéro lui-même n'est jamais envoyé à la page : lu à la demande
 };

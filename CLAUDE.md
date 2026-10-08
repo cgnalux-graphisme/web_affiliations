@@ -862,6 +862,26 @@ reformuler, citer et lier la source, jamais recopier.
   registre national jamais par e-mail ni à l'IA) + Anthropic cité dans « Partage des données ».
 - Validé par Fred le 08/10/2026 : les deux antennes par code postal ; la règle des secteurs transférés
   s'applique aussi aux CP 145 et 132.
+- **Vie privée, section Assistant CG réécrite le 08/10/2026** (texte de Fred, mot pour mot ; `/vie-privee` et
+  `PAGES-LEGALES.md`) : transfert vers Anthropic (États-Unis), droit de retrait du consentement, durée de
+  conservation des demandes, ligne ajoutée aux « Durées de conservation », date de la page au 08/10/2026
+  (prop `miseAJour` de `PageLegale`, les autres pages légales gardent le 29/09/2026). Les deux valeurs **à
+  valider par le DPO** sont dans `lib/vie-privee.ts` : `GARANTIE_TRANSFERT`, `DUREE_DEMANDES` (« 12 mois »).
+  **Non poussé** : Fred attend la validation du DPO. Masquage revérifié (test « ce qui part réellement vers
+  l'IA ») ; motif IBAN resserré (il avalait les mots suivants).
+- **Suppression des demandes après traitement** (option A choisie par Fred le 08/10/2026) : migration
+  `supabase/migrations/20261008120000_site_chatbot_demandes_traite_le.sql` (**demandée par Fred, idempotente,
+  à exécuter par Fred**) : colonne `traite_le` + trigger qui la remplit au passage à `traite` (et la vide si la
+  demande change de statut). Le cron quotidien (`/api/veille/analyse`, les deux passages) appelle
+  `purgerDemandesChatbot()` (`lib/assistant-purge.ts`) : suppression des demandes `traite` dont `traite_le`
+  dépasse `DUREE_DEMANDES_MOIS` (12, `lib/vie-privee.ts`, même valeur que la page). Sans la migration : rien
+  n'est supprimé (journal « colonne traite_le absente »), la liste admin s'affiche quand même. La fiche d'une
+  demande traitée affiche sa date de suppression prévue.
+- **Bandeau de mobilisation refait** (08/10/2026, demande de Fred) : étiquette rouge en parallélogramme à 10°
+  (éclair + « Mobilisation », ou l'échéance courte sur mobile), échéance « Aujourd'hui / Demain / Dans N
+  jours » (`echeance()`, `lib/mobilisations.ts`, calculée dans le navigateur), bouton blanc « Je m'inscris »
+  avec flèche ; reflet en biais, éclair qui claque et flèche qui avance, 3 fois espacées de 7 s puis plus rien ;
+  rien en mouvement réduit (`globals.css`, « Bandeau de mobilisation »).
 - Le 08/10/2026 aussi : règle du nettoyage (« Qui est votre employeur ? »), bouton « Répondre » dans l'e-mail
   de transmission, refonte de la bulle « Une question ? ».
 

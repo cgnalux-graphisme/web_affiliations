@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DUREE_DEMANDES, GARANTIE_TRANSFERT, MISE_A_JOUR_VIE_PRIVEE } from "../../lib/vie-privee";
 import PageLegale, { Courriel, Encadre, LienExterne, Liste, Section } from "../PageLegale";
 
 export const metadata: Metadata = {
@@ -12,6 +13,7 @@ export default function ViePriveePage() {
     <PageLegale
       chemin="/vie-privee"
       titre="Politique de vie privée"
+      miseAJour={MISE_A_JOUR_VIE_PRIVEE}
       intro={
         <p>
           La protection de vos données personnelles est essentielle pour la Centrale Générale FGTB Namur-Luxembourg. La
@@ -63,7 +65,8 @@ export default function ViePriveePage() {
             "Communications : jusqu'à votre désinscription ;",
             "Données d'affiliation : 10 ans après la fin de l'affiliation ;",
             "Dossiers juridiques : 5 ans après la clôture du dossier ;",
-            "Documents comptables : 10 ans après l'exercice concerné.",
+            "Documents comptables : 10 ans après l'exercice concerné ;",
+            `Demandes transmises via l'Assistant CG : ${DUREE_DEMANDES} après leur traitement.`,
           ]}
         />
       </Section>
@@ -82,19 +85,24 @@ export default function ViePriveePage() {
         <p>
           L&apos;Assistant CG, accessible par la bulle « Une question ? », sert uniquement à vous orienter vers le bon
           service ou la bonne personne. Il ne donne aucun conseil juridique. Ce que vous lui écrivez (votre question,
-          votre code postal, votre secteur) sert uniquement à cette orientation. La conversation n&apos;est pas
-          conservée : elle n&apos;est enregistrée dans aucune base de données et disparaît dès que vous fermez ou
-          rechargez la page. Pour comprendre votre question, le texte est analysé par un service d&apos;intelligence
-          artificielle (Anthropic), qui agit pour notre compte. Avant cette analyse, nous masquons automatiquement les
-          numéros de registre national, les numéros de compte, les adresses e-mail et les numéros de téléphone.
-          N&apos;écrivez pas de données personnelles dans la conversation.
+          votre code postal, votre secteur) sert uniquement à cette orientation.
+        </p>
+        <p>
+          Nous ne conservons pas la conversation : elle n&apos;est enregistrée dans aucune de nos bases de données et
+          disparaît dès que vous fermez ou rechargez la page. Pour comprendre votre question, le texte est analysé par un
+          service d&apos;intelligence artificielle (Anthropic, société établie aux États-Unis), qui agit pour notre
+          compte. Ce transfert hors de l&apos;Union européenne est encadré par {GARANTIE_TRANSFERT}. Anthropic peut
+          conserver ces échanges pendant une durée limitée, selon ses conditions. Avant l&apos;analyse, nous masquons
+          automatiquement les numéros de registre national, les numéros de compte, les adresses e-mail et les numéros de
+          téléphone. N&apos;écrivez pas de données personnelles dans la conversation.
         </p>
         <p>
           Si vous cliquez sur « Transmettre ma demande », votre nom, votre prénom, votre adresse e-mail, votre demande
           et, si vous le donnez, votre numéro de registre national sont enregistrés et transmis au service concerné,
           uniquement pour traiter votre demande (base juridique : votre consentement, donné en cochant la case prévue).
-          Votre numéro de registre national n&apos;est jamais envoyé par e-mail ni à l&apos;intelligence artificielle.
-          Ces données sont conservées le temps nécessaire au traitement de votre demande et à son suivi.
+          Vous pouvez retirer ce consentement à tout moment en écrivant à <Courriel adresse="privacy@accg.be" />. Votre
+          numéro de registre national n&apos;est jamais envoyé par e-mail ni à l&apos;intelligence artificielle. Ces
+          données sont conservées {DUREE_DEMANDES} après le traitement de votre demande, puis supprimées.
         </p>
       </Section>
 

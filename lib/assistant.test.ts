@@ -97,3 +97,27 @@ describe("antennes chômage", () => {
     }
   });
 });
+
+describe("ce qui part réellement vers l'IA (messageClassement)", () => {
+  it("masque registre national, IBAN, e-mail et téléphones belges ; garde code postal, CP et année", async () => {
+    const { messageClassement } = await import("./assistant-ia");
+    const { ETAT_INITIAL } = await import("./assistant");
+    const messages = [
+      "Je m'appelle Marie Dupont, 5590 Ciney. Mon registre national : 85.07.30-033.28 (ou 85073003328, ou 85 07 30 033 28).",
+      "Compte BE68 5390 0754 7034 ou BE68539007547034. Mail : marie.dupont@exemple.be (compte français : FR76 3000 6000 0112 3456 7890 189)",
+      "Tél : 0478 12 34 56, 0478/12.34.56, +32 478 12 34 56, 081 64 99 61, 081/64.99.61, +32 (0) 81 64 99 63, 0032 478 12 34 56. Je travaille en CP 124 - 200 depuis 2019.",
+    ];
+    const envoye = messageClassement(
+      messages.map((texte) => ({ role: "personne" as const, texte })),
+      { ...ETAT_INITIAL, codePostal: "5590" }
+    );
+    if (process.env.AFFICHER_MASQUAGE) console.log(envoye);
+    for (const secret of ["033.28", "85073003328", "033 28", "7034", "539007547034", "marie.dupont@exemple.be", "3456 7890", "12 34 56", "12.34.56", "99 61", "99.61", "99 63"]) {
+      expect(envoye).not.toContain(secret);
+    }
+    expect(envoye).toContain("Compte [IBAN masqué] ou [IBAN masqué].");
+    expect(envoye).toContain("5590");
+    expect(envoye).toContain("CP 124 - 200");
+    expect(envoye).toContain("2019");
+  });
+});
