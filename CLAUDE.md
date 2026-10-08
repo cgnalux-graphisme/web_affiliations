@@ -847,10 +847,12 @@ reformuler, citer et lier la source, jamais recopier.
 ---
 
 ## État au 08/10/2026
-- **Assistant CG fusionné dans `suivi-actions`** le 08/10/2026 (la branche `chatbot` est supprimée :
-  **on travaille de nouveau uniquement sur `suivi-actions`**). Mise en ligne = `git push origin suivi-actions`,
-  lancé par Fred (Claude Code n'a pas le droit de pousser en production). Interrupteur `chatbot_actif` sur
-  `off` jusqu'à ce que Fred l'active. Vérifié en local :
+- **Assistant CG en production** : fusionné dans `suivi-actions` et **poussé par Fred le 08/10/2026** ; la
+  branche `chatbot` est supprimée (sur le poste et sur GitHub) : **on travaille uniquement sur
+  `suivi-actions`**. Pousser cette branche = mise en production, lancé par Fred (Claude Code n'a pas le droit
+  de pousser en production). Interrupteur `chatbot_actif` encore sur `off` (vérifié le 08/10/2026) : la bulle
+  apparaîtra quand Fred l'activera dans Paramètres du site. Également en ligne : la politique de vie privée
+  du 08/10/2026 (valeurs validées par le DPO), la suppression automatique des demandes et le nouveau bandeau. Vérifié en local :
   types, 606 tests, build de production, les 10 scénarios de Fred et les cas nettoyage / agriculture avec la
   vraie IA et la vraie base (lecture). **Non testé** : une transmission réelle (insertion + e-mail avec
   bouton « Répondre »), pour ne rien écrire en base sans Fred, et l'écran admin « Demandes chatbot » connecté.
