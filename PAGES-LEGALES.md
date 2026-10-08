@@ -100,8 +100,8 @@ d'envoi d'e-mails, et sont conservés dans notre messagerie le temps nécessaire
 de votre demande et à son suivi.
 
 **Assistant CG (aide à l'orientation)**
-> Note interne : les deux valeurs entre crochets sont à valider par le DPO (privacy@accg.be) ; sur le site,
-> elles viennent de `lib/vie-privee.ts` (GARANTIE_TRANSFERT, DUREE_DEMANDES). Texte du 08/10/2026.
+> Note interne : les deux valeurs entre crochets ont été validées par le DPO (privacy@accg.be) le 08/10/2026 ;
+> sur le site, elles viennent de `lib/vie-privee.ts` (GARANTIE_TRANSFERT, DUREE_DEMANDES). Texte du 08/10/2026.
 
 L'Assistant CG, accessible par la bulle « Une question ? », sert uniquement à vous orienter vers
 le bon service ou la bonne personne. Il ne donne aucun conseil juridique. Ce que vous lui

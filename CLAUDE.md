@@ -162,7 +162,7 @@ sous la tuile. Aucune boucle, rien en mouvement réduit.
 
 ---
 
-**Assistant CG** (chatbot d'aiguillage, 08/10/2026, branche `chatbot`, demande de Fred) : bulle
+**Assistant CG** (chatbot d'aiguillage, 08/10/2026, demande de Fred ; développé sur une branche `chatbot`, fusionnée dans `suivi-actions` puis supprimée) : bulle
 « Une question ? » en bas à droite de toutes les pages publiques (`app/AssistantCG.tsx`, dans le layout ;
 **pastille blanche bordée de charbon** pour rester visible sur les fonds bordeaux (refonte du 08/10/2026,
 demande de Fred), tuile rouge inclinée à 10° (encart « FGTB » du logo) qui salue avec une onde rouge 3 fois
@@ -847,9 +847,10 @@ reformuler, citer et lier la source, jamais recopier.
 ---
 
 ## État au 08/10/2026
-- **Assistant CG** sur la branche **`chatbot`** (créée depuis `suivi-actions`), **commitée et poussée sur
-  GitHub le 08/10/2026 à la demande de Fred** ; **rien sur `suivi-actions`** (en production : ne rien y
-  fusionner sans l'accord de Fred). Interrupteur `chatbot_actif` toujours sur `off`. Vérifié en local :
+- **Assistant CG fusionné dans `suivi-actions`** le 08/10/2026 (la branche `chatbot` est supprimée :
+  **on travaille de nouveau uniquement sur `suivi-actions`**). Mise en ligne = `git push origin suivi-actions`,
+  lancé par Fred (Claude Code n'a pas le droit de pousser en production). Interrupteur `chatbot_actif` sur
+  `off` jusqu'à ce que Fred l'active. Vérifié en local :
   types, 606 tests, build de production, les 10 scénarios de Fred et les cas nettoyage / agriculture avec la
   vraie IA et la vraie base (lecture). **Non testé** : une transmission réelle (insertion + e-mail avec
   bouton « Répondre »), pour ne rien écrire en base sans Fred, et l'écran admin « Demandes chatbot » connecté.
@@ -866,12 +867,12 @@ reformuler, citer et lier la source, jamais recopier.
   `PAGES-LEGALES.md`) : transfert vers Anthropic (États-Unis), droit de retrait du consentement, durée de
   conservation des demandes, ligne ajoutée aux « Durées de conservation », date de la page au 08/10/2026
   (prop `miseAJour` de `PageLegale`, les autres pages légales gardent le 29/09/2026). Les deux valeurs **à
-  valider par le DPO** sont dans `lib/vie-privee.ts` : `GARANTIE_TRANSFERT`, `DUREE_DEMANDES` (« 12 mois »).
-  **Non poussé** : Fred attend la validation du DPO. Masquage revérifié (test « ce qui part réellement vers
+  valider par le DPO** sont dans `lib/vie-privee.ts` : `GARANTIE_TRANSFERT`, `DUREE_DEMANDES` (« 12 mois ») :
+  **validées par le DPO le 08/10/2026** (déclaré par Fred). Masquage revérifié (test « ce qui part réellement vers
   l'IA ») ; motif IBAN resserré (il avalait les mots suivants).
 - **Suppression des demandes après traitement** (option A choisie par Fred le 08/10/2026) : migration
   `supabase/migrations/20261008120000_site_chatbot_demandes_traite_le.sql` (**demandée par Fred, idempotente,
-  à exécuter par Fred**) : colonne `traite_le` + trigger qui la remplit au passage à `traite` (et la vide si la
+  exécutée par Fred le 08/10/2026**, colonne vérifiée) : colonne `traite_le` + trigger qui la remplit au passage à `traite` (et la vide si la
   demande change de statut). Le cron quotidien (`/api/veille/analyse`, les deux passages) appelle
   `purgerDemandesChatbot()` (`lib/assistant-purge.ts`) : suppression des demandes `traite` dont `traite_le`
   dépasse `DUREE_DEMANDES_MOIS` (12, `lib/vie-privee.ts`, même valeur que la page). Sans la migration : rien
