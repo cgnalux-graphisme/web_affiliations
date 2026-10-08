@@ -98,6 +98,23 @@ sont pas enregistrés sur le site : ils nous parviennent par e-mail, via notre p
 d'envoi d'e-mails, et sont conservés dans notre messagerie le temps nécessaire au traitement
 de votre demande et à son suivi.
 
+**Assistant CG (aide à l'orientation)**
+L'Assistant CG, accessible par la bulle « Une question ? », sert uniquement à vous orienter vers
+le bon service ou la bonne personne. Il ne donne aucun conseil juridique. Ce que vous lui
+écrivez (votre question, votre code postal, votre secteur) sert uniquement à cette orientation.
+La conversation n'est pas conservée : elle n'est enregistrée dans aucune base de données et
+disparaît dès que vous fermez ou rechargez la page. Pour comprendre votre question, le texte est
+analysé par un service d'intelligence artificielle (Anthropic), qui agit pour notre compte.
+Avant cette analyse, nous masquons automatiquement les numéros de registre national, les
+numéros de compte, les adresses e-mail et les numéros de téléphone. N'écrivez pas de données
+personnelles dans la conversation.
+Si vous cliquez sur « Transmettre ma demande », votre nom, votre prénom, votre adresse e-mail,
+votre demande et, si vous le donnez, votre numéro de registre national sont enregistrés et
+transmis au service concerné, uniquement pour traiter votre demande (base juridique : votre
+consentement, donné en cochant la case prévue). Votre numéro de registre national n'est jamais
+envoyé par e-mail ni à l'intelligence artificielle. Ces données sont conservées le temps
+nécessaire au traitement de votre demande et à son suivi.
+
 **Cartes Google Maps**
 Si vous acceptez l'affichage des cartes (voir la politique cookies), les cartes de la page
 Contact sont chargées depuis les serveurs de Google, qui reçoit alors votre adresse IP et des
@@ -108,7 +125,8 @@ confidentialité : https://policies.google.com/privacy?hl=fr
 Vos données peuvent être partagées, uniquement lorsque c'est nécessaire, avec : les autres
 sections régionales et la FGTB interprofessionnelle, les organismes de paiement (banques,
 caisse de chômage), les autorités publiques (ONEM, sécurité sociale) et nos prestataires
-techniques (hébergement, envoi d'e-mails), tenus à la confidentialité. Vos données ne sont
+techniques (hébergement, envoi d'e-mails, analyse des questions posées à l'Assistant CG), tenus
+à la confidentialité. Vos données ne sont
 jamais vendues.
 
 **Sécurité**

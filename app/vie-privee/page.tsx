@@ -78,6 +78,26 @@ export default function ViePriveePage() {
         </p>
       </Section>
 
+      <Section titre="Assistant CG (aide à l'orientation)">
+        <p>
+          L&apos;Assistant CG, accessible par la bulle « Une question ? », sert uniquement à vous orienter vers le bon
+          service ou la bonne personne. Il ne donne aucun conseil juridique. Ce que vous lui écrivez (votre question,
+          votre code postal, votre secteur) sert uniquement à cette orientation. La conversation n&apos;est pas
+          conservée : elle n&apos;est enregistrée dans aucune base de données et disparaît dès que vous fermez ou
+          rechargez la page. Pour comprendre votre question, le texte est analysé par un service d&apos;intelligence
+          artificielle (Anthropic), qui agit pour notre compte. Avant cette analyse, nous masquons automatiquement les
+          numéros de registre national, les numéros de compte, les adresses e-mail et les numéros de téléphone.
+          N&apos;écrivez pas de données personnelles dans la conversation.
+        </p>
+        <p>
+          Si vous cliquez sur « Transmettre ma demande », votre nom, votre prénom, votre adresse e-mail, votre demande
+          et, si vous le donnez, votre numéro de registre national sont enregistrés et transmis au service concerné,
+          uniquement pour traiter votre demande (base juridique : votre consentement, donné en cochant la case prévue).
+          Votre numéro de registre national n&apos;est jamais envoyé par e-mail ni à l&apos;intelligence artificielle.
+          Ces données sont conservées le temps nécessaire au traitement de votre demande et à son suivi.
+        </p>
+      </Section>
+
       <Section titre="Cartes Google Maps">
         <p>
           Si vous acceptez l&apos;affichage des cartes (voir la politique cookies), les cartes de la page Contact sont
@@ -92,7 +112,7 @@ export default function ViePriveePage() {
           Vos données peuvent être partagées, uniquement lorsque c&apos;est nécessaire, avec : les autres sections
           régionales et la FGTB interprofessionnelle, les organismes de paiement (banques, caisse de chômage), les
           autorités publiques (ONEM, sécurité sociale) et nos prestataires techniques (hébergement, envoi
-          d&apos;e-mails), tenus à la confidentialité. Vos données ne sont jamais vendues.
+          d&apos;e-mails, analyse des questions posées à l&apos;Assistant CG), tenus à la confidentialité. Vos données ne sont jamais vendues.
         </p>
       </Section>
 

@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { barlow, condensed } from "./fonts";
 import { forms, transferJourney } from "./forms";
+import { assistantActif } from "../lib/assistant-donnees";
 import { chargerMobilisationActive } from "../lib/mobilisations-public";
+import AssistantCG from "./AssistantCG";
 import BandeauMobilisation from "./BandeauMobilisation";
 import ConsentementCookies from "./ConsentementCookies";
 import NavigationSite from "./NavigationSite";
@@ -31,7 +33,8 @@ export const revalidate = 60;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Bandeau seulement si la vue site_accueil_mobilisation renvoie une ligne (interrupteur on + mobilisation active).
-  const mobilisation = await chargerMobilisationActive();
+  // Assistant CG : seulement si site_parametres.chatbot_actif = "on" (toujours visible en développement local).
+  const [mobilisation, assistant] = await Promise.all([chargerMobilisationActive(), assistantActif()]);
   return (
     <html lang="fr" className={`${condensed.variable} ${barlow.variable}`}>
       <body className="flex min-h-screen flex-col">
@@ -50,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <div className="flex flex-1 flex-col">{children}</div>
         <PiedDePage />
         <ConsentementCookies />
+        {assistant && <AssistantCG />}
       </body>
     </html>
   );

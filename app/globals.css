@@ -662,3 +662,73 @@
   .foule { height: auto !important; } /* l'emporte aussi sur md:h-[320vh] */
   .foule-cadre { position: relative; height: auto; min-height: 100dvh; }
 }
+
+/* ── Assistant CG (app/AssistantCG.tsx) ──
+   Bulle bordeaux en bas à droite ; fenêtre qui monte en fondu à l'ouverture ; chaque message entre en
+   fondu, une fois. En-tête : le biais rouge à 10° du logo, en décor derrière les boutons (jamais sous le
+   titre). Rien en mouvement réduit. */
+.assistant-biais {
+  position: absolute;
+  z-index: -1;
+  top: -30px;
+  bottom: -30px;
+  right: -36px;
+  width: 132px;
+  background: #e32119;
+  transform: rotate(10deg);
+}
+.assistant-biais::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 12px;
+  width: 3px;
+  background: rgb(255 255 255 / 0.5);
+}
+@keyframes assistant-entree {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes assistant-message {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.assistant-bulle { animation: assistant-entree 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 0.6s backwards; }
+/* Bulle « Une question ? » : la tuile rouge salue (petite bascule autour de ses 10°) et une onde rouge
+   s'en échappe, trois fois espacées de 8 s après l'arrivée, puis plus rien. Survol : la tuile se redresse. */
+.assistant-bulle-tuile {
+  transform: rotate(-10deg);
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.assistant-bulle-salut { animation: assistant-salut 8s ease-in-out 1.4s 3; }
+.assistant-bulle:hover .assistant-bulle-tuile,
+.assistant-bulle:focus-visible .assistant-bulle-tuile { transform: rotate(0deg) scale(1.06); }
+.assistant-bulle-onde {
+  opacity: 0;
+  transform: rotate(-10deg);
+  animation: assistant-onde 8s ease-out 1.4s 3;
+}
+@keyframes assistant-salut {
+  0%, 12%, 100% { transform: none; }
+  3% { transform: rotate(-14deg) scale(1.08); }
+  6% { transform: rotate(14deg) scale(1.08); }
+  9% { transform: rotate(-6deg); }
+}
+@keyframes assistant-onde {
+  0% { opacity: 0.75; transform: rotate(-10deg) scale(1); }
+  14% { opacity: 0; transform: rotate(-10deg) scale(1.9); }
+  100% { opacity: 0; transform: rotate(-10deg) scale(1.9); }
+}
+.assistant-fenetre :is(button, a, textarea, input) { -webkit-tap-highlight-color: transparent; }
+.assistant-fenetre { animation: assistant-entree 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.assistant-message { animation: assistant-message 0.25s ease-out both; }
+.assistant-transmission { animation: assistant-entree 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .assistant-bulle,
+  .assistant-bulle-salut,
+  .assistant-bulle-onde,
+  .assistant-fenetre,
+  .assistant-message,
+  .assistant-transmission { animation: none; }
+}
