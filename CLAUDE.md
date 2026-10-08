@@ -175,11 +175,14 @@ ni interprétation). **L'IA classe, le code décide** : Claude Sonnet 5 (`lib/as
 fond, résumé), revérifiée par `verifierExtraction()`. Tous les textes et contacts viennent du code
 (`lib/assistant-parcours.ts`, fonctions pures testées) et des tables `site_chatbot_*`. Parcours : code postal
 d'abord (5000-5999 Namur, 6600-6999 Luxembourg, sinon lien `accg.be/fr/sections`) → chômage = **les deux antennes
-les plus proches** (demande de Fred, 08/10/2026 ; `lib/assistant-antennes.ts`, tranches de codes postaux,
-proposition à valider par Fred ; code postal sans tranche = toutes les antennes de la province) + My FGTB,
+les plus proches** (demande de Fred, 08/10/2026 ; `lib/assistant-antennes.ts`, tranches de codes postaux
+**validées par Fred le 08/10/2026** ; code postal sans tranche = toutes les antennes de la province) + My FGTB,
 sans transmission → secteur d'une autre centrale = sa fiche, sans transmission ; **secteurs transférés à
-l'Horval** (Agriculture → CP 144, Entreprises forestières → CP 146, `SECTEURS_TRANSFERES`) : historiquement à
-la Centrale Générale, passés à l'Horval lors de la répartition FGTB ; l'assistant demande « Êtes-vous déjà
+l'Horval** (`SECTEURS_TRANSFERES` / `CP_TRANSFERES`, CP 132, 144, 145 et 146 « résiduel », confirmé par Fred
+le 08/10/2026 : Agriculture → CP 144 ; Horticulture, Floriculture, Pépinières, Maraîchers, Parcs et jardins,
+Fruiticulture → CP 145 ; Entreprises forestières, Sylviculture → CP 146 ; CP 132 repérée par sa commission,
+choisie dans la liste ou reconnue par l'IA) : historiquement à la Centrale Générale, passés à l'Horval lors de
+la répartition FGTB ; l'assistant demande « Êtes-vous déjà
 affilié(e) à la Centrale Générale ? » : oui = reste CG (CP « résiduel », 1re ligne), non = fiche Horval; **nettoyage : c'est l'employeur qui compte** (précision de Fred, 08/10/2026) : la
 Centrale Générale ne couvre que les entreprises de nettoyage (CP 121, même chez un client hôpital ou école) et
 les titres-services (CP 322,01). Dire seulement *où* l'on nettoie ne suffit pas : l'assistant demande « Qui est votre
@@ -857,8 +860,8 @@ reformuler, citer et lier la source, jamais recopier.
   ajoutée à `/vie-privee` **et** à `PAGES-LEGALES.md` (orientation seulement, conversation jamais
   enregistrée, analyse par Anthropic après masquage, demande transmise enregistrée avec consentement,
   registre national jamais par e-mail ni à l'IA) + Anthropic cité dans « Partage des données ».
-- **Reste à valider par Fred** : la correspondance code postal → deux antennes ; faut-il appliquer la règle
-  des secteurs transférés aussi aux entreprises horticoles (CP 145) et aux travaux agricoles (CP 132) ?
+- Validé par Fred le 08/10/2026 : les deux antennes par code postal ; la règle des secteurs transférés
+  s'applique aussi aux CP 145 et 132.
 - Le 08/10/2026 aussi : règle du nettoyage (« Qui est votre employeur ? »), bouton « Répondre » dans l'e-mail
   de transmission, refonte de la bulle « Une question ? ».
 

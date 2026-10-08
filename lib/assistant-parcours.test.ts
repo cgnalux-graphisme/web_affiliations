@@ -24,6 +24,7 @@ const D: DonneesAssistant = {
     { mot_cle: "Grands magasins (employés)", centrales: "SETCa", remarque: "Arbitrage : employés au SETCa, ouvriers chez Horval" },
     { mot_cle: "Grands magasins (ouvriers)", centrales: "HORVAL", remarque: "Arbitrage : employés au SETCa" },
     { mot_cle: "Agriculture", centrales: "HORVAL", remarque: null },
+    { mot_cle: "Horticulture", centrales: "HORVAL", remarque: null },
     { mot_cle: "Électricité", centrales: "MWB (Métallos)", remarque: "Arbitrage : mot-clé « électricité » → Métallos" },
     { mot_cle: "Aéroports", centrales: "UBT ; CGSP", remarque: "Arbitrage : proposer les deux (assistance au sol → UBT ; aviation publique → CGSP)" },
   ],
@@ -32,6 +33,8 @@ const D: DonneesAssistant = {
     { region: "Namur", cp_code: "CP 121 - 200", cp_nom: "Nettoyage", contact_nom: "Christine LAMBLOT", contact_email: "christine.lamblot@accg.be", contact_tel: "+32 (0) 81 64 99 71" },
     { region: "Namur", cp_code: "CP 322,01", cp_nom: "Titres-services", contact_nom: "Christine LAMBLOT", contact_email: "christine.lamblot@accg.be", contact_tel: "+32 (0) 81 64 99 71" },
     { region: "Namur", cp_code: "CP 100", cp_nom: "Suivi du secteur", contact_nom: "Céline STALPORT", contact_email: "celine.stalport@accg.be", contact_tel: "+32 (0) 81 64 99 63" },
+    { region: "Luxembourg", cp_code: "CP 132", cp_nom: "Travaux agricoles et horticoles (résiduel)", contact_nom: "Marc LAPRAILLE", contact_email: "marc.lapraille@accg.be", contact_tel: "+32 (0) 61 530 164" },
+    { region: "Luxembourg", cp_code: "CP 145", cp_nom: "Entreprises horticoles (résiduel)", contact_nom: "Marc LAPRAILLE", contact_email: "marc.lapraille@accg.be", contact_tel: "+32 (0) 61 530 164" },
     { region: "Luxembourg", cp_code: "CP 144", cp_nom: "Agriculture (résiduel)", contact_nom: "Marc LAPRAILLE", contact_email: "marc.lapraille@accg.be", contact_tel: "+32 (0) 61 530 164" },
     { region: "Luxembourg", cp_code: "CP 121 - 200", cp_nom: "Nettoyage", contact_nom: "Claude DEWEGHE", contact_email: "claude.deweghe@accg.be", contact_tel: "+32 (0) 61 530 165" },
     { region: "Luxembourg", cp_code: "CP 125,02 - 200", cp_nom: "Bois - Scieries", contact_nom: "Marc LAPRAILLE", contact_email: "marc.lapraille@accg.be", contact_tel: "+32 (0) 61 530 164" },
@@ -163,6 +166,30 @@ describe("parcours de l'Assistant CG", () => {
     const r = construireReponse(e, D);
     expect(r.etat.cpCode).toBe("CP 144");
     expect(resoudreDestinataire(r.etat, D)?.service).toContain("Marc LAPRAILLE");
+  });
+
+  it("horticulture (secteur transféré) : ancien affilié CG → CP 145 résiduel, 1re ligne", () => {
+    let e = etat({ codePostal: "6800", categorie: "juridique", secteur: "Horticulture" });
+    expect(etapeCourante(e, D)).toBe("ancien_affilie");
+    e = appliquerAction(e, { type: "affilie", valeur: true }, D).etat;
+    const r = construireReponse(e, D);
+    expect(r.etat.cpCode).toBe("CP 145");
+    expect(resoudreDestinataire(r.etat, D)?.service).toContain("Marc LAPRAILLE");
+  });
+
+  it("CP 132 choisie dans la liste : même règle (ancien affilié ? non → Horval)", () => {
+    let e = appliquerAction(etat({ codePostal: "6800", categorie: "juridique" }), { type: "cp", valeur: "CP 132" }, D).etat;
+    expect(etapeCourante(e, D)).toBe("ancien_affilie");
+    expect(textes(construireReponse(e, D).blocs)).toContain("travaux agricoles et horticoles");
+    e = appliquerAction(e, { type: "affilie", valeur: false }, D).etat;
+    const r = construireReponse(e, D);
+    expect(textes(r.blocs)).toContain("infonamlux@horval.be");
+    expect(r.blocs.some((b) => b.type === "contact")).toBe(false);
+  });
+
+  it("CP 132, ancien affilié → reste à la Centrale Générale", () => {
+    const e = appliquerAction(appliquerAction(etat({ codePostal: "6800", categorie: "juridique" }), { type: "cp", valeur: "CP 132" }, D).etat, { type: "affilie", valeur: true }, D).etat;
+    expect(resoudreDestinataire(construireReponse(e, D).etat, D)?.service).toContain("Marc LAPRAILLE");
   });
 
   it("test 5 : prime syndicale (5000) → admin.nalux@accg.be", () => {

@@ -1,7 +1,7 @@
 /**
  * Les deux antennes chômage FGTB les plus proches d'un code postal (Assistant CG, catégorie « chômage »).
- * PROPOSITION du 08/10/2026, à valider par Fred : tranches de codes postaux rattachées aux deux antennes les
- * plus proches par la route, dans la province (la plus proche d'abord). Les noms correspondent à la colonne
+ * Tranches de codes postaux rattachées aux deux antennes les plus proches par la route, dans la province
+ * (la plus proche d'abord). Validées par Fred le 08/10/2026. Les noms correspondent à la colonne
  * `antenne` de site_chatbot_antennes. Un code postal sans tranche affiche toutes les antennes de la province.
  */
 

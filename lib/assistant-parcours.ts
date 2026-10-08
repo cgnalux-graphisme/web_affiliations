@@ -117,8 +117,34 @@ export function secteurSelonStatut(d: DonneesAssistant, motCle: string, statut: 
  */
 export const SECTEURS_TRANSFERES: Record<string, string> = {
   Agriculture: "CP 144",
+  Horticulture: "CP 145",
+  Floriculture: "CP 145",
+  Pépinières: "CP 145",
+  Maraîchers: "CP 145",
+  "Parcs et jardins": "CP 145",
+  Fruiticulture: "CP 145",
   "Entreprises forestières": "CP 146",
+  Sylviculture: "CP 146",
 };
+
+/** Commissions « résiduel » de la Centrale Générale pour ces secteurs (la CP 132 n'a pas de mot-clé propre). */
+export const CP_TRANSFERES = ["CP 132", "CP 144", "CP 145", "CP 146"];
+
+/** Centrale aujourd'hui compétente pour les secteurs transférés. */
+const CENTRALE_TRANSFERT = "HORVAL";
+
+/**
+ * Secteur transféré concerné par la demande, repéré par son mot-clé ou par sa commission paritaire
+ * « résiduel » (choisie dans la liste ou reconnue par l'IA), sinon null.
+ */
+function transfert(e: EtatAssistant, d: DonneesAssistant): { cp: string; libelle: string } | null {
+  const region = e.codePostal ? regionDuCodePostal(e.codePostal) : null;
+  const cp = (e.secteur && SECTEURS_TRANSFERES[e.secteur]) || (e.cpCode && CP_TRANSFERES.includes(e.cpCode) ? e.cpCode : null);
+  if (!cp) return null;
+  const ligne = d.repartition.find((r) => r.region === region && r.cp_code === cp);
+  const libelle = e.secteur && SECTEURS_TRANSFERES[e.secteur] ? e.secteur : (ligne?.cp_nom ?? cp);
+  return { cp, libelle: libelle.replace(/\s*\(résiduel\)\s*$/i, "").toLowerCase() };
+}
 
 // ── Nettoyage : c'est l'employeur qui compte ──
 
@@ -160,8 +186,8 @@ export function normaliser(etat: EtatAssistant, d: DonneesAssistant): EtatAssist
     };
   }
   // Ancien affilié d'un secteur transféré : sa commission paritaire « résiduel » de la Centrale Générale.
-  const cpAncien = e.secteur && e.affilie === true ? SECTEURS_TRANSFERES[e.secteur] : undefined;
-  if (cpAncien && !e.cpCode && existe(cpAncien)) e = { ...e, cpCode: cpAncien };
+  const t = e.affilie === true ? transfert(e, d) : null;
+  if (t && !e.cpCode && existe(t.cp)) e = { ...e, cpCode: t.cp };
   return e;
 }
 
@@ -290,14 +316,15 @@ export function etapeCourante(brut: EtatAssistant, d: DonneesAssistant): Etape {
   if (etat.employeurNettoyage === null && (etat.secteur === SECTEUR_NETTOYAGE || etat.cpCode === CP_NETTOYAGE)) {
     return "employeur_nettoyage";
   }
-  if (etat.secteur) {
+  // Secteur transféré à l'Horval : seuls les anciens affiliés restent à la Centrale Générale.
+  const t = transfert(etat, d);
+  if (t) {
+    if (etat.affilie === null) return "ancien_affilie";
+    if (etat.affilie === false) return "autre_centrale";
+  } else if (etat.secteur) {
     const s = secteurSelonStatut(d, etat.secteur, etat.statut);
     if (s === "statut_requis") return "statut";
-    if (s && SECTEURS_TRANSFERES[s.mot_cle]) {
-      // Secteur transféré à l'Horval : seuls les anciens affiliés restent à la Centrale Générale.
-      if (etat.affilie === null) return "ancien_affilie";
-      if (etat.affilie === false) return "autre_centrale";
-    } else if (s && !centralesDuSecteur(s).includes(CENTRALE_GENERALE)) return "autre_centrale";
+    if (s && !centralesDuSecteur(s).includes(CENTRALE_GENERALE)) return "autre_centrale";
   }
   // Engagé(e) directement par le lieu où il ou elle nettoie : le secteur de cet employeur décide.
   if (etat.employeurNettoyage === "autre" && !etat.secteur && etat.tentativesCp < 2) return "lieu_nettoyage";
@@ -402,10 +429,10 @@ export function construireReponse(
       break;
 
     case "ancien_affilie": {
-      const s = secteurSelonStatut(d, etat.secteur!, etat.statut) as LigneSecteur;
+      const t = transfert(etat, d)!;
       blocs.push({
         type: "choix",
-        question: `Votre secteur (${s.mot_cle.toLowerCase()}) dépend aujourd'hui de la centrale ${centralesDuSecteur(s).join(" ou ")} de la FGTB. Si vous étiez déjà affilié(e) à la Centrale Générale, vous y restez. Êtes-vous déjà affilié(e) à la Centrale Générale ?`,
+        question: `Votre secteur (${t.libelle}) dépend aujourd'hui de la centrale ${CENTRALE_TRANSFERT} de la FGTB. Si vous étiez déjà affilié(e) à la Centrale Générale, vous y restez. Êtes-vous déjà affilié(e) à la Centrale Générale ?`,
         choix: [
           { libelle: "Oui", action: { type: "affilie", valeur: true } },
           { libelle: "Non", action: { type: "affilie", valeur: false } },
@@ -415,17 +442,19 @@ export function construireReponse(
     }
 
     case "autre_centrale": {
-      const s = secteurSelonStatut(d, etat.secteur!, etat.statut) as LigneSecteur;
-      const noms = centralesDuSecteur(s);
+      const t = transfert(etat, d);
+      const s = t ? null : (secteurSelonStatut(d, etat.secteur!, etat.statut) as LigneSecteur);
+      const noms = s ? centralesDuSecteur(s) : [CENTRALE_TRANSFERT];
       const fiches = d.centrales.filter((c) => c.province === region && noms.includes(c.centrale)).map(ficheCentrale);
       const liste = noms.join(" ou ");
+      const libelle = t ? t.libelle : s!.mot_cle.replace(/\s*\(.*\)\s*$/, "").toLowerCase();
       blocs.push({
         type: "texte",
-        texte: `Pour votre secteur (${s.mot_cle.replace(/\s*\(.*\)\s*$/, "").toLowerCase()}), c'est la centrale ${liste} de la FGTB qui est compétente, pas la Centrale Générale. ${
+        texte: `Pour votre secteur (${libelle}), c'est la centrale ${liste} de la FGTB qui est compétente, pas la Centrale Générale. ${
           fiches.length ? `Voici ses coordonnées dans la ${PROVINCE[region!]} :` : "Contactez-la directement."
         }`,
       });
-      if (noms.length > 1 && s.remarque) blocs.push({ type: "texte", texte: s.remarque.replace(/^Arbitrage\s*:\s*/i, "") });
+      if (noms.length > 1 && s?.remarque) blocs.push({ type: "texte", texte: s.remarque.replace(/^Arbitrage\s*:\s*/i, "") });
       if (fiches.length) blocs.push({ type: "fiches", fiches });
       termine = true;
       break;
