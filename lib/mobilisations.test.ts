@@ -98,3 +98,15 @@ describe("fin de la mise en avant", () => {
     expect(miseEnAvantTerminee(null, Date.now())).toBe(false);
   });
 });
+
+describe("echeance (bandeau de mobilisation)", () => {
+  it("compte en jours calendaires à Bruxelles", async () => {
+    const { echeance } = await import("./mobilisations");
+    const evenement = "2026-10-09T08:00:00Z"; // 09/10/2026 à 10:00 à Bruxelles
+    expect(echeance(evenement, Date.parse("2026-10-08T21:30:00Z"))).toEqual({ long: "Demain", court: "Demain" }); // 23:30 le 08/10
+    expect(echeance(evenement, Date.parse("2026-10-08T22:30:00Z"))).toEqual({ long: "Aujourd'hui", court: "Aujourd'hui" }); // 00:30 le 09/10
+    expect(echeance(evenement, Date.parse("2026-10-06T10:00:00Z"))).toEqual({ long: "Dans 3 jours", court: "J-3" });
+    expect(echeance(evenement, Date.parse("2026-10-10T10:00:00Z"))).toBeNull();
+    expect(echeance(null, Date.now())).toBeNull();
+  });
+});

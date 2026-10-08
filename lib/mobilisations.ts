@@ -148,6 +148,26 @@ export function estLeJourJ(horodatage: string, maintenant: number): boolean {
   return Boolean(a) && a === depuisHorodatage(new Date(maintenant).toISOString()).date;
 }
 
+/**
+ * Échéance en jours calendaires à Bruxelles, pour le bandeau : « Aujourd'hui », « Demain », « Dans 3 jours »
+ * (court : « J-3 »). null si l'événement est passé ou sans date.
+ */
+export function echeance(horodatage: string | null | undefined, maintenant: number): { long: string; court: string } | null {
+  if (!horodatage) return null;
+  const jour = (iso: string) => {
+    const [j, m, a] = depuisHorodatage(iso).date.split("/").map(Number);
+    return j && m && a ? Date.UTC(a, m - 1, j) / 86_400_000 : null;
+  };
+  const cible = jour(horodatage);
+  const auj = jour(new Date(maintenant).toISOString());
+  if (cible === null || auj === null) return null;
+  const n = Math.round(cible - auj);
+  if (n < 0) return null;
+  if (n === 0) return { long: "Aujourd'hui", court: "Aujourd'hui" };
+  if (n === 1) return { long: "Demain", court: "Demain" };
+  return { long: `Dans ${n} jours`, court: `J-${n}` };
+}
+
 const MOIS: Record<string, string> = {
   janvier: "01",
   fevrier: "02",
