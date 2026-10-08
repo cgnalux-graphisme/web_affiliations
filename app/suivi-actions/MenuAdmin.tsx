@@ -73,7 +73,10 @@ const SECTIONS: Section[] = [
   {
     titre: "Démarches affiliés",
     Icon: FolderOpen,
-    liens: [{ href: "/suivi-actions/demandes", label: "Demandes", actifSur: (c) => c.startsWith("/suivi-actions/demandes/") }],
+    liens: [
+      { href: "/suivi-actions/demandes", label: "Demandes", actifSur: (c) => c.startsWith("/suivi-actions/demandes/") },
+      { href: "/suivi-actions/chatbot", label: "Demandes chatbot" },
+    ],
   },
 ];
 

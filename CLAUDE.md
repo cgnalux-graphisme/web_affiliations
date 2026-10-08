@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **07/10/2026**
+> Dernière mise à jour : **08/10/2026**
 
 ---
 
@@ -62,6 +62,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
 | `/changement-situation` | public | (07/10/2026) **Signaler un changement** (`FormulaireModification.tsx`, règles `lib/modification.ts`) : 4 étapes (Vous : nom, prénom, NISS, e-mail · Ce qui change : adresse, e-mail / téléphone, employeur, régime, situation professionnelle, plusieurs choix · Le détail, date « à partir du » par bloc · Signature). Employeur : nom obligatoire, ONSS / TVA, localité et CP facultatifs ; régime : temps plein ou temps partiel + moyenne d'heures / semaine (1 à 38) ; situation : nouvelle profession (+ CP), chômage ou mutuelle. Dates « à partir du » et de signature pré-remplies au jour (modifiables). Conception : `docs/superpowers/specs/2026-10-07-formulaire-modification-design.md`. **Transfert** : CP « 000 - Autre » → `a_organiser` (« nous nous chargeons de votre transfert, votre nouvelle centrale prendra contact avec vous »), « Je ne sais pas » → `a_verifier`, sinon `non` (`statutTransfert()`). PDF « Registre » d'une page (bloc « Nos bureaux »), table `web_modifications`, e-mail `/api/send-modification` |
 | (adresse inconnue) | public | Page 404 du site (`app/not-found.tsx`, 30/09/2026) : « 404 · Page introuvable » au style des autres pages + liens vers les rubriques ; sert aussi aux `notFound()` (article, explication, mobilisation introuvables) |
+| `/api/assistant` | public (si `chatbot_actif` = `on`) | **Assistant CG**, un tour de conversation (POST `{ etat, tours, message }` ou `{ etat, action }`) → `{ etat, blocs }` écrits par le code. 30 messages / 10 min / IP, 500 caractères, 20 messages par conversation. Rien n'est enregistré |
+| `/api/assistant/transmettre` | public (si `chatbot_actif` = `on`) | « Transmettre ma demande » (jamais d'IA) : destinataire recalculé côté serveur, ligne dans `site_chatbot_demandes` (service_role), e-mail Resend **sans registre national** ; « Répondre à » = la personne et bouton « Répondre à <prénom nom> » (mailto, objet prérempli) qui ouvre un nouveau message dans Outlook (demande de Fred, 08/10/2026). Champ piège `site_web`, 5 demandes / heure / IP |
 | `/login` | public | Connexion (identifiants CG Link) |
 | `/suivi-actions` | SUPER_ADMIN | **Tableau de bord** : une tuile par domaine (Scan News, Démarches affiliés, Actions syndicales, Publications) avec les chiffres clés ; chaque tuile ouvre sa section |
 | `/suivi-actions/actions` | SUPER_ADMIN | Liste de toutes les actions (publiées ou non) — avant le 28/09/2026, elle était à `/suivi-actions` |
@@ -80,7 +82,8 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/suivi-actions/sources` | SUPER_ADMIN | Flux RSS de la veille : ajouter, modifier, activer / désactiver, supprimer |
 | `/suivi-actions/themes` | SUPER_ADMIN | Mots-clés de pertinence de la veille : ajouter, activer / désactiver, supprimer |
 | `/suivi-actions/mobilisations` · `/nouvelle` · `/<id>/modifier` · `/<id>/apercu` | SUPER_ADMIN | Mobilisations (manifs, grèves à venir) : créer, modifier, supprimer, interrupteur « mise en avant » (une seule à la fois), aperçu de la page campagne, « pourquoi » rédigé par l'IA |
-| `/suivi-actions/parametres-site` | SUPER_ADMIN | Paramètres du site : interrupteur « Afficher le bloc mobilisation sur l'accueil » (`site_parametres`, clé `accueil_mobilisation`, `on` / `off`) |
+| `/suivi-actions/chatbot` | SUPER_ADMIN | **Demandes chatbot** : filtre par statut (`?statut=nouveau` / `en_cours` / `traite`), changement de statut, suppression, registre national masqué (••••) et lu seulement au clic « Afficher » (server actions, service_role) ; `?id=` met une demande en évidence (lien de l'e-mail) |
+| `/suivi-actions/parametres-site` | SUPER_ADMIN | Paramètres du site : interrupteur « Afficher le bloc mobilisation sur l'accueil » (`site_parametres`, clé `accueil_mobilisation`, `on` / `off`) et interrupteur « Afficher l'Assistant CG » (clé `chatbot_actif`) |
 | `/api/mobilisations/analyse` | SUPER_ADMIN | Textes collés (articles, tracts, communiqués) → tous les champs d'une nouvelle mobilisation proposés par Claude Sonnet 5 (POST `{ textes }`), rien n'est enregistré |
 | `/api/mobilisations/pourquoi` | SUPER_ADMIN | « Pourquoi on se mobilise » rédigé par Claude Sonnet 5 depuis les points de Fred (POST `{ points, titre?, date?, lieu?, revendications? }`), rien n'est enregistré |
 | `/suivi-actions/parametres` | SUPER_ADMIN | Paramètres : adresses internes qui reçoivent chaque envoi automatique des formulaires (ajouter, activer / désactiver, supprimer) |
@@ -131,7 +134,7 @@ chaque page).
 28/09/2026) : Tableau de bord, puis sections titrées — **Actions syndicales**
 (Toutes les actions · Nouvelle action · Rapport d'activité), **Publications**
 (Articles · Écrire un article · On vous explique · Importer une note), **Scan News** (Le fil · Sources · Thématiques),
-**Démarches affiliés** (Demandes) — « Mobilisations » est dans Actions syndicales —
+**Démarches affiliés** (Demandes · Demandes chatbot) — « Mobilisations » est dans Actions syndicales —
 et, séparés en pied : Paramètres du site, Paramètres des envois,
 compte connecté, Se déconnecter. Mobile : bouton « Menu ». Lien actif = barre
 rouge sur un rail ardoise.
@@ -158,6 +161,46 @@ sur l'accueil) ; au survol, tuile soulevée, icône basculée à 10° et remplie
 sous la tuile. Aucune boucle, rien en mouvement réduit.
 
 ---
+
+**Assistant CG** (chatbot d'aiguillage, 08/10/2026, branche `chatbot`, demande de Fred) : bulle
+« Une question ? » en bas à droite de toutes les pages publiques (`app/AssistantCG.tsx`, dans le layout ;
+**pastille blanche bordée de charbon** pour rester visible sur les fonds bordeaux (refonte du 08/10/2026,
+demande de Fred), tuile rouge inclinée à 10° (encart « FGTB » du logo) qui salue avec une onde rouge 3 fois
+espacées de 8 s puis s'arrête, se redresse au survol, rien en mouvement réduit ;
+masquée dans l'admin et sur `/login` ; plein écran sur mobile ; Échap, focus piégé, `role="log"`).
+**Règle n° 1 : il oriente, il ne répond JAMAIS sur le fond** (ni conseil juridique, ni montant, ni délai,
+ni interprétation). **L'IA classe, le code décide** : Claude Sonnet 5 (`lib/assistant-ia.ts`, effort `low`,
+3 000 jetons max) ne rédige aucun texte affiché ; il remplit une fiche à valeurs fermées tirées de la base
+(catégorie, code postal, secteur, statut ouvrier / employé, commission paritaire, affilié, demande sur le
+fond, résumé), revérifiée par `verifierExtraction()`. Tous les textes et contacts viennent du code
+(`lib/assistant-parcours.ts`, fonctions pures testées) et des tables `site_chatbot_*`. Parcours : code postal
+d'abord (5000-5999 Namur, 6600-6999 Luxembourg, sinon lien `accg.be/fr/sections`) → chômage = **les deux antennes
+les plus proches** (demande de Fred, 08/10/2026 ; `lib/assistant-antennes.ts`, tranches de codes postaux,
+proposition à valider par Fred ; code postal sans tranche = toutes les antennes de la province) + My FGTB,
+sans transmission → secteur d'une autre centrale = sa fiche, sans transmission ; **secteurs transférés à
+l'Horval** (Agriculture → CP 144, Entreprises forestières → CP 146, `SECTEURS_TRANSFERES`) : historiquement à
+la Centrale Générale, passés à l'Horval lors de la répartition FGTB ; l'assistant demande « Êtes-vous déjà
+affilié(e) à la Centrale Générale ? » : oui = reste CG (CP « résiduel », 1re ligne), non = fiche Horval; **nettoyage : c'est l'employeur qui compte** (précision de Fred, 08/10/2026) : la
+Centrale Générale ne couvre que les entreprises de nettoyage (CP 121, même chez un client hôpital ou école) et
+les titres-services (CP 322,01). Dire seulement *où* l'on nettoie ne suffit pas : l'assistant demande « Qui est votre
+employeur ? Par exemple : une société de nettoyage, un hôpital, un hôtel… » (entreprise de nettoyage → CP 121 ; titres-services → CP 322,01 ; directement le lieu → « Où
+travaillez-vous ? » : hôtel / restaurant → Horval, commune / CPAS / hôpital public → CGSP, autre employeur ou
+lieu non reconnu → accueil `cg.nalux@accg.be`, sans question « affilié ») ; la question est aussi posée quand
+la CP 121 est choisie dans la liste (`normaliser()`, `EtatAssistant.employeurNettoyage`) → démarche en ligne = lien direct → juridique = 1re ligne de
+`site_chatbot_repartition` (région + CP ; secteur introuvable après 2 tentatives → `cg.nalux@accg.be`),
+question « affilié ? » (non = message affiliation + arriérés, transmission quand même) → administratif /
+prime syndicale = `admin.nalux@accg.be` → autre = `cg.nalux@accg.be`. Demande sur le fond ou manipulation
+→ « Je ne peux pas répondre à cette question, mais je peux vous orienter… » puis orientation normale.
+Les adresses des personnes (1re ligne) ne sont **jamais affichées** ; seules les adresses génériques le sont.
+**Confidentialité** : l'IA ne reçoit que la conversation, **masquée côté serveur** (registre national,
+IBAN, e-mail, téléphone : `masquerDonneesSensibles()`) ; aucune conversation enregistrée ; seules les
+demandes transmises sont gardées. **Le registre national ne passe jamais par l'IA ni par e-mail** : saisi
+uniquement dans la fenêtre de transmission (`app/FenetreTransmission.tsx`, facultatif, modulo 97 avec
+naissances à partir de 2000), stocké dans `site_chatbot_demandes`, visible seulement dans le back-office.
+Interrupteur `site_parametres.chatbot_actif` (`on` / `off`, **laissé sur `off`**, Fred l'activera) : coupé =
+pas de bulle et routes `/api/assistant…` en 404 ; **en développement local, toujours visible**
+(`assistantActif()`). Limitation par IP en mémoire (`lib/limite-requetes.ts`, au mieux, par instance).
+Fichiers sources des contacts : `docs-internes/` (hors de `public/`, ignoré par Git, jamais commités).
 
 ## Base de données — tables du site
 
@@ -256,6 +299,18 @@ Réseaux sociaux (créé côté Supabase avant le 28/09/2026) :
 | `site_publications_reseaux` | Posts déclinés d'un article : `article_id` (→ `site_articles`), `reseau` (`facebook` / `instagram` / `tiktok` / `youtube`), `contenu`, `statut` (défaut `brouillon`, non utilisé par le code), `created_at`, `updated_at` | Super admin |
 
 Colonnes relevées par l'OpenAPI de PostgREST ; aucune contrainte d'unicité visible sur (`article_id`, `reseau`) : le code met à jour la ligne la plus récente, sinon en insère une. YouTube : titre sur la 1re ligne, ligne vide, puis description (`composerYoutube()` / `lireYoutube()`, `lib/reseaux.ts`). Si la base contraint `reseau` à d'autres valeurs, adapter `RESEAUX`.
+
+Assistant CG (**créées et remplies directement dans Supabase par Fred le 07/10/2026**, aucune migration dans
+le dépôt ; **ne pas modifier le schéma**). `anon` n'a aucun droit (vérifié le 08/10/2026) : lecture et écriture
+**uniquement côté serveur, en service_role** (`lib/assistant-donnees.ts`, cache mémoire 5 min) :
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_chatbot_repartition` | `region` (Namur / Luxembourg), `cp_code`, `cp_nom`, `contact_nom` / `contact_email` / `contact_tel` (= la **1re ligne**, qui reçoit les questions juridiques), `permanent_nom` / `permanent_email` (**jamais lus par le chatbot**), `actif` ; 76 lignes au 08/10/2026 (conformes à `Répartition des secteurs 2025.xlsx`) | service_role |
+| `site_chatbot_secteurs` | `mot_cle`, `centrales` (plusieurs séparées par « ; »), `remarque` (arbitrages) ; 79 lignes | service_role |
+| `site_chatbot_centrales` | Coordonnées des centrales FGTB par province (17 lignes) | service_role |
+| `site_chatbot_antennes` | Antennes chômage FGTB par province (10 lignes, pas d'e-mail : contact écrit par My FGTB) | service_role |
+| `site_chatbot_demandes` | Demandes transmises : `nom`, `prenom`, `email`, `message`, `code_postal`, `region`, `categorie`, `cp_code`, `affilie`, `registre_national`, `destinataire_email`, `service_nom`, `statut` (défaut `nouveau` ; le code utilise aussi `en_cours` et `traite`, **non vérifié contre une éventuelle contrainte**), `created_at` | service_role (route de transmission, back-office) |
 
 ### Colonnes de `site_articles`
 `titre`, `slug` (adresse `/blog/<slug>` ou `/on-vous-explique/<slug>` selon
@@ -787,6 +842,25 @@ reformuler, citer et lier la source, jamais recopier.
   automatique, alerte-mobilisation ciblée, espace affilié, tableau de bord réseaux.
 
 ---
+
+## État au 08/10/2026
+- **Assistant CG** sur la branche **`chatbot`** (créée depuis `suivi-actions`), **commitée et poussée sur
+  GitHub le 08/10/2026 à la demande de Fred** ; **rien sur `suivi-actions`** (en production : ne rien y
+  fusionner sans l'accord de Fred). Interrupteur `chatbot_actif` toujours sur `off`. Vérifié en local :
+  types, 606 tests, build de production, les 10 scénarios de Fred et les cas nettoyage / agriculture avec la
+  vraie IA et la vraie base (lecture). **Non testé** : une transmission réelle (insertion + e-mail avec
+  bouton « Répondre »), pour ne rien écrire en base sans Fred, et l'écran admin « Demandes chatbot » connecté.
+  À faire par Fred : un essai réel avec sa propre adresse, puis activer l'interrupteur dans « Paramètres du
+  site » après fusion.
+- Le 08/10/2026 (retours de Fred) : deux antennes chômage les plus proches ; règle des secteurs transférés à
+  l'Horval (nouveaux → Horval, anciens affiliés CG → CG) ; section « Assistant CG (aide à l'orientation) »
+  ajoutée à `/vie-privee` **et** à `PAGES-LEGALES.md` (orientation seulement, conversation jamais
+  enregistrée, analyse par Anthropic après masquage, demande transmise enregistrée avec consentement,
+  registre national jamais par e-mail ni à l'IA) + Anthropic cité dans « Partage des données ».
+- **Reste à valider par Fred** : la correspondance code postal → deux antennes ; faut-il appliquer la règle
+  des secteurs transférés aussi aux entreprises horticoles (CP 145) et aux travaux agricoles (CP 132) ?
+- Le 08/10/2026 aussi : règle du nettoyage (« Qui est votre employeur ? »), bouton « Répondre » dans l'e-mail
+  de transmission, refonte de la bulle « Une question ? ».
 
 ## État au 07/10/2026
 - **Commité sur `suivi-actions`, pas encore poussé** : formulaire « Signaler un changement »
