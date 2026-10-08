@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { messageErreurApi } from "../../../../lib/anthropic-erreurs";
+import { purgerDemandesChatbot } from "../../../../lib/assistant-purge";
 import { appelCron } from "../../../../lib/cron";
 import { getSuperAdmin } from "../../../../lib/supabase-server";
 import { getSupabaseService } from "../../../../lib/supabase-service";
@@ -35,7 +36,8 @@ async function lancer(supabase: NonNullable<ReturnType<typeof getSupabaseService
 }
 
 /**
- * Vercel Cron, deux passages (6 h et 7 h UTC, voir vercel.json) : ramassage + purge à chaque passage,
+ * Vercel Cron, deux passages (6 h et 7 h UTC, voir vercel.json) : ramassage + purge à chaque passage
+ * (purge du fil, et des demandes de l'Assistant CG traitées depuis plus que la durée de conservation),
  * puis analyse automatique seulement s'il est 8 h à Bruxelles (6 h UTC en été, 7 h UTC en hiver)
  * et qu'aucune analyse automatique n'a été faite dans les 20 dernières heures.
  */
@@ -52,9 +54,11 @@ export async function GET(request: NextRequest) {
     console.error("check IA (cron) : ramassage", err);
     return erreur(err instanceof Error ? err.message : "Le ramassage a échoué.", 500);
   }
+  // Demandes de l'Assistant CG : suppression promise par la politique de vie privée (jamais bloquante).
+  const demandesChatbot = await purgerDemandesChatbot(supabase).catch(() => ({ erreur: "exception" }));
 
   if (heureBruxelles() !== HEURE_ANALYSE_AUTO) {
-    return NextResponse.json({ ramassage: bilan, analyse: "pas maintenant (ce n'est pas 8 h à Bruxelles)" });
+    return NextResponse.json({ ramassage: bilan, demandesChatbot, analyse: "pas maintenant (ce n'est pas 8 h à Bruxelles)" });
   }
   if (!process.env.ANTHROPIC_API_KEY) return erreur("ANTHROPIC_API_KEY manque sur le serveur.", 503);
   const depuis = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();

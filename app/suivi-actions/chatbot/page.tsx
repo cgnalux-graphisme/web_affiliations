@@ -23,13 +23,19 @@ export default async function DemandesChatbotPage({ searchParams }: { searchPara
   let demandes: DemandeChatbot[] = [];
   let echec = !supabase;
   if (supabase) {
-    const { data, error } = await supabase
-      .from("site_chatbot_demandes")
-      .select("id, created_at, nom, prenom, email, message, code_postal, region, categorie, cp_code, affilie, service_nom, destinataire_email, statut, registre_national")
-      .order("created_at", { ascending: false })
-      .limit(500);
+    const colonnes =
+      "id, created_at, nom, prenom, email, message, code_postal, region, categorie, cp_code, affilie, service_nom, destinataire_email, statut, registre_national";
+    const lire = (cols: string) =>
+      supabase.from("site_chatbot_demandes").select(cols).order("created_at", { ascending: false }).limit(500);
+    // traite_le n'existe qu'après la migration du 08/10/2026 : sans elle, la liste s'affiche quand même.
+    let { data, error } = await lire(`${colonnes}, traite_le`);
+    if (error?.code === "42703") ({ data, error } = await lire(colonnes));
     echec = Boolean(error);
-    demandes = (data ?? []).map(({ registre_national, ...d }) => ({ ...(d as Omit<DemandeChatbot, "aRegistre">), aRegistre: Boolean(registre_national) }));
+    demandes = ((data ?? []) as unknown as Record<string, unknown>[]).map(({ registre_national, traite_le, ...d }) => ({
+      ...(d as Omit<DemandeChatbot, "aRegistre" | "traite_le">),
+      traite_le: (traite_le as string | null | undefined) ?? null,
+      aRegistre: Boolean(registre_national),
+    }));
   }
 
   return (

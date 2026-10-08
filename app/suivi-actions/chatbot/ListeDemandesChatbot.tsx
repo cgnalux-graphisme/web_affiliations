@@ -11,6 +11,8 @@ import {
   type DemandeChatbot,
   type StatutDemandeChatbot,
 } from "../../../lib/assistant-demandes";
+import { suppressionPrevue } from "../../../lib/assistant-purge";
+import { DUREE_DEMANDES } from "../../../lib/vie-privee";
 import { IconeChargement } from "../../Chargement";
 import { changerStatutDemande, lireRegistreNational, supprimerDemande } from "./actions";
 
@@ -200,6 +202,14 @@ function CarteDemande({ d, enEvidence, onChange }: { d: DemandeChatbot; enEviden
       </dl>
 
       <p className="mt-4 whitespace-pre-wrap border-l-4 border-militant-bordeaux py-1 pl-4 text-[15px] leading-relaxed">{d.message}</p>
+
+      {d.statut === "traite" && d.traite_le && (
+        <p className="mt-3 text-[14px]">
+          Traitée le {dateHeureBruxelles(d.traite_le).slice(0, 10)}. Supprimée automatiquement le{" "}
+          <strong className="tabular-nums">{dateHeureBruxelles(suppressionPrevue(d.traite_le).toISOString()).slice(0, 10)}</strong>{" "}
+          ({DUREE_DEMANDES} après son traitement, comme l&apos;annonce la page Vie privée).
+        </p>
+      )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-militant-ardoise pt-4">
         <label htmlFor={`statut-${d.id}`} className="text-[15px] font-bold">
