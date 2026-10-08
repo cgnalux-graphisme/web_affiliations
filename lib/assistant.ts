@@ -104,8 +104,10 @@ export function codePostalSeul(message: string): string | null {
 export function masquerDonneesSensibles(texte: string): string {
   return (
     texte
-      // IBAN (BE68 5390 0754 7034, FR76…) : 2 lettres, 2 chiffres, puis au moins 10 caractères alphanumériques.
-      .replace(/\b[A-Z]{2}\d{2}(?:[ .-]?[A-Z0-9]){10,30}\b/gi, "[IBAN masqué]")
+      // IBAN belge (BE68 5390 0754 7034, be68539007547034) : BE, 2 chiffres, 3 groupes de 4 chiffres.
+      .replace(/\b[Bb][Ee]\d{2}(?:[ .-]?\d{4}){3}\b/g, "[IBAN masqué]")
+      // Autres IBAN (FR76 3000 6000 0112…), en majuscules : groupes de 4 caractères, sans avaler les mots suivants.
+      .replace(/\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,3})?\b/g, "[IBAN masqué]")
       // Registre national : 11 chiffres, séparateurs facultatifs (85.07.30-033.28, 85073003328).
       .replace(/\b\d{2}[ .\-/]?\d{2}[ .\-/]?\d{2}[ .\-/]?\d{3}[ .\-/]?\d{2}\b/g, "[numéro masqué]")
       .replace(/[^\s@<>()]+@[^\s@<>()]+\.[a-z]{2,}/gi, "[e-mail masqué]")

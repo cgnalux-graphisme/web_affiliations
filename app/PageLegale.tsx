@@ -17,11 +17,14 @@ export default function PageLegale({
   chemin,
   titre,
   intro,
+  miseAJour = MISE_A_JOUR,
   children,
 }: {
   chemin: string;
   titre: string;
   intro?: React.ReactNode;
+  /** Date propre à une page, quand son texte a changé après les autres. */
+  miseAJour?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -55,7 +58,7 @@ export default function PageLegale({
         <div className="max-w-[68ch] border-t-[6px] border-militant-charbon pt-8">
           {intro && <div className="text-xl leading-relaxed">{intro}</div>}
           <div className={intro ? "mt-10 space-y-12" : "space-y-12"}>{children}</div>
-          <p className="mt-16 text-[15px]">Dernière mise à jour : {MISE_A_JOUR}</p>
+          <p className="mt-16 text-[15px]">Dernière mise à jour : {miseAJour}</p>
         </div>
       </div>
     </main>
