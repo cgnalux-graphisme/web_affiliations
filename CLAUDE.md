@@ -60,7 +60,7 @@ validation** (rien ne se publie sans son OK, pour éviter toute désinformation)
 | `/mentions-legales`, `/vie-privee`, `/cookies` | public | Pages légales (29/09/2026 ; politique cookies réécrite et vie privée complétée — formulaire de contact, Google Maps — le même jour) : texte repris **tel quel** de `PAGES-LEGALES.md` (sans ses notes internes « à faire valider »), mise en page commune `app/PageLegale.tsx`. **Validés par Fred le 29/09/2026.** Modifier le texte = modifier `PAGES-LEGALES.md` **et** la page |
 | `/statuts` | public | Statuts de la régionale (01/10/2026) : texte repris **tel quel** du document officiel (`statuts.pdf` transmis par Fred), **ne jamais le reformuler ni le corriger** ; mise en page propre (sommaire collant par chapitre, articles en deux colonnes). Lien dans le pied de page et dans la case « Accord général » du formulaire d'affiliation (nouvel onglet) |
 | `/affiliation`, `/mandat-sepa`, `/formulaire-c1`, `/formulaire-c3-2`, `/preavis`, `/parcours-transfert` | public | Formulaires existants |
-| `/changement-situation` | public | (07/10/2026) **Signaler un changement** (`FormulaireModification.tsx`, règles `lib/modification.ts`) : 4 étapes (Vous : nom, prénom, NISS, e-mail · Ce qui change : adresse, e-mail / téléphone, employeur, régime, situation professionnelle, plusieurs choix · Le détail, date « à partir du » par bloc · Signature). Employeur : nom obligatoire, ONSS / TVA, localité et CP facultatifs ; régime : temps plein ou temps partiel + moyenne d'heures / semaine (1 à 38) ; situation : nouvelle profession (+ CP), chômage ou mutuelle. **Transfert** : CP « 000 - Autre » → `a_organiser` (« nous nous chargeons de votre transfert, votre nouvelle centrale prendra contact avec vous »), « Je ne sais pas » → `a_verifier`, sinon `non` (`statutTransfert()`). PDF « Registre » d'une page (bloc « Nos bureaux »), table `web_modifications`, e-mail `/api/send-modification` |
+| `/changement-situation` | public | (07/10/2026) **Signaler un changement** (`FormulaireModification.tsx`, règles `lib/modification.ts`) : 4 étapes (Vous : nom, prénom, NISS, e-mail · Ce qui change : adresse, e-mail / téléphone, employeur, régime, situation professionnelle, plusieurs choix · Le détail, date « à partir du » par bloc · Signature). Employeur : nom obligatoire, ONSS / TVA, localité et CP facultatifs ; régime : temps plein ou temps partiel + moyenne d'heures / semaine (1 à 38) ; situation : nouvelle profession (+ CP), chômage ou mutuelle. Dates « à partir du » et de signature pré-remplies au jour (modifiables). Conception : `docs/superpowers/specs/2026-10-07-formulaire-modification-design.md`. **Transfert** : CP « 000 - Autre » → `a_organiser` (« nous nous chargeons de votre transfert, votre nouvelle centrale prendra contact avec vous »), « Je ne sais pas » → `a_verifier`, sinon `non` (`statutTransfert()`). PDF « Registre » d'une page (bloc « Nos bureaux »), table `web_modifications`, e-mail `/api/send-modification` |
 | (adresse inconnue) | public | Page 404 du site (`app/not-found.tsx`, 30/09/2026) : « 404 · Page introuvable » au style des autres pages + liens vers les rubriques ; sert aussi aux `notFound()` (article, explication, mobilisation introuvables) |
 | `/login` | public | Connexion (identifiants CG Link) |
 | `/suivi-actions` | SUPER_ADMIN | **Tableau de bord** : une tuile par domaine (Scan News, Démarches affiliés, Actions syndicales, Publications) avec les chiffres clés ; chaque tuile ouvre sa section |
@@ -364,7 +364,7 @@ devenait illisible, les envois repartiraient vers `DESTINATAIRES_DEFAUT`
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_destinataires` | Adresses internes par envoi : `envoi` (`affiliation`, `sepa`, `changement`, `c1`, `c32`, `parcours_onem`), `email` (minuscules, unique par envoi), `actif` ; pré-remplie avec les adresses du code au 28/09/2026 | Super admin (lecture / écriture) ; lue par les routes d'envoi en service_role |
+| `site_destinataires` | Adresses internes par envoi : `envoi` (`affiliation`, `sepa`, `changement`, `c1`, `c32`, `parcours_onem`, `modification` depuis le 07/10/2026), `email` (minuscules, unique par envoi), `actif` ; pré-remplie avec les adresses du code au 28/09/2026 | Super admin (lecture / écriture) ; lue par les routes d'envoi en service_role |
 | `site_envois_mails` | Journal : une ligne par demande et par destinataire (`demande_type`, `demande_id`, `envoi` ou `copie_personnelle`, `destinataire`, `sujet`, `statut` `envoye` / `echec`, `resend_id`, `erreur`) | Lecture super admin ; écriture **uniquement** en service_role (aucune politique d'écriture) |
 
 - Routes d'envoi (`/api/send-*`) : `destinatairesInternes()` puis
@@ -787,6 +787,17 @@ reformuler, citer et lier la source, jamais recopier.
   automatique, alerte-mobilisation ciblée, espace affilié, tableau de bord réseaux.
 
 ---
+
+## État au 07/10/2026
+- **Commité sur `suivi-actions`, pas encore poussé** : formulaire « Signaler un changement »
+  (`/changement-situation`, table `web_modifications`, e-mail, back-office) et refonte de la grille
+  des démarches (4 colonnes, bande à 10°, animations).
+- **À faire par Fred** : exécuter la migration `20261007120000_web_modifications.sql` dans
+  Supabase (sinon le formulaire ne peut rien enregistrer), puis un **essai réel** avec sa propre
+  adresse (enregistrement, e-mail avec PDF, fiche et historique dans le back-office). Vérifié en
+  local seulement : types, tests, page, PDF du cas le plus long sur une page.
+- **Sécurité à décider par Fred** : lecture des anciennes tables `web_*` ouverte à tout compte
+  connecté (voir « Tables des formulaires publics »).
 
 ## État au 02/10/2026
 - **Poussé sur `suivi-actions` les 01/10 et 02/10/2026** (rien sur `main`) : Check IA et écran
