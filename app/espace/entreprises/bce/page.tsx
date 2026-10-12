@@ -4,6 +4,9 @@ import { chargerListe } from "../../../../lib/entreprises/donnees-serveur";
 import { Alerte, EnteteEcran } from "../../_partage/ui";
 import ImportGroupe from "./ImportGroupe";
 
+/** La lecture de la BCE peut prendre jusqu'à 45 s (deux lectures pour un enregistrement). */
+export const maxDuration = 120;
+
 export const metadata: Metadata = { title: "Import BCE — Espace CG", robots: { index: false, follow: false } };
 
 export default async function ImportBcePage() {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Upload, Users } from "lucide-react";
 import { exigerApp, monProfil } from "../../../../lib/espace/acces";
 import { chargerFiche } from "../../../../lib/entreprises/donnees-serveur";
@@ -12,6 +12,9 @@ import PanneauSiege from "./PanneauSiege";
 import PanneauSites from "./PanneauSites";
 import PanneauUnites from "./PanneauUnites";
 import PanneauOnss from "./PanneauOnss";
+
+/** La lecture de la BCE peut prendre jusqu'à 45 s (deux lectures pour un enregistrement). */
+export const maxDuration = 120;
 
 export const metadata: Metadata = { title: "Entreprise — Espace CG", robots: { index: false, follow: false } };
 
@@ -30,6 +33,8 @@ export default async function FichePage({ params }: { params: Promise<{ cle: str
     );
   }
   const f = r.fiche;
+  // Une entreprise CG Link qui a déjà sa fiche s'ouvre toujours à l'adresse de la fiche.
+  if (cle.startsWith("c-") && f.fiche) redirect(`/espace/entreprises/${f.fiche.id}`);
   const nom = nomAffiche(f.fiche, f.company);
   const superAdmin = profil?.role === "SUPER_ADMIN";
 

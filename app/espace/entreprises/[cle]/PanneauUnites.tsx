@@ -97,6 +97,7 @@ function Tableau({ fiche, unites }: { fiche: Fiche; unites: Unite[] }) {
 }
 
 export default function PanneauUnites({ fiche }: { fiche: Fiche }) {
+  const router = useRouter();
   const [ajout, setAjout] = useState(false);
   const actives = fiche.unites.filter((u) => u.statut === "actif");
   const arretees = fiche.unites.filter((u) => u.statut === "arrete");
@@ -112,7 +113,11 @@ export default function PanneauUnites({ fiche }: { fiche: Fiche }) {
       {ajout && (
         <div className="px-5 py-4">
           <ChampsEdition id="nouvelle-unite" valeurs={{ site_id: principal?.id ?? "" }} champs={champsUnite(fiche, false)}
-            enregistrer={(v) => ajouterUnite(fiche.cle, v)} libelleBouton="Ajouter l'unité" onSucces={() => setAjout(false)} />
+            enregistrer={(v) => ajouterUnite(fiche.cle, v)} libelleBouton="Ajouter l'unité"
+            onSucces={(d) => {
+              setAjout(false);
+              if (d?.cle && d.cle !== fiche.cle) router.replace(`/espace/entreprises/${d.cle}`);
+            }} />
         </div>
       )}
       {actives.length === 0 && !ajout ? (

@@ -51,7 +51,9 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
   au plus, erreurs traduites), `lib/bce/comparaison.ts` (différences et application des cases cochées).
 - Pièges gérés : dates en toutes lettres (« 1 janvier 2022 ») ; localité collée devant la rue
   (« Libramont,Rue … ») ; boîte vide « . » ; apostrophes encodées.
-- L'enregistrement **relit la BCE** côté serveur (on ne fait pas confiance aux données du navigateur). Une
+- L'enregistrement **relit la BCE** côté serveur (on ne fait pas confiance aux données du navigateur) puis
+  écrit **tout ou rien** par la fonction SQL `site_appliquer_bce()` (security invoker : RLS de la session).
+  Budget de 45 s par lecture ; une liste d'unités incomplète est refusée ; le siège se remplace en bloc. Une
   nouvelle unité va au site principal. Rien n'est supprimé : une unité absente de la BCE est seulement
   signalée.
 - Vérifié le 12/10/2026 : lecture réelle depuis le poste de dev. **Non vérifié** : la BCE répond-elle aux
@@ -78,6 +80,11 @@ Voir le détail dans [base-de-donnees.md](base-de-donnees.md), section « Entrep
 Écritures de l'app : **avec la session** de la personne (`getSupabaseServer()`), la RLS
 `site_a_app('entreprises')` s'applique. Exception : `site_ecarts_ignores`, écrit en service_role après
 vérification du droit.
+
+Suppression d'un site : le trigger `site_entreprise_sites_avant_suppression` refuse le site principal
+(sauf suppression de l'entreprise entière) et déplace unités, ONSS et mandats vers le site principal dans la
+même transaction. Pas de contrainte « nom obligatoire » en base (elle bloquerait la suppression d'une
+entreprise dans CG Link) : l'app l'exige (`nomManquant()`).
 
 **État de la migration au 12/10/2026 : écrite et commitée, pas encore appliquée** (Fred a refusé
 l'application par l'outil Supabase depuis Claude Code ; à exécuter dans Supabase › SQL Editor). Tant

@@ -51,3 +51,16 @@ describe("comparerBce", () => {
     expect(aucunChangement(c3)).toBe(true);
   });
 });
+
+describe("siège comparé en bloc", () => {
+  it("propose d'effacer la boîte et le numéro quand le siège change", () => {
+    const e = { ...E, denomination_bce: "NOUVEAU NOM", siege_rue: "Rue A", siege_numero: "1", siege_boite: "3" };
+    const c = comparerBce(e, [], { entite: { denomination: "NOUVEAU NOM", siege: { rue: "Rue B", numero: null, boite: null, code_postal: "6800", localite: "Libramont-Chevigny" } }, unites: [] });
+    expect(c.identite.map((x) => x.champ).sort()).toEqual(["siege_boite", "siege_numero", "siege_rue"]);
+    expect(majEntrepriseDepuisBce(c, choixParDefaut(c))).toEqual({ siege_rue: "Rue B", siege_numero: null, siege_boite: null });
+  });
+  it("n'efface rien quand la BCE ne donne aucun siège", () => {
+    const c = comparerBce(E, [], { entite: { denomination: "ANCIEN NOM", siege: { rue: null, numero: null, boite: null, code_postal: null, localite: null } }, unites: [] });
+    expect(c.identite).toEqual([]);
+  });
+});

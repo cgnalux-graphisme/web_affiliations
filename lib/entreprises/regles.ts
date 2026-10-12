@@ -6,6 +6,11 @@ import type { CompanyCgLink, Entreprise, Onss, Site, Unite } from "./types";
 export const REF_DEFAUT = "Service Ressources Humaines";
 export type BlocAdresse = { lignes: string[]; incomplet: boolean };
 
+/** Une fiche hors CG Link doit garder un nom (une fiche reliée prend celui de CG Link). */
+export function nomManquant(companyId: string | null, nom: string | null | undefined): boolean {
+  return !companyId && !nom?.trim();
+}
+
 export function nomAffiche(e: Pick<Entreprise, "nom"> | null, company: Pick<CompanyCgLink, "name"> | null): string {
   return e?.nom?.trim() || company?.name?.trim() || "Sans nom";
 }

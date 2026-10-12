@@ -11,7 +11,7 @@ import { lireBce } from "../../../lib/bce/lecture-serveur";
 import {
   comparerBce, majEntrepriseDepuisBce, majUnitesDepuisBce, type ChoixBce, type ComparaisonBce,
 } from "../../../lib/bce/comparaison";
-import { lireCle, onssACreer, onssDeCompany, planSuppressionSite } from "../../../lib/entreprises/regles";
+import { lireCle, nomManquant, onssACreer, onssDeCompany, planSuppressionSite } from "../../../lib/entreprises/regles";
 import { COLONNES_COMPANY } from "../../../lib/entreprises/donnees-serveur";
 import { COLONNES_ENTREPRISE, COLONNES_SITE, COLONNES_UNITE, type CompanyCgLink, type Entreprise, type Site, type Unite } from "../../../lib/entreprises/types";
 
@@ -73,6 +73,7 @@ function nettoyer(champs: Champs, permis: readonly string[]): { ok: true; valeur
 function messageErreur(code: string | undefined): string {
   if (code === "23505") return "Ce numéro existe déjà sur une autre fiche.";
   if (code === "23514") return "Une donnée ne respecte pas le format attendu. Vérifiez les champs.";
+  if (code === "P0001") return "Le site principal ne peut pas être supprimé.";
   return ECHEC;
 }
 
@@ -90,7 +91,11 @@ async function ficheDeCle(db: SupabaseClient, cle: string): Promise<{ id: string
   const { data: company } = await service.from("companies").select(COLONNES_COMPANY).eq("id", c.id).maybeSingle();
   if (!company) return null;
 
-  await db.from("site_entreprises").upsert({ company_id: c.id }, { onConflict: "company_id", ignoreDuplicates: true });
+  // ignoreDuplicates + select : une ligne seulement si CETTE requête a créé la fiche.
+  const { data: creee } = await db
+    .from("site_entreprises")
+    .upsert({ company_id: c.id }, { onConflict: "company_id", ignoreDuplicates: true })
+    .select("id");
   const { data: fiche } = await db.from("site_entreprises").select("id").eq("company_id", c.id).maybeSingle();
   if (!fiche) return null;
   const id = fiche.id as string;
@@ -100,8 +105,9 @@ async function ficheDeCle(db: SupabaseClient, cle: string): Promise<{ id: string
     const { error } = await db.from("site_entreprise_sites").insert({ entreprise_id: id, nom: "Site principal", principal: true });
     if (error && error.code !== "23505") console.error("[entreprises] site principal :", error.code);
   }
+  // ONSS repris de CG Link à la création seulement : un ONSS supprimé ensuite ne doit pas revenir.
   const { data: existants } = await db.from("site_entreprise_onss").select("numero").eq("entreprise_id", id);
-  const aCreer = onssACreer(onssDeCompany(company as CompanyCgLink), (existants ?? []) as { numero: string }[]);
+  const aCreer = creee?.length ? onssACreer(onssDeCompany(company as CompanyCgLink), (existants ?? []) as { numero: string }[]) : [];
   if (aCreer.length) {
     await db.from("site_entreprise_onss").upsert(
       aCreer.map((o) => ({ entreprise_id: id, numero: o.numero, libelle: o.libelle })),
@@ -127,6 +133,12 @@ export async function enregistrerEntreprise(cle: string, champs: Champs): Promis
   if (!n.ok) return n;
   const f = await ficheDeCle(db, cle);
   if (!f) return { ok: false, erreur: ECHEC };
+  if ("nom" in n.valeurs) {
+    const { data: actuelle } = await db.from("site_entreprises").select("company_id").eq("id", f.id).maybeSingle();
+    if (nomManquant((actuelle?.company_id as string | null) ?? null, n.valeurs.nom)) {
+      return { ok: false, erreur: "Indiquez le nom de l'entreprise." };
+    }
+  }
   const { data, error } = await db.from("site_entreprises").update(n.valeurs).eq("id", f.id).select("id");
   if (error || !data?.length) return { ok: false, erreur: messageErreur(error?.code) };
   rafraichir(f.cle);
@@ -191,13 +203,10 @@ export async function supprimerSite(siteId: string): Promise<Resultat> {
     .eq("entreprise_id", (site as Site).entreprise_id).eq("principal", true).maybeSingle();
   const plan = planSuppressionSite(site as Site, (principal ?? undefined) as Site | undefined);
   if (!plan.ok) return plan;
-  const [u, o] = await Promise.all([
-    db.from("site_entreprise_unites").update({ site_id: plan.versSite }).eq("site_id", siteId),
-    db.from("site_entreprise_onss").update({ site_id: plan.versSite }).eq("site_id", siteId),
-  ]);
-  if (u.error || o.error) return { ok: false, erreur: ECHEC };
-  const { error } = await db.from("site_entreprise_sites").delete().eq("id", siteId);
-  if (error) return { ok: false, erreur: ECHEC };
+  // Le déplacement des unités, ONSS et mandats vers le site principal est fait par la base, dans la même
+  // transaction que la suppression (trigger site_entreprise_sites_avant_suppression).
+  const { data: supprime, error } = await db.from("site_entreprise_sites").delete().eq("id", siteId).select("id");
+  if (error || !supprime?.length) return { ok: false, erreur: messageErreur(error?.code) };
   rafraichir((site as Site).entreprise_id);
   return { ok: true, message: "Site supprimé : ses unités et ONSS sont revenus au site principal." };
 }
@@ -330,19 +339,22 @@ export async function appliquerBce(cle: string, choix: ChoixBce): Promise<Result
   const majE = majEntrepriseDepuisBce(comparaison, choix);
   const majU = majUnitesDepuisBce(comparaison, choix, bce.unites);
 
-  const { data: principal } = await db.from("site_entreprise_sites").select("id").eq("entreprise_id", etat.f.id).eq("principal", true).maybeSingle();
-  if (majU.inserer.length) {
-    const { error } = await db.from("site_entreprise_unites").insert(
-      majU.inserer.map((u) => ({ ...u, entreprise_id: etat.f.id, site_id: (principal?.id as string | undefined) ?? null, origine: "bce" }))
-    );
-    if (error) return { ok: false, erreur: messageErreur(error.code) };
+  // Tout ou rien : une seule fonction SQL (transaction, RLS de la session).
+  const { error } = await db.rpc("site_appliquer_bce", {
+    p_entreprise: etat.f.id,
+    p_maj: majE,
+    p_inserer: majU.inserer,
+    p_modifier: majU.modifier,
+  });
+  if (error) {
+    console.error("[entreprises] import BCE :", error.code);
+    return {
+      ok: false,
+      erreur: error.code === "23505"
+        ? "Une unité de la BCE figure déjà sur une autre fiche. Rien n'a été enregistré."
+        : `${ECHEC} Rien n'a été enregistré.`,
+    };
   }
-  for (const m of majU.modifier) {
-    const { error } = await db.from("site_entreprise_unites").update(m.maj).eq("id", m.id);
-    if (error) return { ok: false, erreur: messageErreur(error.code) };
-  }
-  const { error } = await db.from("site_entreprises").update({ ...majE, bce_importe_le: new Date().toISOString() }).eq("id", etat.f.id);
-  if (error) return { ok: false, erreur: messageErreur(error.code) };
   rafraichir(etat.f.cle);
   return { ok: true, donnees: { cle: etat.f.cle }, message: "Données de la BCE enregistrées." };
 }

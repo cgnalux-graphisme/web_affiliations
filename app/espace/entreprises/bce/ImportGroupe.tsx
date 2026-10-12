@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { CircleCheck, CircleAlert, Play, Square, TriangleAlert } from "lucide-react";
 import { aucunChangement } from "../../../../lib/bce/comparaison";
+import { ERREUR_BCE_INJOIGNABLE } from "../../../../lib/bce/messages";
 import { comparerAvecBce } from "../actions";
 import { IconeChargement } from "../../../Chargement";
 import { Alerte, BTN, BTN_PRINCIPAL, Panneau, Statut } from "../../_partage/ui";
@@ -21,7 +22,12 @@ export default function ImportGroupe({ fiches, sansNumero }: { fiches: { cle: st
     arret.current = false;
     for (let i = 0; i < fiches.length && !arret.current; i++) {
       setEtats((e) => e.map((x, j) => (j === i ? { ...x, statut: "encours" } : x)));
-      const r = await comparerAvecBce(fiches[i].cle);
+      let r: Awaited<ReturnType<typeof comparerAvecBce>>;
+      try {
+        r = await comparerAvecBce(fiches[i].cle);
+      } catch {
+        r = { ok: false, erreur: ERREUR_BCE_INJOIGNABLE };
+      }
       const suivant: Etat = !r.ok || !r.donnees
         ? { ...fiches[i], statut: "erreur", detail: r.ok ? "Réponse vide." : r.erreur }
         : aucunChangement(r.donnees.comparaison)

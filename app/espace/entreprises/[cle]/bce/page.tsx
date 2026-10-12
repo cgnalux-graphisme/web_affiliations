@@ -5,6 +5,9 @@ import { lireCle } from "../../../../../lib/entreprises/regles";
 import { EnteteEcran } from "../../../_partage/ui";
 import ComparaisonBce from "./ComparaisonBce";
 
+/** La lecture de la BCE peut prendre jusqu'à 45 s (deux lectures pour un enregistrement). */
+export const maxDuration = 120;
+
 export const metadata: Metadata = { title: "Import BCE — Espace CG", robots: { index: false, follow: false } };
 
 export default async function BcePage({ params }: { params: Promise<{ cle: string }> }) {

@@ -137,6 +137,8 @@ Entreprises et délégués (migration `supabase/migrations/20261012120000_site_e
 | `site_delegue_mandats` | Mandats : `organe` (`ds`, `ce`, `cppt`, `cee`, `instances_cg`, `autre`), `qualite` (`effectif` / `suppleant`, obligatoire pour DS / CE / CPPT), `libelle`, `fonction`, `site_id`, `debut`, `fin`, `a_verifier` | Idem |
 | `site_ecarts_ignores` | Écarts CG Link ignorés (`cible`, `cible_id`, `champ`, `valeur`) | Lecture : app `delegues` ; écriture : service_role |
 | `site_journal_delegues` | Journal de la gestion des délégués (lot B) | Idem |
+| `site_appliquer_bce()` | Import BCE en une transaction (unités créées / modifiées, dénomination, siège, `bce_importe_le`) | `authenticated` (security invoker, vérifie l'app) |
+| Trigger `site_entreprise_sites_avant_suppression` | Site principal non supprimable ; unités, ONSS, mandats d'un site supprimé → site principal | — |
 | `site_compter_affilies()` | Affiliés `Actif` de `workers` par `company_id` et `contract_type` ; renvoie 0 ligne sans l'app `entreprises` ou `delegues` | `authenticated` (security definer) ; pas `anon` |
 
 ### Colonnes de `site_articles`

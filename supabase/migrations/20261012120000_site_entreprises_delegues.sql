@@ -37,11 +37,12 @@ create table if not exists public.site_entreprises (
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint site_entreprises_nom_check
-    check (company_id is not null or nullif(btrim(nom), '') is not null),
+  -- Pas de contrainte « nom obligatoire hors CG Link » : si CG Link supprime l'entreprise, company_id passe
+  -- à null et la contrainte bloquerait la suppression dans CG Link. Le nom est exigé par l'app (nomManquant).
   constraint site_entreprises_bce_check
     check (numero_bce is null or numero_bce ~ '^[01][0-9]{9}$')
 );
+alter table public.site_entreprises drop constraint if exists site_entreprises_nom_check;
 comment on table public.site_entreprises is
   'Fiches entreprises de l''Espace CG (app entreprises). company_id = lien CG Link (null = hors CG Link).';
 
@@ -213,6 +214,91 @@ begin
     execute format('create policy %I on public.%I for select to authenticated using ((select public.site_a_app(''delegues'')))', t || '_select', t);
   end loop;
 end $$;
+
+-- ── Suppression d'un site : refusée pour le site principal (sauf suppression de l'entreprise entière) ;
+--    unités, ONSS et mandats rejoignent le site principal dans la même transaction. security definer :
+--    les mandats ne sont pas modifiables avec la session (lecture seule), le déplacement reste dans l'entreprise.
+create or replace function public.site_entreprise_site_avant_suppression()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_principal uuid;
+begin
+  if old.principal then
+    if exists (select 1 from public.site_entreprises where id = old.entreprise_id) then
+      raise exception 'Le site principal ne peut pas être supprimé.' using errcode = 'P0001';
+    end if;
+    return old;
+  end if;
+  -- Suppression de l'entreprise entière (cascade) : rien à déplacer, tout part avec elle.
+  if not exists (select 1 from public.site_entreprises where id = old.entreprise_id) then
+    return old;
+  end if;
+  select id into v_principal from public.site_entreprise_sites where entreprise_id = old.entreprise_id and principal;
+  if v_principal is not null then
+    update public.site_entreprise_unites set site_id = v_principal where site_id = old.id;
+    update public.site_entreprise_onss set site_id = v_principal where site_id = old.id;
+    update public.site_delegue_mandats set site_id = v_principal where site_id = old.id;
+  end if;
+  return old;
+end $$;
+revoke all on function public.site_entreprise_site_avant_suppression() from public, anon;
+drop trigger if exists site_entreprise_sites_avant_suppression on public.site_entreprise_sites;
+create trigger site_entreprise_sites_avant_suppression before delete on public.site_entreprise_sites
+  for each row execute function public.site_entreprise_site_avant_suppression();
+
+-- ── Import BCE en une seule transaction (security invoker : la RLS de la session s'applique) ──
+--    p_maj : champs de site_entreprises ; p_inserer : unités à créer (site principal) ;
+--    p_modifier : [{ id, maj: { champ: valeur } }]. Tout ou rien.
+create or replace function public.site_appliquer_bce(p_entreprise uuid, p_maj jsonb, p_inserer jsonb, p_modifier jsonb)
+returns void language plpgsql security invoker set search_path = public as $$
+declare
+  v_site uuid;
+  m jsonb;
+  x jsonb;
+begin
+  if not (select public.site_a_app('entreprises')) then
+    raise exception 'Accès refusé.' using errcode = '42501';
+  end if;
+  select id into v_site from public.site_entreprise_sites where entreprise_id = p_entreprise and principal;
+
+  insert into public.site_entreprise_unites
+    (entreprise_id, site_id, origine, numero_ue, denomination, rue, numero, boite, code_postal, localite, statut, date_debut)
+  select p_entreprise, v_site, 'bce', r.numero_ue, r.denomination, r.rue, r.numero, r.boite, r.code_postal, r.localite,
+         coalesce(r.statut, 'actif'), r.date_debut
+  from jsonb_to_recordset(coalesce(p_inserer, '[]'::jsonb)) as r(
+    numero_ue text, denomination text, rue text, numero text, boite text, code_postal text, localite text, statut text, date_debut date);
+
+  for m in select * from jsonb_array_elements(coalesce(p_modifier, '[]'::jsonb)) loop
+    x := m -> 'maj';
+    update public.site_entreprise_unites u set
+      denomination = case when x ? 'denomination' then x ->> 'denomination' else u.denomination end,
+      rue          = case when x ? 'rue' then x ->> 'rue' else u.rue end,
+      numero       = case when x ? 'numero' then x ->> 'numero' else u.numero end,
+      boite        = case when x ? 'boite' then x ->> 'boite' else u.boite end,
+      code_postal  = case when x ? 'code_postal' then x ->> 'code_postal' else u.code_postal end,
+      localite     = case when x ? 'localite' then x ->> 'localite' else u.localite end,
+      statut       = case when x ? 'statut' then x ->> 'statut' else u.statut end,
+      date_debut   = case when x ? 'date_debut' then (x ->> 'date_debut')::date else u.date_debut end
+    where u.id = (m ->> 'id')::uuid and u.entreprise_id = p_entreprise;
+    if not found then
+      raise exception 'Unité introuvable.' using errcode = 'P0002';
+    end if;
+  end loop;
+
+  update public.site_entreprises e set
+    denomination_bce  = case when p_maj ? 'denomination_bce' then p_maj ->> 'denomination_bce' else e.denomination_bce end,
+    siege_rue         = case when p_maj ? 'siege_rue' then p_maj ->> 'siege_rue' else e.siege_rue end,
+    siege_numero      = case when p_maj ? 'siege_numero' then p_maj ->> 'siege_numero' else e.siege_numero end,
+    siege_boite       = case when p_maj ? 'siege_boite' then p_maj ->> 'siege_boite' else e.siege_boite end,
+    siege_code_postal = case when p_maj ? 'siege_code_postal' then p_maj ->> 'siege_code_postal' else e.siege_code_postal end,
+    siege_localite    = case when p_maj ? 'siege_localite' then p_maj ->> 'siege_localite' else e.siege_localite end,
+    bce_importe_le    = now()
+  where e.id = p_entreprise;
+  if not found then
+    raise exception 'Fiche introuvable.' using errcode = 'P0002';
+  end if;
+end $$;
+revoke all on function public.site_appliquer_bce(uuid, jsonb, jsonb, jsonb) from public, anon;
+grant execute on function public.site_appliquer_bce(uuid, jsonb, jsonb, jsonb) to authenticated;
 
 -- ── Affiliés actifs par entreprise et type de contrat (lu avec la session) ──
 create or replace function public.site_compter_affilies()

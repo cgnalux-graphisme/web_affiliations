@@ -13,8 +13,7 @@ export type ComparaisonBce = {
 };
 export type ChoixBce = { identite: string[]; nouvelles: string[]; modifiees: string[] };
 
-const CHAMPS_IDENTITE: [keyof Entreprise, string, (b: EntiteBce) => string | null][] = [
-  ["denomination_bce", "Dénomination", (b) => b.denomination],
+const CHAMPS_SIEGE: [keyof Entreprise, string, (b: EntiteBce) => string | null][] = [
   ["siege_rue", "Siège : rue", (b) => b.siege.rue],
   ["siege_numero", "Siège : numéro", (b) => b.siege.numero],
   ["siege_boite", "Siège : boîte", (b) => b.siege.boite],
@@ -40,11 +39,17 @@ function adresseCourte(u: Unite): string {
 }
 
 export function comparerBce(e: Entreprise, unites: Unite[], bce: { entite: EntiteBce; unites: UniteBce[] }): ComparaisonBce {
-  const identite = CHAMPS_IDENTITE.flatMap(([champ, libelle, lire]) => {
-    const avant = norm(e[champ]);
-    const apres = norm(lire(bce.entite));
-    return apres !== null && avant !== apres ? [{ champ, libelle, avant, apres }] : [];
-  });
+  const identite: Changement[] = [];
+  const denomination = norm(bce.entite.denomination);
+  if (denomination !== null && norm(e.denomination_bce) !== denomination) {
+    identite.push({ champ: "denomination_bce", libelle: "Dénomination", avant: norm(e.denomination_bce), apres: denomination });
+  }
+  // Le siège se compare en bloc : si la BCE en donne un, tous ses champs le remplacent (une boîte ou un
+  // numéro disparus sont effacés, jamais mélangés à la nouvelle adresse).
+  const siegeBce = CHAMPS_SIEGE.map(([champ, libelle, lire]) => ({ champ, libelle, avant: norm(e[champ]), apres: norm(lire(bce.entite)) }));
+  if (siegeBce.some((x) => x.apres !== null)) {
+    identite.push(...siegeBce.filter((x) => x.avant !== x.apres).map(({ champ, libelle, avant, apres }) => ({ champ, libelle, avant, apres })));
+  }
 
   const parNumero = new Map(unites.filter((u) => u.numero_ue).map((u) => [u.numero_ue as string, u]));
   const vusBce = new Set(bce.unites.map((b) => b.numero_ue));

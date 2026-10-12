@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CompanyCgLink, Entreprise, Onss, Site, Unite } from "./types";
 import {
   blocAdresse, cleDe, construireListe, correspond, ecartsOnss, lireCle, nomAffiche,
-  onssACreer, onssDeCompany, planSuppressionSite, REF_DEFAUT,
+  nomManquant, onssACreer, onssDeCompany, planSuppressionSite, REF_DEFAUT,
 } from "./regles";
 
 const E: Entreprise = {
@@ -112,5 +112,16 @@ describe("construireListe", () => {
     expect(correspond(liste[0], "123456")).toBe(true);
     expect(correspond(liste[0], "arlon")).toBe(true);
     expect(correspond(liste[0], "zzz")).toBe(false);
+  });
+});
+
+describe("nomManquant", () => {
+  it("exige un nom pour une fiche hors CG Link", () => {
+    expect(nomManquant(null, "  ")).toBe(true);
+    expect(nomManquant(null, null)).toBe(true);
+    expect(nomManquant(null, "Acme")).toBe(false);
+  });
+  it("n'exige rien pour une fiche reliée à CG Link", () => {
+    expect(nomManquant("c1", null)).toBe(false);
   });
 });

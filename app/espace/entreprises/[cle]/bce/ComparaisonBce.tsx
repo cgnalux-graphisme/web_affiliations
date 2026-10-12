@@ -7,6 +7,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { formaterNumeroUe } from "../../../../../lib/bce/numero";
 import { aucunChangement, choixParDefaut, type ChoixBce, type ComparaisonBce as Comparaison } from "../../../../../lib/bce/comparaison";
 import { isoToDateFr } from "../../../../../lib/dates";
+import { ERREUR_BCE_INJOIGNABLE } from "../../../../../lib/bce/messages";
 import { appliquerBce, comparerAvecBce } from "../../actions";
 import { EcranChargement, IconeChargement } from "../../../../Chargement";
 import { Alerte, BTN, BTN_PRINCIPAL, Panneau } from "../../../_partage/ui";
@@ -23,14 +24,17 @@ export default function ComparaisonBce({ cle }: { cle: string }) {
 
   useEffect(() => {
     let actif = true;
-    comparerAvecBce(cle).then((r) => {
-      if (!actif) return;
-      if (!r.ok || !r.donnees) setEtat({ erreur: r.ok ? "Réponse vide." : r.erreur });
-      else {
-        setEtat({ c: r.donnees.comparaison });
-        setChoix(choixParDefaut(r.donnees.comparaison));
-      }
-    });
+    comparerAvecBce(cle)
+      .then((r) => {
+        if (!actif) return;
+        if (!r.ok || !r.donnees) setEtat({ erreur: r.ok ? ERREUR_BCE_INJOIGNABLE : r.erreur });
+        else {
+          setEtat({ c: r.donnees.comparaison });
+          setChoix(choixParDefaut(r.donnees.comparaison));
+        }
+      })
+      // Coupure réseau ou délai du serveur dépassé : jamais d'écran « Lecture… » sans fin.
+      .catch(() => actif && setEtat({ erreur: ERREUR_BCE_INJOIGNABLE }));
     return () => { actif = false; };
   }, [cle]);
 
@@ -48,7 +52,12 @@ export default function ComparaisonBce({ cle }: { cle: string }) {
   async function enregistrer() {
     setEnCours(true);
     setErreur("");
-    const r = await appliquerBce(cle, choix);
+    let r: Awaited<ReturnType<typeof appliquerBce>>;
+    try {
+      r = await appliquerBce(cle, choix);
+    } catch {
+      r = { ok: false, erreur: ERREUR_BCE_INJOIGNABLE };
+    }
     setEnCours(false);
     if (!r.ok) return setErreur(r.erreur);
     router.push(`/espace/entreprises/${r.donnees?.cle ?? cle}`);

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ERREUR_BCE_INCONNU, ERREUR_BCE_INJOIGNABLE, ERREUR_BCE_PAGE, lireBce } from "./lecture-serveur";
+import { ERREUR_BCE_INCOMPLET, ERREUR_BCE_INCONNU, ERREUR_BCE_INJOIGNABLE, ERREUR_BCE_PAGE, lireBce } from "./lecture-serveur";
 
 const fixture = (f: string) => readFileSync(join(__dirname, "__fixtures__", f), "utf8");
 
@@ -41,5 +41,24 @@ describe("lireBce", () => {
   it("signale une page méconnaissable", async () => {
     const r = await lireBce("0850076920", faux({ zoeknummerform: "<html>autre</html>" }));
     expect(r).toEqual({ ok: false, erreur: ERREUR_BCE_PAGE });
+  });
+});
+
+describe("lireBce, garde-fous", () => {
+  it("respecte un budget global de temps", async () => {
+    const lent = ((_: string, init?: RequestInit) =>
+      new Promise((_r, rej) => init?.signal?.addEventListener("abort", () => rej(new Error("abort"))))) as unknown as typeof fetch;
+    const debut = Date.now();
+    const r = await lireBce("0850076920", lent, 80);
+    expect(r).toEqual({ ok: false, erreur: ERREUR_BCE_INJOIGNABLE });
+    expect(Date.now() - debut).toBeLessThan(2000);
+  });
+  it("refuse une liste d'unités incomplète au lieu de la présenter comme complète", async () => {
+    // La page 2 renvoie toujours la page 1 : mêmes numéros, la liste n'atteint jamais 38.
+    const r = await lireBce("0400378485", faux({
+      zoeknummerform: fixture("accg-entite.html"),
+      vestiginglijst: fixture("colruyt-unites-p1.html"),
+    }));
+    expect(r).toEqual({ ok: false, erreur: ERREUR_BCE_INCOMPLET });
   });
 });
