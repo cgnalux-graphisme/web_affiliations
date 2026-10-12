@@ -1,15 +1,18 @@
 import {
   BookOpen,
+  Building2,
   CircleHelp,
   FileText,
   Flag,
   FolderOpen,
   History,
+  IdCard,
   Inbox,
   KeyRound,
   LayoutGrid,
   Lightbulb,
   List,
+  MapPin,
   Mail,
   Megaphone,
   MessageCircle,
@@ -57,6 +60,9 @@ export const ICONES: Record<string, LucideIcon> = {
   shield: ShieldCheck,
   history: History,
   share: Share2,
+  building: Building2,
+  "id-card": IdCard,
+  "map-pin": MapPin,
 };
 
 export function icone(nom: string | null | undefined): LucideIcon {
