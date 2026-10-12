@@ -37,7 +37,9 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
 - **Repris de CG Link à la création de la fiche** : numéros ONSS (`onss`, `onss2..4` et leurs libellés),
   puis écarts signalés (« Reprendre » / « Ignorer », valeurs ignorées dans `site_ecarts_ignores`).
 - **Propre à l'Espace** : tout le reste (tables ci-dessous).
-- **Fiche créée à la première modification** d'une entreprise CG Link (`ficheDeCle()` dans
+- **Remplissage initial par la migration** (demandé par Fred le 12/10/2026) : une fiche, un site principal
+  et les ONSS (chiffres seuls, libellés `onss2..4`) pour chacune des 94 entreprises de CG Link (99 ONSS).
+- **Fiche créée à la première modification** d'une entreprise ajoutée ensuite dans CG Link (`ficheDeCle()` dans
   `app/espace/entreprises/actions.ts`) : fiche, site « Site principal », ONSS. Idempotent (`company_id`
   unique, `upsert … ignoreDuplicates`).
 

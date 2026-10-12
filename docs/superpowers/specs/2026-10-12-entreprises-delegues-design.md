@@ -245,6 +245,10 @@ de l'app), comme les écritures de rôle dans « Comptes & accès ». Donner l'a
 
 ### 6.2 Création automatique de la fiche
 
+**Modifié le 12/10/2026 (demande de Fred)** : la migration crée d'emblée la fiche, le site principal et les
+ONSS de toutes les entreprises de CG Link. La règle ci-dessous ne vaut plus que pour les entreprises
+ajoutées ensuite dans CG Link.
+
 À la première modification d'une entreprise CG Link (ou à l'import des délégués, lot B1) :
 `site_entreprises` (`company_id`), site « Site principal » (`principal = true`), ONSS repris de
 `companies.onss..onss4` avec leurs libellés. Idempotent (`company_id` unique).

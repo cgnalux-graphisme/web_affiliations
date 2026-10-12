@@ -326,3 +326,28 @@ where not exists (select 1 from public.site_apps where code = 'delegues');
 insert into public.site_app_roles (app_code, role)
 select 'entreprises', r from unnest(array['ADMIN_OP', 'PERMANENT']) as r
 where not exists (select 1 from public.site_app_roles where app_code = 'entreprises' and role = r);
+
+-- ── Remplissage initial (demandé par Fred le 12/10/2026) : une fiche, un site principal et les ONSS de
+--    CG Link (chiffres seuls, libellés onss2..4) pour chaque entreprise de CG Link. Rejouable sans doublon.
+--    Les entreprises ajoutées plus tard dans CG Link reçoivent leur fiche à la première modification.
+insert into public.site_entreprises (company_id)
+select c.id from public.companies c
+where not exists (select 1 from public.site_entreprises e where e.company_id = c.id);
+
+insert into public.site_entreprise_sites (entreprise_id, nom, principal)
+select e.id, 'Site principal', true from public.site_entreprises e
+where not exists (select 1 from public.site_entreprise_sites s where s.entreprise_id = e.id and s.principal);
+
+insert into public.site_entreprise_onss (entreprise_id, numero, libelle)
+select distinct on (e.id, x.numero) e.id, x.numero, x.libelle
+from public.site_entreprises e
+join public.companies c on c.id = e.company_id
+cross join lateral (values
+  (1, regexp_replace(coalesce(c.onss, ''), '\D', '', 'g'), null::text),
+  (2, regexp_replace(coalesce(c.onss2, ''), '\D', '', 'g'), nullif(btrim(c.onss2_label), '')),
+  (3, regexp_replace(coalesce(c.onss3, ''), '\D', '', 'g'), nullif(btrim(c.onss3_label), '')),
+  (4, regexp_replace(coalesce(c.onss4, ''), '\D', '', 'g'), nullif(btrim(c.onss4_label), ''))
+) as x(rang, numero, libelle)
+where x.numero <> ''
+order by e.id, x.numero, x.rang
+on conflict (entreprise_id, numero) do nothing;
