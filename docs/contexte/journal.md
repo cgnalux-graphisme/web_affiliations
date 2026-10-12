@@ -4,6 +4,21 @@
 
 Le plus récent en haut. L'état **actuel** est dans CLAUDE.md (racine), section « État actuel ».
 
+## État au 12/10/2026 (matin)
+- **Espace CG, lots 1 à 3 terminés et vérifiés en local** (types, 631 tests, build de production) sur
+  `suivi-actions`, **commités et poussés le 12/10/2026** (mise en production), avec la doc découpée et les
+  règles RLS alignées sur les apps : back-office en apps (`/espace`), écrans repris dans le
+  style de la maquette, Comptes & accès, Apps par rôle, Journal des accès, page
+  `/login/nouveau-mot-de-passe`, transitions et finitions (lot 3). `espace-cg.html` supprimé.
+- **Non testé** (pas de session ni d'écriture en base depuis Claude Code) : tous les écrans connectés et
+  les actions réelles (interrupteurs d'apps, rôle, invitation, lien de réinitialisation, suspension).
+- **À faire par Fred** : 1. ajouter `<adresse du site>/login/nouveau-mot-de-passe` (local, preview,
+  production) dans Supabase › Authentication › URL Configuration › Redirect URLs ; 2. parcourir les 4 apps
+  connecté ; 3. essayer une invitation sur une adresse secondaire (e-mail, mot de passe, entrée dans
+  l'Espace, connexion à CG Link), une réinitialisation et une suspension / réactivation ; 4. vérifier
+  qu'un compte ADMIN_OP ou PERMANENT à qui l'on donne une app (Actions, Scan News) lit et écrit bien ses
+  données depuis l'Espace (les politiques RLS suivent les apps depuis le 12/10/2026).
+
 ## État au 08/10/2026
 - **Assistant CG en production** : fusionné dans `suivi-actions` et **poussé par Fred le 08/10/2026** ; la
   branche `chatbot` est supprimée (sur le poste et sur GitHub) : **on travaille uniquement sur

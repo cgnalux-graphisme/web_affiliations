@@ -25,10 +25,12 @@ et les petits `CLAUDE.md` de renvoi des apps quand il travaille dans ces dossier
 | [docs/contexte/base-de-donnees.md](docs/contexte/base-de-donnees.md) | Tables `site_*` et `web_*`, colonnes, mobilisations, règles métier des actions, back-office des demandes, envois automatiques |
 | [docs/contexte/design.md](docs/contexte/design.md) | Direction D en détail : palette et contrastes, composants, pied de page, logos, PDF, formulaires, chargement |
 | [docs/contexte/feuille-de-route.md](docs/contexte/feuille-de-route.md) | Les phases (0, 1, 4) et les idées à venir |
+| [docs/contexte/entreprises.md](docs/contexte/entreprises.md) | App **Entreprises** : fiches, import BCE, sites (UTE), unités d'établissement, ONSS, bloc adresse, affiliés |
 | [docs/contexte/journal.md](docs/contexte/journal.md) | Anciens « État au… » (historique, du plus récent au plus ancien) |
 
 Renvois chargés automatiquement par Claude Code (quelques lignes chacun, ils pointent vers le bon document) :
 `app/espace/actions/CLAUDE.md`, `app/espace/scan-news/CLAUDE.md`, `app/espace/demarches/CLAUDE.md`,
+`app/espace/entreprises/CLAUDE.md`,
 `supabase/CLAUDE.md`.
 
 ### Mettre à jour ce fichier et ses ramifications
@@ -133,20 +135,24 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 
 ---
 
-## État actuel (12/10/2026)
-- **Espace CG, lots 1 à 3 terminés et vérifiés en local** (types, 631 tests, build de production) sur
-  `suivi-actions`, **commités et poussés le 12/10/2026** (mise en production), avec la doc découpée et les
-  règles RLS alignées sur les apps : back-office en apps (`/espace`), écrans repris dans le
-  style de la maquette, Comptes & accès, Apps par rôle, Journal des accès, page
-  `/login/nouveau-mot-de-passe`, transitions et finitions (lot 3). `espace-cg.html` supprimé.
-- **Non testé** (pas de session ni d'écriture en base depuis Claude Code) : tous les écrans connectés et
-  les actions réelles (interrupteurs d'apps, rôle, invitation, lien de réinitialisation, suspension).
-- **À faire par Fred** : 1. ajouter `<adresse du site>/login/nouveau-mot-de-passe` (local, preview,
-  production) dans Supabase › Authentication › URL Configuration › Redirect URLs ; 2. parcourir les 4 apps
-  connecté ; 3. essayer une invitation sur une adresse secondaire (e-mail, mot de passe, entrée dans
-  l'Espace, connexion à CG Link), une réinitialisation et une suspension / réactivation ; 4. vérifier
-  qu'un compte ADMIN_OP ou PERMANENT à qui l'on donne une app (Actions, Scan News) lit et écrit bien ses
-  données depuis l'Espace (les politiques RLS suivent les apps depuis le 12/10/2026).
+## État actuel (12/10/2026, après-midi)
+- **App Entreprises (lot A) construite sur la branche `entreprises`** (créée depuis `suivi-actions`, **non
+  poussée**) : liste, fiche, sites (UTE), unités d'établissement, ONSS, personne de référence et bloc adresse,
+  affiliés, import BCE (une fiche ou toutes). Vérifié en local : types, 676 tests, build de production,
+  redirection vers `/login` sans session, lecture réelle de la BCE. Contexte :
+  [docs/contexte/entreprises.md](docs/contexte/entreprises.md). Spec et plans dans `docs/superpowers/`.
+- **Migration `20261012120000_site_entreprises_delegues.sql` écrite, pas encore appliquée** : à exécuter par
+  Fred dans Supabase › SQL Editor (8 tables `site_*`, fonction `site_compter_affilies()`, apps `entreprises`
+  et `delegues` (inactive) au catalogue).
+- **Faille signalée à Fred le 12/10/2026** : la table CG Link `workers` (NISS, noms, 10 684 lignes) est
+  lisible avec la clé publique. Prompt de correction remis à Fred pour sa session Cursor de CG Link (RLS de
+  `workers` + verrou sur `profiles.company_id`). À faire avant le lot B3 (écritures vers CG Link).
+- **À faire par Fred** : 1. exécuter la migration ; 2. parcourir l'app Entreprises connecté (liste de
+  vérification dans le message de fin du 12/10/2026) ; 3. valider couleurs et icônes (`#E69F00` bâtiment,
+  `#CC79A7` carte d'identité) ; 4. corriger `workers` côté CG Link. Ensuite : plan du lot B (app « Gestion
+  délégués CG Link », SUPER_ADMIN uniquement).
+- Les points « À faire par Fred » de l'état précédent (Redirect URLs, tests des comptes) restent ouverts :
+  voir [docs/contexte/journal.md](docs/contexte/journal.md).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 

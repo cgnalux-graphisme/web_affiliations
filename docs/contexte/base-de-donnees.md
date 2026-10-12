@@ -123,6 +123,22 @@ le dépôt ; **ne pas modifier le schéma**). `anon` n'a aucun droit (vérifié 
 | `site_chatbot_antennes` | Antennes chômage FGTB par province (10 lignes, pas d'e-mail : contact écrit par My FGTB) | Lecture : app `demarches` |
 | `site_chatbot_demandes` | Demandes transmises : `nom`, `prenom`, `email`, `message`, `code_postal`, `region`, `categorie`, `cp_code`, `affilie`, `registre_national`, `destinataire_email`, `service_nom`, `statut` (défaut `nouveau` ; le code utilise aussi `en_cours` et `traite`, **non vérifié contre une éventuelle contrainte**), `created_at` | Lecture et mise à jour : app `demarches` ; suppression : SUPER_ADMIN uniquement ; insertion par la route de transmission (service_role) |
 
+Entreprises et délégués (migration `supabase/migrations/20261012120000_site_entreprises_delegues.sql`,
+**autorisée par Fred le 12/10/2026, écrite mais pas encore exécutée**). Spec :
+[docs/superpowers/specs/2026-10-12-entreprises-delegues-design.md](../superpowers/specs/2026-10-12-entreprises-delegues-design.md).
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_entreprises` | Fiche : `company_id` (lien CG Link, unique, null = hors CG Link), `nom` (obligatoire hors CG Link), `numero_bce` (10 chiffres, unique), `denomination_bce`, `siege_*`, `ref_*` (personne de référence), `bce_importe_le`, `notes` | App `entreprises` (session) |
+| `site_entreprise_sites` | Sites = UTE : `nom`, `principal` (un seul par entreprise), `unite_postale_id`, `ref_*`, `ordre` | App `entreprises` |
+| `site_entreprise_unites` | Unités d'établissement : `numero_ue` (unique), adresse, `statut` (`actif` / `arrete`), `date_debut`, `site_id`, `origine` (`bce` / `manuel`) | App `entreprises` |
+| `site_entreprise_onss` | ONSS : `numero` (chiffres, unique par entreprise), `libelle`, `site_id` | App `entreprises` |
+| `site_delegues` | Délégués (lot B) : `entreprise_id`, `cglink_user_id` (unique), `prenom`, `nom`, `email`, `telephone`, `notes`, `a_verifier` | Lecture : apps `entreprises` ou `delegues` ; écriture : service_role seulement |
+| `site_delegue_mandats` | Mandats : `organe` (`ds`, `ce`, `cppt`, `cee`, `instances_cg`, `autre`), `qualite` (`effectif` / `suppleant`, obligatoire pour DS / CE / CPPT), `libelle`, `fonction`, `site_id`, `debut`, `fin`, `a_verifier` | Idem |
+| `site_ecarts_ignores` | Écarts CG Link ignorés (`cible`, `cible_id`, `champ`, `valeur`) | Lecture : app `delegues` ; écriture : service_role |
+| `site_journal_delegues` | Journal de la gestion des délégués (lot B) | Idem |
+| `site_compter_affilies()` | Affiliés `Actif` de `workers` par `company_id` et `contract_type` ; renvoie 0 ligne sans l'app `entreprises` ou `delegues` | `authenticated` (security definer) ; pas `anon` |
+
 ### Colonnes de `site_articles`
 `titre`, `slug` (adresse `/blog/<slug>` ou `/on-vous-explique/<slug>` selon
 `categorie`), `chapo` (accroche), `points_cles`
