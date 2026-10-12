@@ -11,7 +11,7 @@ import {
   messagePourquoi,
   type ContexteMobilisation,
 } from "../../../../lib/mobilisation-ia";
-import { getSuperAdmin } from "../../../../lib/supabase-server";
+import { aApp } from "../../../../lib/espace/acces";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -28,7 +28,7 @@ const texte = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, m
  * dans le formulaire, où Fred le relit, le corrige et l'enregistre. Réservé aux super admins.
  */
 export async function POST(request: NextRequest) {
-  if (!(await getSuperAdmin())) return erreur("Accès refusé. Reconnectez-vous.", 401);
+  if (!(await aApp("actions"))) return erreur("Accès refusé. Reconnectez-vous.", 401);
   if (!process.env.ANTHROPIC_API_KEY) {
     return erreur("La rédaction assistée n'est pas configurée : la variable ANTHROPIC_API_KEY manque sur le serveur.", 503);
   }

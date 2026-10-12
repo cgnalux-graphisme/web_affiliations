@@ -77,27 +77,25 @@ export default function ChoixPhotos({
             return (
               <li
                 key={p.cle}
-                className={`flex gap-3 rounded-xl border p-3 ${
-                  i === 0 ? "border-2 border-militant-rouge" : "border-militant-ardoise"
-                }`}
+                className={`ecg-media${i === 0 ? " ecg-media-principale" : ""}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- aperçu local (blob:) ou photo du bucket */}
                 <img
                   src={p.apercu ?? p.url}
                   alt=""
-                  className="h-20 w-20 shrink-0 rounded-lg bg-militant-ardoise object-cover sm:h-24 sm:w-24"
+                  className="h-20 w-20 shrink-0 rounded-lg bg-[#e3e7eb] object-cover sm:h-24 sm:w-24"
                 />
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-xs text-militant-charbon" title={nom}>
+                    <p className="min-w-0 truncate text-[13px]" title={nom}>
                       {i === 0 ? (
-                        <span className="inline-flex items-center gap-1 font-bold text-militant-bordeaux">
-                          <Star size={12} className="fill-current" /> Photo principale
+                        <span className="ecg-statut ecg-statut-info">
+                          <Star size={12} className="fill-current" aria-hidden /> Photo principale
                         </span>
                       ) : (
                         <>
                           {nom}
-                          {p.file && <span className="ml-1.5 font-bold text-militant-bordeaux">nouvelle</span>}
+                          {p.file && <span className="ml-1.5 font-semibold">(nouvelle)</span>}
                         </>
                       )}
                     </p>
@@ -107,9 +105,9 @@ export default function ChoixPhotos({
                           type="button"
                           onClick={() => mettreEnPremier(p.cle)}
                           disabled={disabled}
-                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-militant-charbon hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
+                          className="ecg-btn ecg-btn-fantome ecg-btn-petit"
                         >
-                          <ArrowUp size={13} /> Principale
+                          <ArrowUp size={14} aria-hidden /> Principale
                         </button>
                       )}
                       <button
@@ -118,9 +116,9 @@ export default function ChoixPhotos({
                         disabled={disabled}
                         aria-label={`Retirer ${nom}`}
                         title="Retirer (appliqué à l'enregistrement)"
-                        className="rounded-lg p-1.5 text-militant-charbon hover:bg-militant-bordeaux hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
+                        className="ecg-btn-icone"
                       >
-                        <X size={16} />
+                        <X size={18} aria-hidden />
                       </button>
                     </div>
                   </div>
@@ -131,7 +129,7 @@ export default function ChoixPhotos({
                     maxLength={200}
                     placeholder="Légende (facultative)"
                     aria-label={`Légende de la photo ${i + 1}`}
-                    className="w-full rounded-lg border border-militant-ardoise bg-white px-3 py-2 text-sm text-militant-charbon focus:border-militant-charbon focus:outline-none focus:ring-2 focus:ring-militant-rouge"
+                    className="ecg-champ"
                   />
                 </div>
               </li>
@@ -142,18 +140,12 @@ export default function ChoixPhotos({
 
       {photos.length < PHOTOS_MAX && (
         <ZoneDepotImages onImages={ajouter} onErreur={setAvertissement} multiple disabled={disabled}>
-        <label
-          className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-militant-ardoise px-4 py-6 text-center transition-colors hover:border-militant-charbon focus-within:border-militant-charbon focus-within:ring-2 focus-within:ring-militant-rouge ${
-            disabled ? "pointer-events-none opacity-60" : ""
-          }`}
-        >
-          <ImagePlus className="h-6 w-6 text-militant-rouge" />
-          <span className="text-sm font-bold text-militant-charbon">
-            {photos.length ? "Ajouter d'autres photos" : "Ajouter des photos"}
+        <label className={`ecg-depot${disabled ? " pointer-events-none opacity-60" : ""}`}>
+          <span className="ecg-depot-ico" aria-hidden>
+            <ImagePlus size={22} />
           </span>
-          <span className="text-xs text-militant-charbon">
-            Cliquez ou glissez-les ici (depuis l&apos;ordinateur ou une autre page web). Plusieurs photos possibles.
-          </span>
+          <b>{photos.length ? "Ajouter d'autres photos" : "Ajouter des photos"}</b>
+          <small>Cliquez ou glissez-les ici (depuis l&apos;ordinateur ou une autre page web). Plusieurs photos possibles.</small>
           <input
             ref={inputRef}
             type="file"
@@ -172,7 +164,7 @@ export default function ChoixPhotos({
         </ZoneDepotImages>
       )}
 
-      {avertissement && <p className="text-xs font-semibold text-militant-bordeaux">{avertissement}</p>}
+      {avertissement && <p className="ecg-erreur">{avertissement}</p>}
     </div>
   );
 }

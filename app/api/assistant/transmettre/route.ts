@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     affilie: categorie === "juridique" ? affilie : null,
     resume: demande.resume,
     email: demande.email,
-    lien: `${adresseDuSite(request)}/suivi-actions/chatbot?id=${data.id}`,
+    lien: `${adresseDuSite(request)}/espace/demarches/chatbot?id=${data.id}`,
   };
   try {
     const { error: echec } = await getResendClient().emails.send({

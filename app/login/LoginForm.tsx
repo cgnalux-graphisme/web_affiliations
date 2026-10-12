@@ -4,11 +4,10 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle, Eye, EyeOff, LogIn } from "lucide-react";
 import { IconeChargement } from "../Chargement";
-import { isSuperAdmin } from "../../lib/admin";
 import { getSupabaseAuth } from "../../lib/supabase";
 
 const MESSAGE_ACCES =
-  "Ce compte n'a pas accès à l'espace admin. Connectez-vous avec un compte super administrateur.";
+  "Ce compte n'a pas accès à l'Espace CG. Demandez un accès à un super admin.";
 
 export default function LoginForm({
   next,
@@ -49,14 +48,6 @@ export default function LoginForm({
             ? "Cette adresse e-mail n'a pas encore été confirmée."
             : "La connexion a échoué. Vérifiez votre connexion internet et réessayez."
       );
-      return;
-    }
-
-    if (!(await isSuperAdmin(supabase, data.user.id))) {
-      await supabase.auth.signOut();
-      setLoading(false);
-      setPassword("");
-      setError(MESSAGE_ACCES);
       return;
     }
 

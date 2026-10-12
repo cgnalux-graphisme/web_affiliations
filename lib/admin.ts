@@ -13,7 +13,7 @@ export async function isSuperAdmin(supabase: SupabaseClient, userId: string): Pr
 }
 
 /** N'accepte qu'un chemin interne (évite les redirections vers un autre site). */
-export function safeNext(next: string | null | undefined, fallback = "/suivi-actions"): string {
+export function safeNext(next: string | null | undefined, fallback = "/espace"): string {
   if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) {
     return fallback;
   }

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifierAdressePublique } from "../../../lib/adresse-publique";
-import { getSuperAdmin } from "../../../lib/supabase-server";
+import { aUneDesApps } from "../../../lib/espace/acces";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ function erreur(message: string, status: number) {
  * Entrée : { url }. Sortie : l'image brute (le navigateur la réduit ensuite comme une photo locale).
  */
 export async function POST(request: NextRequest) {
-  if (!(await getSuperAdmin())) return erreur("Accès refusé. Reconnectez-vous.", 401);
+  if (!(await aUneDesApps(["actions", "scan-news"]))) return erreur("Accès refusé. Reconnectez-vous.", 401);
   const { url } = (await request.json().catch(() => ({}))) as { url?: unknown };
   if (typeof url !== "string" || url.length > 4000) return erreur("Adresse d'image manquante.", 400);
 

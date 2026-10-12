@@ -1,9 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isSuperAdmin } from "./lib/admin";
 
 // Next.js 16 : "proxy" remplace l'ancien "middleware".
-// Rafraîchit la session Supabase (cookies) et verrouille l'espace admin.
+// Rafraîchit la session Supabase (cookies) et exige une connexion pour l'Espace CG.
+// Les droits app par app sont vérifiés ensuite côté serveur (layouts, pages, actions, routes API).
+// Les anciennes adresses /suivi-actions/… sont redirigées par next.config.ts avant d'arriver ici.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -31,24 +32,20 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (request.nextUrl.pathname.startsWith("/suivi-actions")) {
-    const autorise = user ? await isSuperAdmin(supabase, user.id) : false;
-    if (!autorise) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.search = "";
-      url.searchParams.set("next", request.nextUrl.pathname);
-      if (user) url.searchParams.set("erreur", "acces");
-      const redirect = NextResponse.redirect(url);
-      // Conserver les cookies de session éventuellement rafraîchis.
-      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
-      return redirect;
-    }
+  if (request.nextUrl.pathname.startsWith("/espace") && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
+    const redirect = NextResponse.redirect(url);
+    // Conserver les cookies de session éventuellement rafraîchis.
+    response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+    return redirect;
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/suivi-actions/:path*", "/login"],
+  matcher: ["/espace/:path*", "/login"],
 };

@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { lienReel } from "../../../../lib/lien-reel";
 import { verifierLisibilite, type Lisibilite as LisibiliteBase } from "../../../../lib/lisibilite";
-import { getSuperAdmin, getSupabaseServer } from "../../../../lib/supabase-server";
+import { getSupabaseServer } from "../../../../lib/supabase-server";
+import { aApp } from "../../../../lib/espace/acces";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export type Lisibilite = LisibiliteBase & { lien: string; alerte: boolean };
  * règles du robots.txt du média pour le robot de lecture d'Anthropic (« Claude-User »), voir lib/lisibilite.ts.
  */
 export async function GET(request: NextRequest) {
-  if (!(await getSuperAdmin())) return NextResponse.json({ erreur: "Accès refusé." }, { status: 401 });
+  if (!(await aApp("scan-news"))) return NextResponse.json({ erreur: "Accès refusé." }, { status: 401 });
   const veilleId = request.nextUrl.searchParams.get("veilleId") ?? "";
   if (!UUID.test(veilleId)) return NextResponse.json({ erreur: "Article de Scan News manquant." }, { status: 400 });
 

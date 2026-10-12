@@ -11,7 +11,7 @@ import {
   construireAnalyse,
   messageAnalyse,
 } from "../../../../lib/mobilisation-ia";
-import { getSuperAdmin } from "../../../../lib/supabase-server";
+import { aApp } from "../../../../lib/espace/acces";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -26,7 +26,7 @@ function erreur(message: string, status: number) {
  * reviennent dans le formulaire, où Fred relit, corrige et enregistre. Réservé aux super admins.
  */
 export async function POST(request: NextRequest) {
-  if (!(await getSuperAdmin())) return erreur("Accès refusé. Reconnectez-vous.", 401);
+  if (!(await aApp("actions"))) return erreur("Accès refusé. Reconnectez-vous.", 401);
   if (!process.env.ANTHROPIC_API_KEY) {
     return erreur("L'analyse n'est pas configurée : la variable ANTHROPIC_API_KEY manque sur le serveur.", 503);
   }

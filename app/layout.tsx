@@ -7,6 +7,7 @@ import { chargerMobilisationActive } from "../lib/mobilisations-public";
 import AssistantCG from "./AssistantCG";
 import BandeauMobilisation from "./BandeauMobilisation";
 import ConsentementCookies from "./ConsentementCookies";
+import HorsEspace from "./HorsEspace";
 import NavigationSite from "./NavigationSite";
 import PiedDePage from "./PiedDePage";
 
@@ -51,7 +52,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
         <NavigationSite liens={liens} cta={{ href: "/affiliation", label: "S'affilier" }} />
         <div className="flex flex-1 flex-col">{children}</div>
-        <PiedDePage />
+        <HorsEspace>
+          <PiedDePage />
+        </HorsEspace>
         <ConsentementCookies />
         {assistant && <AssistantCG />}
       </body>

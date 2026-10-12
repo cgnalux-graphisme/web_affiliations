@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { domaineValide, logoMedia } from "../../../lib/logo-media";
-import { getSuperAdmin } from "../../../lib/supabase-server";
+import { aApp } from "../../../lib/espace/acces";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * Réservé aux super admins. 404 sans logo : l'écran affiche alors les initiales du média.
  */
 export async function GET(request: NextRequest) {
-  if (!(await getSuperAdmin())) return new NextResponse(null, { status: 401 });
+  if (!(await aApp("scan-news"))) return new NextResponse(null, { status: 401 });
   const domaine = (request.nextUrl.searchParams.get("domaine") ?? "").toLowerCase().replace(/^www\./, "");
   if (!domaineValide(domaine)) return new NextResponse(null, { status: 400 });
 

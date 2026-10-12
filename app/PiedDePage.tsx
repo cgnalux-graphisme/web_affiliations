@@ -33,7 +33,7 @@ const LEGAL = [
   { href: "/statuts", label: "Statuts" },
   { href: "/vie-privee", label: "Vie privée" },
   { href: "/cookies", label: "Cookies" },
-  { href: "/login", label: "Espace admin" },
+  { href: "/espace", label: "Espace CG" },
 ];
 
 

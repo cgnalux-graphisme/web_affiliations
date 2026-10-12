@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { messageErreurApi } from "../../../../lib/anthropic-erreurs";
 import { purgerDemandesChatbot } from "../../../../lib/assistant-purge";
 import { appelCron } from "../../../../lib/cron";
-import { getSuperAdmin } from "../../../../lib/supabase-server";
+import { aApp } from "../../../../lib/espace/acces";
 import { getSupabaseService } from "../../../../lib/supabase-service";
 import { ErreurAnalyse, analyserFil } from "../../../../lib/veille-analyse";
 import { CLE_DERNIER_RAMASSAGE, ramasserFlux } from "../../../../lib/veille-ramassage";
@@ -25,7 +25,7 @@ function service() {
 async function lancer(supabase: NonNullable<ReturnType<typeof getSupabaseService>>, origine: "manuel" | "auto") {
   try {
     const analyse = await analyserFil(supabase, origine);
-    revalidatePath("/suivi-actions/veille");
+    revalidatePath("/espace/scan-news/fil");
     return NextResponse.json(analyse);
   } catch (err) {
     if (err instanceof ErreurAnalyse) return erreur(err.message, err.status);
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   let bilan;
   try {
     bilan = await ramasserFlux(supabase);
-    revalidatePath("/suivi-actions/veille");
+    revalidatePath("/espace/scan-news/fil");
   } catch (err) {
     console.error("check IA (cron) : ramassage", err);
     return erreur(err instanceof Error ? err.message : "Le ramassage a échoué.", 500);
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
 /** Bouton « Check IA » (super admin) : seulement sur un fil rafraîchi depuis moins de 2 h. */
 export async function POST() {
-  if (!(await getSuperAdmin())) return erreur("Accès refusé. Reconnectez-vous.", 401);
+  if (!(await aApp("scan-news"))) return erreur("Accès refusé. Reconnectez-vous.", 401);
   if (!process.env.ANTHROPIC_API_KEY) {
     return erreur("Le Check IA n'est pas configuré : la variable ANTHROPIC_API_KEY manque sur le serveur.", 503);
   }

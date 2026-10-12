@@ -15,7 +15,8 @@ import {
   type ArticleSource,
   type ReponseDeclinaisons,
 } from "../../../../lib/reseaux-ia";
-import { getSuperAdmin, getSupabaseServer } from "../../../../lib/supabase-server";
+import { getSupabaseServer } from "../../../../lib/supabase-server";
+import { aApp } from "../../../../lib/espace/acces";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -34,7 +35,7 @@ function erreur(message: string, status: number) {
  * jamais le serveur.
  */
 export async function POST(request: NextRequest) {
-  if (!(await getSuperAdmin())) return erreur("Accès refusé. Reconnectez-vous.", 401);
+  if (!(await aApp("scan-news"))) return erreur("Accès refusé. Reconnectez-vous.", 401);
   if (!process.env.ANTHROPIC_API_KEY) {
     return erreur("La déclinaison pour les réseaux n'est pas configurée : la variable ANTHROPIC_API_KEY manque sur le serveur.", 503);
   }

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { messageErreurApi } from "../../../../lib/anthropic-erreurs";
 import { BUCKET_NOTES } from "../../../../lib/articles";
 import { ErreurNote, NOTE_TAILLE_MAX, extraireTexteNote, nomArchive } from "../../../../lib/notes-extraction";
-import { getSuperAdmin } from "../../../../lib/supabase-server";
+import { aApp } from "../../../../lib/espace/acces";
 import { getSupabaseService } from "../../../../lib/supabase-service";
 import {
   CONSIGNE_VULGARISATION,
@@ -29,7 +29,7 @@ function erreur(message: string, status: number) {
  * Réservé aux super admins. La clé API et la clé service_role ne quittent jamais le serveur.
  */
 export async function POST(request: Request) {
-  if (!(await getSuperAdmin())) return erreur("Accès refusé. Reconnectez-vous.", 401);
+  if (!(await aApp("scan-news"))) return erreur("Accès refusé. Reconnectez-vous.", 401);
   if (!process.env.ANTHROPIC_API_KEY) {
     return erreur("La vulgarisation n'est pas configurée : la variable ANTHROPIC_API_KEY manque sur le serveur.", 503);
   }

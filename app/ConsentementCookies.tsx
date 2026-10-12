@@ -17,7 +17,7 @@ export default function ConsentementCookies() {
   const chemin = usePathname();
   const { pret, choix } = useConsentement();
 
-  const masque = chemin === "/cookies" || chemin.startsWith("/suivi-actions") || chemin.startsWith("/login");
+  const masque = chemin === "/cookies" || chemin.startsWith("/espace") || chemin.startsWith("/login");
   if (!pret || choix !== null || masque) return null;
 
   const bouton =

@@ -19,7 +19,8 @@ import { messageErreurApi } from "../../../../lib/anthropic-erreurs";
 import { lienReel } from "../../../../lib/lien-reel";
 import { lecturesDepuis, type SourceLue } from "../../../../lib/redaction-lecture";
 import { verifierLisibilite } from "../../../../lib/lisibilite";
-import { getSuperAdmin, getSupabaseServer } from "../../../../lib/supabase-server";
+import { getSupabaseServer } from "../../../../lib/supabase-server";
+import { aApp } from "../../../../lib/espace/acces";
 
 export const dynamic = "force-dynamic";
 // Lecture de 2 articles + rédaction : jusqu'à 2 ou 3 minutes.
@@ -45,7 +46,7 @@ function erreur(message: string, status: number) {
  * Réservé aux super admins. La clé API ne quitte jamais le serveur.
  */
 export async function POST(request: NextRequest) {
-  if (!(await getSuperAdmin())) return erreur("Accès refusé. Reconnectez-vous.", 401);
+  if (!(await aApp("scan-news"))) return erreur("Accès refusé. Reconnectez-vous.", 401);
   if (!process.env.ANTHROPIC_API_KEY) {
     return erreur("La rédaction assistée n'est pas configurée : la variable ANTHROPIC_API_KEY manque sur le serveur.", 503);
   }

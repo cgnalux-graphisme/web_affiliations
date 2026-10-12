@@ -173,7 +173,7 @@ export const RUBRIQUES: Record<Categorie, Rubrique> = {
   article: {
     chemin: "/blog",
     nom: "Actualités",
-    admin: "/suivi-actions/articles",
+    admin: "/espace/scan-news/articles",
     singulier: "article",
     nouveau: "Nouvel article",
     tous: "Tous les articles",
@@ -184,7 +184,7 @@ export const RUBRIQUES: Record<Categorie, Rubrique> = {
   explication: {
     chemin: "/on-vous-explique",
     nom: "On vous explique",
-    admin: "/suivi-actions/explications",
+    admin: "/espace/scan-news/explications",
     singulier: "explication",
     nouveau: "Nouvelle explication",
     tous: "Toutes les explications",

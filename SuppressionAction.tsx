@@ -62,7 +62,7 @@ export default function SuppressionAction({
       return;
     }
 
-    router.push(`/suivi-actions/actions?supprimee=${encodeURIComponent(titre)}`);
+    router.push(`/espace/actions/liste?supprimee=${encodeURIComponent(titre)}`);
     router.refresh();
   }
 
@@ -72,29 +72,30 @@ export default function SuppressionAction({
   ].filter(Boolean);
 
   return (
-    <section
-      aria-labelledby="titre-suppression"
-      className="max-w-2xl mx-auto rounded-2xl border-2 border-militant-bordeaux bg-white p-6"
-    >
-      <h2 id="titre-suppression" className="flex items-center gap-2 text-lg font-bold text-militant-bordeaux">
-        <Trash2 size={18} aria-hidden /> Supprimer l&apos;action
-      </h2>
-      <p className="mt-1.5 text-sm text-militant-charbon">
-        Suppression définitive, sans retour possible
-        {elements.length ? ` : l'action, ses ${elements.join(" et ses ")}` : ""}. Elle disparaît aussi du site
-        public.
-      </p>
-
+    <section aria-labelledby="titre-suppression" className="ecg-panneau ecg-panneau-danger">
+      <div className="ecg-panneau-tete">
+        <div>
+          <h2 id="titre-suppression">
+            <Trash2 size={18} aria-hidden /> Supprimer l&apos;action
+          </h2>
+          <p>
+            Suppression définitive, sans retour possible
+            {elements.length ? ` : l'action, ses ${elements.join(" et ses ")}` : ""}. Elle disparaît aussi du site
+            public.
+          </p>
+        </div>
+      </div>
+      <div className="ecg-panneau-corps">
       {!confirmation ? (
         <button
           type="button"
           onClick={() => setConfirmation(true)}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-militant-bordeaux px-4 py-2 text-sm font-bold text-militant-bordeaux transition-colors hover:bg-militant-bordeaux hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2"
+          className="ecg-btn"
         >
           <Trash2 size={16} aria-hidden /> Supprimer cette action
         </button>
       ) : (
-        <div role="alertdialog" aria-labelledby="question-suppression" className="mt-4 rounded-xl border-2 border-militant-bordeaux p-4">
+        <div role="alertdialog" aria-labelledby="question-suppression" className="ecg-alerte ecg-alerte-erreur flex-col">
           <p id="question-suppression" className="font-bold">
             Supprimer définitivement « {titre} » ?
           </p>
@@ -104,7 +105,7 @@ export default function SuppressionAction({
               onClick={supprimer}
               disabled={enCours}
               autoFocus
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-60"
+              className="ecg-btn ecg-btn-danger"
             >
               {enCours ? <IconeChargement size={16} /> : <Trash2 size={16} aria-hidden />}
               {enCours ? "Suppression…" : "Oui, supprimer définitivement"}
@@ -116,7 +117,7 @@ export default function SuppressionAction({
                 setErreur("");
               }}
               disabled={enCours}
-              className="inline-flex items-center justify-center rounded-xl border-2 border-militant-charbon px-4 py-2 text-sm font-bold hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
+              className="ecg-btn"
             >
               Annuler
             </button>
@@ -125,11 +126,12 @@ export default function SuppressionAction({
       )}
 
       {erreur && (
-        <p role="alert" className="mt-4 flex items-start gap-2 text-sm font-semibold text-militant-bordeaux">
+        <p role="alert" className="ecg-erreur mt-4">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
           {erreur}
         </p>
       )}
+      </div>
     </section>
   );
 }

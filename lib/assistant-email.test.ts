@@ -11,7 +11,7 @@ const contenu = {
   affilie: true,
   resume: "La personne n'a pas reçu son C4.",
   email: "marie.dupont@exemple.be",
-  lien: "https://exemple.be/suivi-actions/chatbot?id=1",
+  lien: "https://exemple.be/espace/demarches/chatbot?id=1",
 };
 
 describe("e-mail de l'Assistant CG", () => {

@@ -1,0 +1,1009 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ESPACE CG : COMPOSANTS COMMUNS DES ÉCRANS (toutes les apps).
+   En-tête, panneaux, champs, onglets, tableaux, listes, statuts, alertes,
+   interrupteur. Tout écran du back-office les utilise (composants React dans
+   app/espace/_partage/ : EnteteEcran, Panneau, Alerte, Vide, Interrupteur, ui.ts).
+   Statuts et alertes : vert / orange / bleu ponctuels permis ici (demande de
+   Fred, 08/10/2026), toujours doublés d'une icône et d'un texte.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ecg-ecran {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: ecg-vue-entree 0.5s var(--ecg-ease) both;
+}
+.ecg-ecran > .ecg-entete {
+  margin-bottom: 6px;
+}
+.ecg-ecran-etroit {
+  max-width: 920px;
+}
+.ecg-entete-texte {
+  min-width: 0;
+  flex: 1 1 320px;
+}
+.ecg-entete-texte p {
+  max-width: 72ch;
+}
+.ecg-grille-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.ecg-pile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ecg-panneau-tete p {
+  font-size: 13.5px;
+  color: var(--ecg-texte-doux);
+  margin-top: 2px;
+}
+.ecg-panneau-tete-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ecg-panneau-pied {
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--ecg-trait);
+  background: #fafbfc;
+}
+.ecg-sous-titre {
+  font-family: var(--ecg-display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.ecg-texte-doux {
+  color: var(--ecg-texte-doux);
+}
+
+/* ---------- Valeurs de base surclassables ----------
+   Spécificité d'un simple élément (0,0,1) : au-dessus du reset de Tailwind (chargé avant), en dessous de
+   toute classe utilitaire posée sur l'élément (w-auto, mt-0, pl-9, block, justify-between…), qui l'emporte. */
+:is(input, select, textarea):where(.ecg-champ) {
+  width: 100%;
+  padding: 9px 12px;
+}
+:where(.ecg-aide, .ecg-erreur) {
+  margin-top: 6px;
+}
+:where(.ecg-panneau-pied) {
+  display: flex;
+  justify-content: flex-end;
+}
+/* En-tête de panneau : le bloc titre prend la place disponible (l'icône reste à côté, les actions à droite). */
+:where(.ecg-panneau-tete) > div:not(.ecg-panneau-tete-actions) {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+:where(.ecg-alerte) {
+  display: flex;
+  align-items: flex-start;
+}
+:is(div, label, button, a):where(.ecg-depot) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 22px 16px;
+  cursor: pointer;
+}
+
+/* ---------- Boutons : variantes ---------- */
+.ecg-btn-danger {
+  background: var(--ecg-bordeaux);
+  border-color: var(--ecg-bordeaux);
+  color: #fff;
+}
+.ecg-btn-danger:hover {
+  filter: brightness(0.85);
+  border-color: var(--ecg-bordeaux);
+}
+.ecg-btn-fantome {
+  background: transparent;
+  border-color: transparent;
+}
+.ecg-btn-fantome:hover {
+  background: rgba(34, 34, 34, 0.06);
+  border-color: transparent;
+}
+.ecg-btn-fantome-danger {
+  color: var(--ecg-erreur);
+}
+.ecg-btn-fantome-danger:hover {
+  background: var(--ecg-erreur-fond);
+}
+.ecg-btn-danger-contour {
+  color: var(--ecg-erreur);
+  border-color: color-mix(in srgb, var(--ecg-erreur) 40%, #fff);
+}
+.ecg-btn-danger-contour:hover {
+  background: var(--ecg-erreur-fond);
+  border-color: var(--ecg-erreur);
+}
+.ecg-btn[aria-pressed="true"] {
+  background: var(--ecg-charbon);
+  border-color: var(--ecg-charbon);
+  color: #fff;
+}
+.ecg-lien {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--app);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+.ecg-lien:hover {
+  color: var(--app-fonce);
+}
+
+/* ---------- Champs de formulaire ---------- */
+.ecg-champ {
+  display: block;
+  min-height: 44px;
+  border: 1px solid var(--ecg-ardoise);
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--ecg-texte);
+  font: inherit;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+textarea.ecg-champ {
+  line-height: 1.5;
+  resize: vertical;
+}
+select.ecg-champ {
+  appearance: none;
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23222' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.ecg-champ::placeholder {
+  /* 4,8:1 sur blanc : lisible (AA) sans se confondre avec une réponse saisie. */
+  color: #66747f;
+}
+.ecg-champ:hover {
+  border-color: var(--ecg-texte-doux);
+}
+.ecg .ecg-champ:focus,
+.ecg .ecg-champ:focus-visible {
+  border-color: var(--ecg-charbon);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app) 25%, transparent);
+  outline: none;
+}
+.ecg-champ[aria-invalid="true"] {
+  border-color: var(--ecg-erreur);
+  box-shadow: inset 0 0 0 1px var(--ecg-erreur);
+}
+.ecg-champ:disabled {
+  background-color: #f4f6f8;
+  color: var(--ecg-texte-doux);
+}
+.ecg-libelle {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.ecg-aide {
+  font-size: 13px;
+  color: var(--ecg-texte-doux);
+}
+.ecg-erreur {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ecg-erreur);
+}
+.ecg-contenu input[type="checkbox"],
+.ecg-contenu input[type="radio"] {
+  accent-color: var(--app-fonce);
+  width: 18px;
+  height: 18px;
+}
+.ecg-case {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ---------- Formulaires : choix en cartes, erreurs, récapitulatif, barre d'envoi ---------- */
+.ecg-champ.ecg-champ-erreur {
+  border-color: var(--ecg-erreur);
+  box-shadow: inset 0 0 0 1px var(--ecg-erreur);
+}
+.ecg-choix {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--ecg-trait);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+.ecg-choix:hover {
+  border-color: var(--ecg-texte-doux);
+}
+.ecg-choix.ecg-choix-actif {
+  border-color: var(--app-fonce);
+  background: var(--app-pale);
+  box-shadow: inset 0 0 0 1px var(--app-fonce);
+}
+.ecg-choix:focus-within {
+  outline: 3px solid var(--ecg-focus);
+  outline-offset: 2px;
+}
+.ecg-choix input {
+  flex: none;
+}
+.ecg-recap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px 24px;
+  font-size: 14.5px;
+}
+.ecg-recap dt {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ecg-texte-doux);
+}
+.ecg-recap dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ecg-barre-actions {
+  position: sticky;
+  bottom: 12px;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 16px 12px 20px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--ecg-trait);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px -18px rgba(34, 34, 34, 0.45);
+}
+.ecg-barre-actions > :last-child {
+  margin-left: auto;
+}
+
+/* ---------- Dépôt de fichiers, médias, zone dangereuse ---------- */
+.ecg-depot {
+  text-align: center;
+  border: 1.5px dashed var(--ecg-ardoise);
+  border-radius: 14px;
+  background: #fafbfc;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.ecg-depot:hover {
+  border-color: var(--ecg-charbon);
+  background: #fff;
+}
+.ecg-depot:focus-within {
+  outline: 3px solid var(--ecg-focus);
+  outline-offset: 2px;
+}
+.ecg-depot-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--app-pale);
+  color: var(--app-fonce);
+  display: grid;
+  place-items: center;
+}
+.ecg-depot b {
+  font-size: 14.5px;
+}
+.ecg-depot small {
+  font-size: 13px;
+  color: var(--ecg-texte-doux);
+}
+.ecg-media {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--ecg-trait);
+  border-radius: 12px;
+  background: #fff;
+}
+.ecg-media-principale {
+  border-color: var(--app-fonce);
+  box-shadow: inset 0 0 0 1px var(--app-fonce);
+}
+.ecg-btn-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ecg-texte);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.ecg-btn-icone:hover {
+  background: var(--ecg-erreur-fond);
+  color: var(--ecg-erreur);
+}
+.ecg-panneau-danger {
+  border-color: color-mix(in srgb, var(--ecg-erreur) 30%, #fff);
+}
+.ecg-panneau-danger .ecg-panneau-tete h2 {
+  color: var(--ecg-erreur);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Sections d'un long formulaire, groupe de champ, encart ---------- */
+.ecg-section-titre {
+  font-family: var(--ecg-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.1;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-top: 1px solid var(--ecg-trait);
+  border-bottom: 1px solid var(--ecg-trait);
+}
+.ecg-panneau > .ecg-section-titre:first-child {
+  border-top: 0;
+}
+.ecg-champ-groupe {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid var(--ecg-ardoise);
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ecg-champ-groupe:focus-within {
+  border-color: var(--ecg-charbon);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app) 25%, transparent);
+}
+.ecg-champ-groupe.ecg-champ-erreur {
+  border-color: var(--ecg-erreur);
+  box-shadow: inset 0 0 0 1px var(--ecg-erreur);
+}
+.ecg-champ-groupe > input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 9px 12px 9px 0;
+  font-size: 15px;
+  outline: none;
+}
+.ecg-champ-groupe > span {
+  flex: none;
+  padding-left: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ecg-texte-doux);
+}
+/* Cadre de l'éditeur de texte riche : se comporte comme un champ (bordure, focus, erreur). */
+.ecg-cadre-editeur {
+  border: 1px solid var(--ecg-ardoise);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ecg-cadre-editeur:focus-within {
+  border-color: var(--ecg-charbon);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app) 25%, transparent);
+}
+.ecg-cadre-editeur.ecg-champ-erreur {
+  border-color: var(--ecg-erreur);
+  box-shadow: inset 0 0 0 1px var(--ecg-erreur);
+}
+.ecg-encart {
+  border: 1px solid color-mix(in srgb, var(--app) 22%, #fff);
+  background: var(--app-pale);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.ecg-encart h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Onglets et filtres (sous-menus des écrans) ---------- */
+.ecg-onglets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ecg-onglet {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  border: 1px solid var(--ecg-trait);
+  background: var(--ecg-surface);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ecg-texte);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+.ecg-onglet:hover {
+  border-color: var(--ecg-texte-doux);
+}
+.ecg-onglet[aria-current="page"],
+.ecg-onglet[aria-current="true"],
+.ecg-onglet[aria-pressed="true"],
+.ecg-onglet[aria-selected="true"] {
+  background: var(--ecg-charbon);
+  border-color: var(--ecg-charbon);
+  color: #fff;
+}
+.ecg-compte {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: #e9edf0;
+  color: var(--ecg-texte);
+}
+[aria-current="page"] > .ecg-compte,
+[aria-current="true"] > .ecg-compte,
+[aria-pressed="true"] > .ecg-compte,
+[aria-selected="true"] > .ecg-compte {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+/* ---------- Tableaux ---------- */
+.ecg-tableau-cadre {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.ecg-tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.ecg-tableau th {
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ecg-texte-doux);
+  padding: 10px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid var(--ecg-trait);
+  white-space: nowrap;
+}
+.ecg-tableau tbody th {
+  background: none;
+  color: var(--ecg-texte);
+  font-size: 14px;
+  white-space: normal;
+}
+.ecg-tableau td,
+.ecg-tableau tbody th {
+  padding: 12px 20px;
+  border-bottom: 1px solid #eef1f3;
+  vertical-align: middle;
+}
+.ecg-tableau tbody tr:last-child td,
+.ecg-tableau tbody tr:last-child th {
+  border-bottom: 0;
+}
+.ecg-tableau tbody tr {
+  transition: background-color 0.15s;
+}
+.ecg-tableau tbody tr:hover {
+  background: #fafbfc;
+}
+.ecg-chiffre {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Listes en lignes (dans un panneau) ---------- */
+.ecg-lignes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ecg-lignes > li {
+  padding: 14px 20px;
+  border-bottom: 1px solid #eef1f3;
+  transition: background-color 0.15s;
+}
+.ecg-lignes > li:last-child {
+  border-bottom: 0;
+}
+.ecg-lignes > li:hover {
+  background: #fafbfc;
+}
+.ecg-lignes > li.ecg-ligne-active {
+  background: var(--app-pale);
+  box-shadow: inset 4px 0 0 var(--app);
+}
+
+/* ---------- Statuts (toujours icône + texte) ---------- */
+.ecg-statut {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ecg-trait);
+  background: #fff;
+  color: var(--ecg-texte);
+  white-space: nowrap;
+}
+.ecg-statut svg {
+  flex: none;
+}
+.ecg-statut-ok {
+  color: var(--ecg-ok);
+  background: var(--ecg-ok-fond);
+  border-color: color-mix(in srgb, var(--ecg-ok) 30%, #fff);
+}
+.ecg-statut-attente {
+  color: var(--ecg-attente);
+  background: var(--ecg-attente-fond);
+  border-color: color-mix(in srgb, var(--ecg-attente) 30%, #fff);
+}
+.ecg-statut-info {
+  color: var(--ecg-info);
+  background: var(--ecg-info-fond);
+  border-color: color-mix(in srgb, var(--ecg-info) 30%, #fff);
+}
+.ecg-statut-erreur {
+  color: var(--ecg-erreur);
+  background: var(--ecg-erreur-fond);
+  border-color: color-mix(in srgb, var(--ecg-erreur) 30%, #fff);
+}
+
+/* ---------- Alertes et confirmations (toujours icône + texte) ---------- */
+.ecg-alerte {
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--ecg-trait);
+  background: #fff;
+  font-size: 14.5px;
+  line-height: 1.5;
+  animation: ecg-vue-entree 0.4s var(--ecg-ease) both;
+}
+.ecg-alerte > svg {
+  flex: none;
+  margin-top: 2px;
+}
+.ecg-alerte-corps {
+  min-width: 0;
+  flex: 1;
+}
+.ecg-alerte-corps > b:first-child {
+  display: block;
+}
+.ecg-alerte-succes {
+  background: var(--ecg-ok-fond);
+  border-color: color-mix(in srgb, var(--ecg-ok) 30%, #fff);
+}
+.ecg-alerte-succes > svg {
+  color: var(--ecg-ok);
+}
+.ecg-alerte-erreur {
+  background: var(--ecg-erreur-fond);
+  border-color: color-mix(in srgb, var(--ecg-erreur) 30%, #fff);
+}
+.ecg-alerte-erreur > svg {
+  color: var(--ecg-erreur);
+}
+.ecg-alerte-info {
+  background: var(--ecg-info-fond);
+  border-color: color-mix(in srgb, var(--ecg-info) 30%, #fff);
+}
+.ecg-alerte-info > svg {
+  color: var(--ecg-info);
+}
+.ecg-alerte-attention {
+  background: var(--ecg-attente-fond);
+  border-color: color-mix(in srgb, var(--ecg-attente) 30%, #fff);
+}
+.ecg-alerte-attention > svg {
+  color: var(--ecg-attente);
+}
+
+/* ---------- Interrupteur (maquette « Gérer ») ---------- */
+.ecg-interrupteur {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  padding: 0 4px 0 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ecg-texte);
+  cursor: pointer;
+  border-radius: 999px;
+}
+.ecg-interrupteur:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ecg-interrupteur-piste {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: #b9c2ca;
+  transition: background-color 0.25s;
+  flex: none;
+}
+.ecg-interrupteur-bille {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  display: grid;
+  place-items: center;
+  transition: transform 0.3s var(--ecg-ease);
+}
+.ecg-interrupteur[aria-checked="true"] .ecg-interrupteur-piste {
+  background: var(--ecg-charbon);
+}
+.ecg-interrupteur[aria-checked="true"] .ecg-interrupteur-bille {
+  transform: translateX(20px);
+}
+
+/* ---------- Cartes de chiffres ---------- */
+.ecg-chiffres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+}
+.ecg-chiffre-carte {
+  background: var(--ecg-surface);
+  border: 1px solid var(--ecg-trait);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.ecg-chiffre-carte b {
+  display: block;
+  font-family: var(--ecg-display);
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ecg-chiffre-carte span {
+  font-size: 13.5px;
+  color: var(--ecg-texte-doux);
+}
+
+/* ---------- Personnes, puces d'apps ---------- */
+.ecg-personne {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+}
+.ecg-personne .ecg-avatar {
+  background: #e3e7eb;
+  color: var(--ecg-texte);
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
+}
+.ecg-personne b {
+  display: block;
+  font-weight: 600;
+}
+.ecg-personne span {
+  font-size: 12.5px;
+  color: var(--ecg-texte-doux);
+}
+.ecg-puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ecg-puce-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px 3px 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--c) 35%, #fff);
+  white-space: nowrap;
+}
+.ecg-puce-app .ecg-mini {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+}
+.ecg-puce-app.ecg-puce-exception {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--c) 70%, #fff);
+}
+.ecg-puce-app.ecg-puce-exception::after {
+  content: "exception";
+  font-weight: 500;
+  color: var(--ecg-texte-doux);
+  margin-left: 2px;
+}
+
+/* ---------- Panneau latéral (« Gérer ») et fenêtre de confirmation ---------- */
+.ecg-tiroir-voile,
+.ecg-modale-voile {
+  position: fixed;
+  inset: 0;
+  background: rgba(34, 34, 34, 0.38);
+  z-index: 40;
+  animation: ecg-fondu 0.25s both;
+}
+.ecg-tiroir {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(460px, 100%);
+  background: var(--ecg-surface);
+  z-index: 41;
+  box-shadow: -20px 0 40px -20px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  animation: ecg-tiroir-entree 0.4s var(--ecg-ease) both;
+  overscroll-behavior: contain;
+}
+@keyframes ecg-tiroir-entree {
+  from {
+    transform: translateX(100%);
+  }
+}
+/* Fermeture : le panneau ressort par la droite, le voile s'efface (220 ms, puis démontage). */
+.ecg-tiroir.ecg-sortie {
+  animation: ecg-tiroir-sortie 0.22s ease-in both;
+}
+.ecg-tiroir-voile.ecg-sortie {
+  animation: ecg-voile-sortie 0.22s ease-in both;
+}
+@keyframes ecg-tiroir-sortie {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes ecg-voile-sortie {
+  to {
+    opacity: 0;
+  }
+}
+/* Lignes d'apps du panneau « Gérer » : elles arrivent en cascade. */
+.ecg-tiroir .ecg-ligne-app {
+  animation: ecg-vue-entree 0.4s var(--ecg-ease) both;
+  animation-delay: calc(120ms + var(--i, 0) * 45ms);
+}
+.ecg-tiroir-tete {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--ecg-trait);
+}
+.ecg-tiroir-tete h2 {
+  font-family: var(--ecg-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.ecg-tiroir-tete p {
+  font-size: 13px;
+  color: var(--ecg-texte-doux);
+  overflow-wrap: anywhere;
+}
+.ecg-tiroir-corps {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.ecg-tiroir-pied {
+  padding: 14px 20px;
+  border-top: 1px solid var(--ecg-trait);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  background: #fafbfc;
+}
+.ecg-fermer {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ecg-texte);
+  cursor: pointer;
+  flex: none;
+}
+.ecg-fermer:hover {
+  background: #eef1f3;
+}
+.ecg-ligne-app {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--ecg-trait);
+  border-radius: 12px;
+}
+.ecg-ligne-app > .ecg-mini {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.ecg-ligne-app b {
+  display: block;
+  font-weight: 600;
+}
+.ecg-ligne-app span.ecg-ligne-app-etat {
+  font-size: 12.5px;
+  color: var(--ecg-texte-doux);
+}
+.ecg-ligne-app .ecg-interrupteur {
+  margin-left: auto;
+}
+.ecg-modale {
+  position: fixed;
+  z-index: 51;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(460px, calc(100% - 32px));
+  background: var(--ecg-surface);
+  border-radius: 16px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.45);
+  padding: 22px 22px 18px;
+  animation: ecg-modale-entree 0.3s var(--ecg-ease) both;
+}
+.ecg-modale-voile {
+  z-index: 50;
+}
+@keyframes ecg-modale-entree {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px)) scale(0.98);
+  }
+}
+.ecg-modale h2 {
+  font-family: var(--ecg-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ecg-modale p {
+  margin-top: 8px;
+  font-size: 14.5px;
+}
+.ecg-modale-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ecg-tiroir,
+  .ecg-tiroir-voile,
+  .ecg-tiroir .ecg-ligne-app,
+  .ecg-modale,
+  .ecg-modale-voile {
+    animation: none;
+  }
+}
+
+/* ---------- Touches clavier ---------- */
+.ecg kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--ecg-trait);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .ecg-grille-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .ecg-tableau th,
+  .ecg-tableau td,
+  .ecg-tableau tbody th {
+    padding-inline: 14px;
+  }
+  .ecg-lignes > li {
+    padding: 12px 14px;
+  }
+  .ecg-panneau-tete,
+  .ecg-panneau-corps,
+  .ecg-panneau-pied {
+    padding-inline: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ecg-ecran,
+  .ecg-alerte {
+    animation: none;
+  }
+}

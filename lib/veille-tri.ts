@@ -54,7 +54,7 @@ export function idsDuSujet(sujet: SujetClasse): string[] {
 
 /** Lien partageable vers le formulaire d'article pré-rempli depuis un sujet du Check IA. */
 export function cheminRedactionSujet(analyseId: string, index: number, avecIA: boolean): string {
-  return `/suivi-actions/articles/nouveau?analyse=${analyseId}&sujet=${index}${avecIA ? "&ia=1" : ""}`;
+  return `/espace/scan-news/articles/nouveau?analyse=${analyseId}&sujet=${index}${avecIA ? "&ia=1" : ""}`;
 }
 
 export type SujetClasse = {

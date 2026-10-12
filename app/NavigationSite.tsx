@@ -23,6 +23,9 @@ export default function NavigationSite({ liens, cta }: { liens: LienNav[]; cta: 
     return () => window.removeEventListener("keydown", surTouche);
   }, [ouvert]);
 
+  // L'Espace CG a son propre cadre (rail, fil d'Ariane) : pas de navigation du site public.
+  if (pathname.startsWith("/espace")) return null;
+
   const sous = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const actif = (l: LienNav) =>
     l.href === "/" ? pathname === "/" : sous(l.href) || (l.aussi ?? []).some(sous);

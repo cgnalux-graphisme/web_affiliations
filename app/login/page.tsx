@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { safeNext } from "../../lib/admin";
-import { getSuperAdmin } from "../../lib/supabase-server";
+import { utilisateurConnecte } from "../../lib/espace/acces";
 import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
-  title: "Connexion — Espace admin ACCG Nalux",
+  title: "Connexion — Espace CG Namur-Luxembourg",
   robots: { index: false, follow: false },
 };
 
@@ -17,8 +17,8 @@ export default async function LoginPage({
   const params = await searchParams;
   const next = safeNext(params.next);
 
-  // Déjà connecté en super admin : inutile de repasser par le formulaire.
-  if (await getSuperAdmin()) redirect(next);
+  // Déjà connecté : inutile de repasser par le formulaire (l'Espace CG décide ensuite des droits).
+  if (await utilisateurConnecte()) redirect(next);
 
   return (
     <main className="flex-1 bg-white font-barlow text-militant-charbon lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
@@ -26,13 +26,13 @@ export default async function LoginPage({
         {/* eslint-disable-next-line @next/next/no-img-element -- logo PNG statique */}
         <img src="/logo-cg-blanc.png" width={1772} height={490} alt="Centrale Générale FGTB Namur-Luxembourg" className="h-14 w-auto self-start" />
         <div className="max-w-sm">
-          <h1 className="font-condensed text-5xl font-extrabold uppercase leading-[0.9] sm:text-6xl">Espace admin</h1>
+          <h1 className="font-condensed text-5xl font-extrabold uppercase leading-[0.9] sm:text-6xl">Espace CG</h1>
           <div className="my-5 h-1.5 w-16 bg-white" aria-hidden />
           <p className="text-[17px] leading-relaxed">
-            Encodage et suivi des actions syndicales de la Centrale Générale FGTB Namur-Luxembourg.
+            L'espace de travail de l'équipe de la Centrale Générale FGTB Namur-Luxembourg.
           </p>
         </div>
-        <p className="hidden text-sm lg:block">Accès réservé aux super administrateurs.</p>
+        <p className="hidden text-sm lg:block">Accès réservé à l'équipe de la Centrale.</p>
       </section>
 
       <section className="flex items-start lg:items-center justify-center px-4 py-10 sm:px-8">

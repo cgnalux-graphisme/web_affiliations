@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { demandesLiees, emailNormalise, nissChiffres, type Candidate, type DemandeLiee } from "./demandes-liees";
 import type { EnvoiMail } from "./envois";
-import { getSuperAdmin } from "./supabase-server";
+import { aApp } from "./espace/acces";
 import { getSupabaseService } from "./supabase-service";
 import {
   DEMANDES,
@@ -34,7 +34,7 @@ export function erreurJson(message: string, status: number) {
 
 /** Vérifie la session super admin puis ouvre le client service_role ; sinon, la réponse d'erreur à renvoyer. */
 export async function accesDemandes(): Promise<{ db: SupabaseClient } | { refus: NextResponse }> {
-  if (!(await getSuperAdmin())) return { refus: erreurJson("Accès refusé. Reconnectez-vous.", 401) };
+  if (!(await aApp("demarches"))) return { refus: erreurJson("Accès refusé. Reconnectez-vous.", 401) };
   const db = getSupabaseService();
   if (!db) {
     return { refus: erreurJson("Le back-office n'est pas configuré : la variable SUPABASE_SERVICE_ROLE_KEY manque sur le serveur.", 503) };

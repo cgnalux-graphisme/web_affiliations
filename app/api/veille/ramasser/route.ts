@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { appelCron } from "../../../../lib/cron";
-import { getSuperAdmin } from "../../../../lib/supabase-server";
+import { aApp } from "../../../../lib/espace/acces";
 import { getSupabaseService } from "../../../../lib/supabase-service";
 import { ramasserFlux } from "../../../../lib/veille-ramassage";
 
@@ -15,7 +15,7 @@ export const maxDuration = 60;
  * Accès : le cron (CRON_SECRET) ou un super admin connecté.
  */
 async function ramasser(request: NextRequest) {
-  if (!appelCron(request) && !(await getSuperAdmin())) {
+  if (!appelCron(request) && !(await aApp("scan-news"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 401 });
   }
 
@@ -33,7 +33,7 @@ async function ramasser(request: NextRequest) {
 
   try {
     const bilan = await ramasserFlux(supabase);
-    if (bilan.ajoutes || bilan.purges) revalidatePath("/suivi-actions/veille");
+    if (bilan.ajoutes || bilan.purges) revalidatePath("/espace/scan-news/fil");
     return NextResponse.json(bilan);
   } catch (err) {
     console.error("veille :", err);

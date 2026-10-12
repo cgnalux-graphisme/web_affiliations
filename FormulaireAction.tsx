@@ -12,17 +12,15 @@ import ChoixPhotos, { libererApercu } from "./ChoixPhotos";
 import ChoixVideos, { MESSAGE_LIEN_INVALIDE, videoDepuisLien } from "./ChoixVideos";
 import { synchroniserVideos, type VideoEdition, type VideoEnregistree } from "./lib/videos-sync";
 import {
-  AlertCircle,
-  AlertTriangle,
   ArrowLeft,
   Bus,
-  CheckCircle,
   Globe,
   List,
   Plus,
   Train,
 } from "lucide-react";
 import { IconeChargement } from "./app/Chargement";
+import { Alerte, BTN, BTN_PRINCIPAL, EnteteEcran, Panneau } from "./app/espace/_partage/ui";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Secteur = { id: string; nom: string };
@@ -138,11 +136,6 @@ function videosDepuisAction(a: ActionEnregistree): VideoEdition[] {
 function photosDepuisAction(a: ActionEnregistree): PhotoEdition[] {
   return a.photos.map((p) => ({ cle: p.id, id: p.id, url: p.url, legende: p.legende ?? "" }));
 }
-
-const BOUTON_PRINCIPAL =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-militant-bordeaux px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-militant-charbon focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2 disabled:opacity-50";
-const BOUTON_SECONDAIRE =
-  "inline-flex items-center justify-center gap-2 rounded-xl border-2 border-militant-charbon bg-white px-5 py-2 text-sm font-bold text-militant-charbon transition-colors hover:bg-militant-charbon hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-2";
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -357,7 +350,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
       setVideosAjoutees(bilanVideos.ajoutees);
 
       if (action && bilan.erreurs.length === 0) {
-        router.push(`/suivi-actions/actions?modifiee=${ligne.id}`);
+        router.push(`/espace/actions/liste?modifiee=${ligne.id}`);
         router.refresh();
         return;
       }
@@ -393,23 +386,32 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
   // ── Écran de résultat ────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="max-w-2xl mx-auto space-y-5">
-        <header className="rounded-2xl bg-militant-bordeaux px-6 py-5 text-white">
-          <div className="flex items-center gap-4">
-            <CheckCircle className="h-8 w-8 shrink-0" />
-            <div>
-              <p className="text-lg font-bold leading-snug">
-                {action ? "Modifications enregistrées" : "Action enregistrée"}
-              </p>
-              <p className="mt-1 text-sm">
-                {action ? "L'action a bien été mise à jour." : "L'action a bien été ajoutée au suivi."}
-              </p>
-            </div>
-          </div>
-        </header>
+      <div className="ecg-ecran ecg-ecran-etroit">
+        <EnteteEcran
+          icone={action ? "pen" : "plus"}
+          titre={action ? "Modifications enregistrées" : "Action enregistrée"}
+          description={action ? "L'action a bien été mise à jour." : "L'action a bien été ajoutée au suivi."}
+        />
+        <Alerte ton="succes" titre={action ? "Modifications enregistrées" : "Action enregistrée"}>
+          {form.visiblePublic ? "Elle est visible sur le site public." : "Elle reste dans le suivi interne."}
+        </Alerte>
 
-        <div className="rounded-2xl border border-militant-ardoise bg-white p-6">
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <Panneau
+          titre="Récapitulatif"
+          pied={
+            <>
+              <Link href="/espace/actions/liste" className={BTN}>
+                <List size={16} aria-hidden /> Retour à la liste
+              </Link>
+              {!action && (
+                <button type="button" onClick={nouvelleAction} className={BTN_PRINCIPAL}>
+                  <Plus size={16} aria-hidden /> Encoder une autre action
+                </button>
+              )}
+            </>
+          }
+        >
+          <dl className="ecg-recap">
             {form.nomAction.trim() && <Recap label="Nom" value={form.nomAction.trim()} />}
             <Recap label="Date" value={form.dateAction} />
             <Recap
@@ -419,13 +421,8 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
             {form.ville.trim() && <Recap label="Ville" value={form.ville.trim()} />}
             {secteurNom && <Recap label="Secteur" value={secteurNom} />}
             {form.entreprise.trim() && <Recap label="Entreprise" value={form.entreprise.trim()} />}
-            {form.participantsTotal.trim() && (
-              <Recap label="Participants" value={form.participantsTotal.trim()} />
-            )}
-            <Recap
-              label="Site public"
-              value={form.visiblePublic ? "Publiée" : "Non publiée (suivi interne)"}
-            />
+            {form.participantsTotal.trim() && <Recap label="Participants" value={form.participantsTotal.trim()} />}
+            <Recap label="Site public" value={form.visiblePublic ? "Publiée" : "Non publiée (suivi interne)"} />
             {videosAjoutees > 0 && (
               <Recap
                 label="Vidéos"
@@ -440,37 +437,21 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
             )}
           </dl>
           {bilanPhotos.erreurs.length > 0 && (
-            <div
+            <Alerte
+              ton="attention"
               role="alert"
-              className="mt-5 flex items-start gap-2.5 rounded-xl border-2 border-militant-bordeaux bg-white px-4 py-3 text-sm text-militant-charbon"
+              className="mt-5"
+              titre="L'action est enregistrée, mais certaines opérations sur les photos ou les vidéos ont échoué :"
             >
-              <AlertTriangle size={18} className="mt-0.5 shrink-0 text-militant-bordeaux" />
-              <div>
-                <p className="font-bold text-militant-bordeaux">
-                  L&apos;action est enregistrée, mais certaines opérations sur les photos ou les vidéos ont échoué :
-                </p>
-                <ul className="mt-1.5 list-disc pl-5">
-                  {bilanPhotos.erreurs.map((m) => (
-                    <li key={m}>{m}</li>
-                  ))}
-                </ul>
-                <p className="mt-1.5">
-                  Vous pouvez réessayer depuis l&apos;écran de modification de l&apos;action.
-                </p>
-              </div>
-            </div>
+              <ul className="mt-1.5 list-disc pl-5">
+                {bilanPhotos.erreurs.map((m) => (
+                  <li key={m}>{m}</li>
+                ))}
+              </ul>
+              <p className="mt-1.5">Vous pouvez réessayer depuis l&apos;écran de modification de l&apos;action.</p>
+            </Alerte>
           )}
-          <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
-            {!action && (
-              <button type="button" onClick={nouvelleAction} className={BOUTON_PRINCIPAL}>
-                <Plus size={16} /> Encoder une autre action
-              </button>
-            )}
-            <Link href="/suivi-actions/actions" className={BOUTON_SECONDAIRE}>
-              <List size={16} /> Retour à la liste
-            </Link>
-          </div>
-        </div>
+        </Panneau>
       </div>
     );
   }
@@ -479,25 +460,23 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
   const err = errors;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
-      <header className="border-b-[6px] border-militant-charbon pb-4">
-        <Link
-          href="/suivi-actions/actions"
-          className="inline-flex items-center gap-1 text-sm font-semibold underline decoration-militant-rouge decoration-2 underline-offset-4 hover:text-militant-bordeaux focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge"
-        >
-          <ArrowLeft size={15} /> Toutes les actions
-        </Link>
-        <h1 className="mt-3 font-condensed text-5xl font-extrabold uppercase leading-[0.9]">
-          {action ? "Modifier l'action" : "Encoder une action"}
-        </h1>
-        {action && <p className="mt-2 text-lg font-semibold">{titreAction(action)}</p>}
-      </header>
+    <div className="ecg-ecran ecg-ecran-etroit">
+      <EnteteEcran
+        icone={action ? "pen" : "plus"}
+        titre={action ? "Modifier l'action" : "Encoder une action"}
+        description={action ? titreAction(action) : "Les champs marqués d'une * sont obligatoires."}
+        actions={
+          <Link href="/espace/actions/liste" className={BTN}>
+            <ArrowLeft size={16} aria-hidden /> Toutes les actions
+          </Link>
+        }
+      />
 
-        <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl border border-militant-ardoise overflow-hidden">
+        <form onSubmit={handleSubmit} noValidate className="ecg-pile">
 
           {/* ── L'ACTION ── */}
-          <SectionTitle>1. L&apos;action</SectionTitle>
-          <div className="px-6 py-6 space-y-5">
+          <Panneau titre="L&apos;action">
+          <div className="space-y-5">
             <Field
               label="Nom de l'action"
               error={err.nomAction}
@@ -508,7 +487,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
                 value={form.nomAction}
                 onChange={(e) => set("nomAction", e.target.value)}
                 maxLength={120}
-                placeholder="Ex. Bulletin de rentrée du gouvernement : 0/20"
+                placeholder="Ex. Bulletin de rentrée du gouvernement : 0/20…"
               />
             </Field>
 
@@ -530,7 +509,7 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
                   className={input(err.ville)}
                   value={form.ville}
                   onChange={(e) => set("ville", e.target.value)}
-                  placeholder="Ex. Namur"
+                  placeholder="Ex. Namur…"
                 />
               </Field>
             </div>
@@ -556,16 +535,17 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
                   className={input(err.typeAutre)}
                   value={form.typeAutre}
                   onChange={(e) => set("typeAutre", e.target.value)}
-                  placeholder="Ex. rassemblement devant le SPF Emploi"
+                  placeholder="Ex. rassemblement devant le SPF Emploi…"
                   autoFocus
                 />
               </Field>
             )}
           </div>
+          </Panneau>
 
           {/* ── CONTEXTE ── */}
-          <SectionTitle>2. Contexte</SectionTitle>
-          <div className="px-6 py-6 space-y-5">
+          <Panneau titre="Contexte">
+          <div className="space-y-5">
             <Field label="Secteur" error={err.secteurId}>
               <select
                 className={input(err.secteurId)}
@@ -584,11 +564,11 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
                 ))}
                 <option value={NOUVEAU_SECTEUR}>+ Ajouter un secteur</option>
               </select>
-              {secteursError && <p className="text-militant-bordeaux font-semibold text-xs mt-1">{secteursError}</p>}
+              {secteursError && <p className="ecg-erreur">{secteursError}</p>}
             </Field>
 
             {form.secteurId === NOUVEAU_SECTEUR && (
-              <div className="rounded-xl border border-militant-ardoise bg-white p-4">
+              <div className="rounded-xl border border-[#dde2e7] bg-[#fafbfc] p-4">
                 <Field
                   label="Nouveau secteur"
                   error={err.nouveauSecteur}
@@ -608,14 +588,14 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
                           ajouterSecteur();
                         }
                       }}
-                      placeholder="Ex. Métal"
+                      placeholder="Ex. Métal…"
                       autoFocus
                     />
                     <button
                       type="button"
                       onClick={ajouterSecteur}
                       disabled={ajoutSecteurLoading}
-                      className="inline-flex items-center justify-center gap-1.5 shrink-0 bg-militant-bordeaux hover:bg-militant-charbon disabled:opacity-50 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors"
+                      className={`${BTN_PRINCIPAL} shrink-0`}
                     >
                       {ajoutSecteurLoading ? <IconeChargement size={16} /> : <Plus size={16} />}
                       Ajouter
@@ -691,13 +671,14 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
               </div>
             </Field>
           </div>
+          </Panneau>
 
           {/* ── BILAN ── */}
-          <SectionTitle>3. Bilan</SectionTitle>
-          <div className="px-6 py-6 space-y-5">
+          <Panneau titre="Bilan">
+          <div className="space-y-5">
             <Field label="Description" error={err.description}>
               <textarea
-                className={`${input(err.description)} min-h-[120px] resize-y`}
+                className={`${input(err.description)} min-h-[120px]`}
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
                 placeholder="Déroulement, revendications, faits marquants…"
@@ -730,10 +711,11 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
               </Field>
             </div>
           </div>
+          </Panneau>
 
           {/* ── PHOTOS ── */}
-          <SectionTitle>4. Photos</SectionTitle>
-          <div className="px-6 py-6">
+          <Panneau titre="Photos">
+          <div className="space-y-5">
             <Field
               label="Photos de l'action"
               hint="La première photo est la photo principale sur le site public. Elles sont réduites automatiquement avant l'envoi."
@@ -741,10 +723,11 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
               <ChoixPhotos photos={photos} onChange={setPhotos} disabled={loading} />
             </Field>
           </div>
+          </Panneau>
 
           {/* ── VIDÉOS ── */}
-          <SectionTitle>5. Vidéos</SectionTitle>
-          <div className="px-6 py-6">
+          <Panneau titre="Vidéos">
+          <div className="space-y-5">
             <Field
               label="Vidéos YouTube"
               hint="Collez le lien d'une vidéo YouTube. Elle sera intégrée à la page de l'action sur le site public."
@@ -760,20 +743,21 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
               />
             </Field>
           </div>
+          </Panneau>
 
           {/* ── SITE PUBLIC ── */}
-          <SectionTitle>6. Site public</SectionTitle>
-          <div className="px-6 py-6 space-y-5">
+          <Panneau titre="Site public">
+          <div className="space-y-5">
             <Field
               label="Info web"
               error={err.infoWeb}
               hint="Texte affiché sur le site public : court, factuel, sans nom de personne. La description ci-dessus reste interne."
             >
               <textarea
-                className={`${input(err.infoWeb)} min-h-[100px] resize-y`}
+                className={`${input(err.infoWeb)} min-h-[100px]`}
                 value={form.infoWeb}
                 onChange={(e) => set("infoWeb", e.target.value)}
-                placeholder="Ex. Plus de 300 travailleurs réunis devant le siège pour défendre l'emploi."
+                placeholder="Ex. Plus de 300 travailleurs réunis devant le siège pour défendre l'emploi…"
                 rows={4}
               />
             </Field>
@@ -783,28 +767,23 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
               onChange={(v) => set("visiblePublic", v)}
             />
           </div>
+          </Panneau>
 
-          <div className="px-6 pb-6 space-y-3">
-            {submitError && (
-              <div role="alert" className="flex items-start gap-2.5 bg-white border-2 border-militant-bordeaux text-militant-charbon rounded-xl px-4 py-3 text-sm">
-                <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                <p>{submitError}</p>
-              </div>
-            )}
-            {Object.values(errors).some(Boolean) && !submitError && (
-              <p className="text-militant-bordeaux font-semibold text-sm text-center">
-                Certains champs doivent être corrigés avant l&apos;enregistrement.
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 bg-militant-bordeaux hover:bg-militant-charbon disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
-            >
+          {submitError && <Alerte ton="erreur">{submitError}</Alerte>}
+          <div className="ecg-barre-actions">
+            <p className="text-sm" aria-live="polite">
+              {Object.values(errors).some(Boolean) && !submitError ? (
+                <span className="font-semibold text-militant-bordeaux">
+                  Certains champs doivent être corrigés avant l&apos;enregistrement.
+                </span>
+              ) : (
+                <span className="ecg-texte-doux">* Champs obligatoires</span>
+              )}
+            </p>
+            <button type="submit" className={BTN_PRINCIPAL}>
               {loading && <IconeChargement size={16} />}
               {loading ? progression || "Enregistrement…" : action ? "Enregistrer les modifications" : "Enregistrer l'action"}
             </button>
-            <p className="text-xs text-militant-charbon text-center">* Champs obligatoires</p>
           </div>
         </form>
     </div>
@@ -812,14 +791,6 @@ export default function FormulaireAction({ action }: { action?: ActionEnregistre
 }
 
 // ── Sous-composants ──────────────────────────────────────────────────────────
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="border-y-2 border-militant-charbon bg-white px-6 py-2.5 font-condensed text-xl font-extrabold">
-      {children}
-    </div>
-  );
-}
-
 function Field({ label, error, hint, children }: {
   label: string;
   error?: string;
@@ -828,10 +799,10 @@ function Field({ label, error, hint, children }: {
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-militant-charbon mb-1.5">{label}</label>
-      {hint && <p className="text-xs text-militant-charbon mb-1.5">{hint}</p>}
+      <label className="ecg-libelle">{label}</label>
+      {hint && <p className="ecg-aide -mt-1 mb-2">{hint}</p>}
       {children}
-      {error && <p className="text-militant-bordeaux font-semibold text-xs mt-1">{error}</p>}
+      {error && <p className="ecg-erreur">{error}</p>}
     </div>
   );
 }
@@ -845,22 +816,10 @@ function ChoiceCard({ type, name, checked, onChange, label, icon }: {
   icon?: React.ReactNode;
 }) {
   return (
-    <label
-      className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 cursor-pointer transition-colors text-sm ${
-        checked
-          ? "border-militant-rouge bg-white text-militant-charbon ring-1 ring-militant-rouge"
-          : "border-militant-ardoise text-militant-charbon hover:border-militant-charbon"
-      }`}
-    >
-      <input
-        type={type}
-        name={name}
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="accent-militant-rouge"
-      />
-      {icon && <span className={checked ? "text-militant-rouge" : "text-militant-charbon"}>{icon}</span>}
-      <span className="font-medium">{label}</span>
+    <label className={`ecg-choix${checked ? " ecg-choix-actif" : ""}`}>
+      <input type={type} name={name} checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      {icon && <span aria-hidden>{icon}</span>}
+      <span>{label}</span>
     </label>
   );
 }
@@ -870,23 +829,14 @@ function PublicationToggle({ checked, onChange }: {
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label
-      className={`flex items-start gap-3 rounded-xl border px-4 py-3.5 cursor-pointer transition-colors ${
-        checked ? "border-militant-rouge bg-white ring-1 ring-militant-rouge" : "border-militant-ardoise hover:border-militant-charbon"
-      }`}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="accent-militant-rouge mt-0.5 h-4 w-4 shrink-0"
-      />
+    <label className={`ecg-choix items-start${checked ? " ecg-choix-actif" : ""}`}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5" />
       <span className="min-w-0">
-        <span className="flex items-center gap-2 text-sm font-semibold text-militant-charbon">
-          <Globe size={16} className={checked ? "text-militant-rouge" : "text-militant-charbon"} />
+        <span className="flex items-center gap-2 font-semibold">
+          <Globe size={16} aria-hidden />
           Publier sur le site public
         </span>
-        <span className="block text-xs text-militant-charbon mt-1">
+        <span className="ecg-aide mt-1 block">
           {checked
             ? "Seront visibles : date, type, ville, front commun, nombre de participants et info web (l'entreprise uniquement pour un piquet)."
             : "L'action reste dans le suivi interne."}
@@ -899,16 +849,12 @@ function PublicationToggle({ checked, onChange }: {
 function Recap({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-militant-charbon">{label}</dt>
-      <dd className="text-militant-charbon mt-0.5">{value}</dd>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }
 
 function input(error?: string) {
-  return `w-full border rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 transition-colors ${
-    error
-      ? "border-militant-bordeaux border-2 focus:ring-militant-rouge bg-white"
-      : "border-militant-ardoise focus:border-militant-charbon focus:ring-militant-rouge"
-  }`;
+  return `ecg-champ${error ? " ecg-champ-erreur" : ""}`;
 }
