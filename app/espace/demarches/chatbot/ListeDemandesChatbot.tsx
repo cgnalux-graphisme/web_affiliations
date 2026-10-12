@@ -24,10 +24,13 @@ export default function ListeDemandesChatbot({
   demandes,
   filtreInitial,
   ouverte,
+  peutSupprimer,
 }: {
   demandes: DemandeChatbot[];
   filtreInitial: Filtre;
   ouverte: string | null;
+  /** Suppression réservée au SUPER_ADMIN (règle en base). */
+  peutSupprimer: boolean;
 }) {
   const router = useRouter();
   const [filtre, setFiltre] = useState<Filtre>(filtreInitial);
@@ -90,7 +93,7 @@ export default function ListeDemandesChatbot({
       ) : (
         <ul className="ecg-pile">
           {visibles.map((d) => (
-            <CarteDemande key={d.id} d={d} enEvidence={d.id === ouverte} onChange={() => router.refresh()} />
+            <CarteDemande key={d.id} d={d} enEvidence={d.id === ouverte} peutSupprimer={peutSupprimer} onChange={() => router.refresh()} />
           ))}
         </ul>
       )}
@@ -105,7 +108,17 @@ const STATUTS_AFFICHAGE: Record<string, { ton: "info" | "attente" | "ok"; icone:
   traite: { ton: "ok", icone: CircleCheck },
 };
 
-function CarteDemande({ d, enEvidence, onChange }: { d: DemandeChatbot; enEvidence: boolean; onChange: () => void }) {
+function CarteDemande({
+  d,
+  enEvidence,
+  peutSupprimer,
+  onChange,
+}: {
+  d: DemandeChatbot;
+  enEvidence: boolean;
+  peutSupprimer: boolean;
+  onChange: () => void;
+}) {
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState("");
   const [registre, setRegistre] = useState<string | null>(null);
@@ -241,14 +254,16 @@ function CarteDemande({ d, enEvidence, onChange }: { d: DemandeChatbot; enEviden
           ))}
         </select>
         {enCours && <IconeChargement />}
-        <button
-          type="button"
-          onClick={supprimer}
-          disabled={enCours}
-          className="ecg-btn ecg-btn-fantome ecg-btn-fantome-danger ml-auto"
-        >
-          <Trash2 size={15} aria-hidden /> Supprimer
-        </button>
+        {peutSupprimer && (
+          <button
+            type="button"
+            onClick={supprimer}
+            disabled={enCours}
+            className="ecg-btn ecg-btn-fantome ecg-btn-fantome-danger ml-auto"
+          >
+            <Trash2 size={15} aria-hidden /> Supprimer
+          </button>
+        )}
       </div>
       {erreur && (
         <div className="px-5 pb-4">

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { STATUTS_DEMANDE_CHATBOT, type StatutDemandeChatbot } from "../../../../lib/assistant-demandes";
-import { aApp } from "../../../../lib/espace/acces";
+import { aApp, monProfil } from "../../../../lib/espace/acces";
 import { getSupabaseService } from "../../../../lib/supabase-service";
 
 /**
@@ -31,6 +31,8 @@ export async function changerStatutDemande(id: string, statut: StatutDemandeChat
 }
 
 export async function supprimerDemande(id: string): Promise<Resultat> {
+  // Comme la règle en base : la suppression est réservée au SUPER_ADMIN (la clé service_role la contournerait).
+  if ((await monProfil())?.role !== "SUPER_ADMIN") return { ok: false, erreur: "Seul un super admin peut supprimer une demande." };
   const supabase = await client();
   if (!supabase) return { ok: false, erreur: "Accès refusé. Reconnectez-vous." };
   const { error } = await supabase.from("site_chatbot_demandes").delete().eq("id", id);

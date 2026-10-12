@@ -58,11 +58,16 @@ Au 08/10/2026 : `actions`, `scan-news`, `parametres` → SUPER_ADMIN ; `demarche
    le droit avant d'agir. `getSuperAdmin()` ne sert plus que pour ce qui reste réservé aux super admins.
 La connexion (`/login`) accepte désormais tout compte CG Link ; c'est l'Espace qui décide ensuite.
 
-**Limite connue (base)** : les politiques RLS des tables `site_*` (actions, articles, veille, paramètres…)
-n'autorisent que `site_is_super_admin()`. Donner une app `actions`, `scan-news` ou `parametres` à un rôle
-autre que SUPER_ADMIN ouvre bien l'app, mais ses écrans ne pourront ni lire ni écrire ces tables tant que ces
-politiques ne sont pas adaptées (par exemple avec `site_a_app()`), **à décider par Fred**. L'app `demarches`
-fonctionne pour ADMIN_OP : ses données passent par le serveur en service_role, après vérification du droit.
+**Base alignée sur les apps (12/10/2026, modifié directement en base par Fred)** : les politiques RLS des
+tables `site_*` et des buckets `action-photos`, `blog-images`, `notes-sources` utilisent `site_a_app()`
+(apps `actions`, `scan-news`, `demarches`) ; l'app `parametres` reste réservée à SUPER_ADMIN. Donner une app
+à un rôle ou à une personne ouvre donc l'app **et** ses données (lecture et écriture depuis le navigateur).
+La lecture de `web_c1`, `web_c3_2` et `web_mandats_sepa` est réservée à l'app `demarches` (l'ancienne règle
+`auth_select` est neutralisée). Les données de l'app `demarches` passent toujours par le serveur
+(service_role) après vérification du droit. En base, la suppression d'une demande chatbot
+(`site_chatbot_demandes`) est réservée au SUPER_ADMIN ; la liste de toutes les tables restées SUPER_ADMIN est
+dans [docs/contexte/base-de-donnees.md](../../docs/contexte/base-de-donnees.md). L'écran « Apps par rôle » le dit (corrigé le
+12/10/2026) : seule l'app Paramètres reste réservée au SUPER_ADMIN.
 
 **Style des écrans du back-office** (08/10/2026, demande de Fred : « uniformise et rends le tout digeste ») :
 tous les écrans des apps suivent la maquette, **le site public n'est pas concerné**. Briques communes :
@@ -133,7 +138,9 @@ Socle commun : `app/espace/_noyau/` (registre `registre.ts`, cadre `CadreEspace.
    défaut dans `site_app_roles` (Fred, dans Supabase ; ou l'écran de gestion des rôles, lot 2) ;
 4. une icône absente de `icones.ts` : l'y ajouter (lucide-react) ;
 5. ses pages appellent `exigerApp("<code>")`, ses actions et routes API `aApp("<code>")` ;
-6. si ses écrans lisent ou écrivent des tables `site_*` depuis le navigateur, vérifier leurs politiques RLS.
+6. si ses écrans lisent ou écrivent des tables `site_*` depuis le navigateur, leurs politiques RLS doivent
+   utiliser `site_a_app('<code>')`, comme les autres (à faire par Fred dans Supabase, pas de migration sans
+   sa demande).
 Une app présente en base mais sans dossier n'apparaît pas ; les apps « Bientôt » sont dans `PROCHAINES_APPS`.
 
 **Anciennes adresses** : `/suivi-actions/…` → redirections permanentes vers `/espace/…` dans `next.config.ts`

@@ -109,9 +109,16 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
   abusive est bloquée. **Ne pas re-signaler comme faille ouverte.**
 - **Vues `*_public`** : lecture seule pour `anon` et `authenticated` (droits
   d'écriture révoqués, seul `SELECT` reste accordé).
-- **Écriture sur `site_*`** : réservée aux super admins via `site_is_super_admin()`.
+- **Tables `site_*` et buckets suivent les apps** (modifié directement en base le 12/10/2026, déclaré par
+  Fred) : les politiques RLS utilisent `site_a_app()` (apps `actions`, `scan-news`, `demarches`) ; l'app
+  `parametres` reste réservée à SUPER_ADMIN. Même règle pour les buckets `action-photos`, `blog-images` et
+  `notes-sources`. Donner une app à un rôle (Apps par rôle, ou exception dans Comptes & accès) ouvre donc
+  aussi ses tables. Détail table par table : [docs/contexte/base-de-donnees.md](docs/contexte/base-de-donnees.md).
+- **Lecture de `web_c1`, `web_c3_2` et `web_mandats_sepa`** : réservée à l'app `demarches` (12/10/2026,
+  directement en base) ; l'ancienne politique `auth_select` (tout compte connecté, délégués compris) est
+  neutralisée (`false`). Les écritures des formulaires publics (clé publique) sont inchangées.
 - **Bucket `action-photos`** : la policy `site_actions_photos_select` (SELECT réservé
-  aux super admins) **existe déjà** côté base, en plus d'INSERT / UPDATE / DELETE.
+  aux super admins, puis à l'app `actions` depuis le 12/10/2026) **existe déjà** côté base, en plus d'INSERT / UPDATE / DELETE.
   Elle permet `remove` et `move` (suppression et réordonnancement des photos).
   **Ne plus la redemander.**
 - **Reste à faire** (non critique, à planifier) : resserrer les politiques
@@ -123,13 +130,13 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 ## Problèmes connus
 
 - La table profiles a des règles RLS trop permissives (ALL à true pour tout utilisateur connecté) : n'importe quel connecté peut modifier ou supprimer un profil. Le rôle est protégé par le trigger site_protect_profiles_role. À corriger en coordination avec CG Link, ne pas toucher sans validation.
-- Politiques RLS des tables `site_*` réservées à `site_is_super_admin()` : une app `actions`, `scan-news` ou `parametres` donnée à un autre rôle s'ouvre mais ses écrans ne peuvent ni lire ni écrire (voir [app/espace/CLAUDE.md](app/espace/CLAUDE.md)).
 
 ---
 
 ## État actuel (12/10/2026)
 - **Espace CG, lots 1 à 3 terminés et vérifiés en local** (types, 631 tests, build de production) sur
-  `suivi-actions`, **non commités, non poussés** : back-office en apps (`/espace`), écrans repris dans le
+  `suivi-actions`, **commités et poussés le 12/10/2026** (mise en production), avec la doc découpée et les
+  règles RLS alignées sur les apps : back-office en apps (`/espace`), écrans repris dans le
   style de la maquette, Comptes & accès, Apps par rôle, Journal des accès, page
   `/login/nouveau-mot-de-passe`, transitions et finitions (lot 3). `espace-cg.html` supprimé.
 - **Non testé** (pas de session ni d'écriture en base depuis Claude Code) : tous les écrans connectés et
@@ -137,8 +144,9 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 - **À faire par Fred** : 1. ajouter `<adresse du site>/login/nouveau-mot-de-passe` (local, preview,
   production) dans Supabase › Authentication › URL Configuration › Redirect URLs ; 2. parcourir les 4 apps
   connecté ; 3. essayer une invitation sur une adresse secondaire (e-mail, mot de passe, entrée dans
-  l'Espace, connexion à CG Link), une réinitialisation et une suspension / réactivation ; 4. décider des
-  politiques RLS si une app autre que Démarches doit s'ouvrir à un autre rôle que SUPER_ADMIN.
+  l'Espace, connexion à CG Link), une réinitialisation et une suspension / réactivation ; 4. vérifier
+  qu'un compte ADMIN_OP ou PERMANENT à qui l'on donne une app (Actions, Scan News) lit et écrit bien ses
+  données depuis l'Espace (les politiques RLS suivent les apps depuis le 12/10/2026).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 

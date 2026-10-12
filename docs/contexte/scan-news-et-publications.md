@@ -281,7 +281,7 @@ reformuler, citer et lier la source, jamais recopier.
       « Lien en bio » garanti sur Instagram. Écran : 4 cartes côte à côte, chacune
       éditable, compteur de caractères (limites : Facebook 63 206, Instagram 2 200 +
       30 hashtags, TikTok 4 000, YouTube titre 100 / description 5 000), Copier,
-      Enregistrer (écriture navigateur, RLS super admin), Régénérer (une seule
+      Enregistrer (écriture navigateur, RLS app `scan-news` depuis le 12/10/2026), Régénérer (une seule
       version) ; confirmation avant de remplacer une version, alerte en quittant
       avec des modifications non enregistrées. **Aucune publication automatique** :
       Fred copie-colle.

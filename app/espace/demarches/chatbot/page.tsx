@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { estStatutDemande, type DemandeChatbot } from "../../../../lib/assistant-demandes";
-import { exigerApp } from "../../../../lib/espace/acces";
+import { exigerApp, monProfil } from "../../../../lib/espace/acces";
 import { getSupabaseService } from "../../../../lib/supabase-service";
 import ListeDemandesChatbot from "./ListeDemandesChatbot";
 
@@ -48,7 +48,12 @@ export default async function DemandesChatbotPage({ searchParams }: { searchPara
       {echec ? (
         <Alerte ton="erreur">Les demandes ne peuvent pas être chargées. Rechargez la page ; si le problème persiste, vérifiez la clé SUPABASE_SERVICE_ROLE_KEY.</Alerte>
       ) : (
-        <ListeDemandesChatbot demandes={demandes} filtreInitial={estStatutDemande(p.statut) ? p.statut : "tous"} ouverte={p.id ?? null} />
+        <ListeDemandesChatbot
+          demandes={demandes}
+          filtreInitial={estStatutDemande(p.statut) ? p.statut : "tous"}
+          ouverte={p.id ?? null}
+          peutSupprimer={(await monProfil())?.role === "SUPER_ADMIN"}
+        />
       )}
     </div>
   );

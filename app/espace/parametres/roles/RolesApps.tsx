@@ -113,9 +113,9 @@ export default function RolesApps({
             Cocher une app pour les <b>délégués</b> leur ouvre l&apos;Espace CG (aujourd&apos;hui réservé à l&apos;équipe).
           </li>
           <li>
-            Les écrans des apps Actions syndicales, Scan News et Paramètres lisent et écrivent des tables encore
-            réservées aux super admins dans la base : pour un autre rôle, l&apos;app s&apos;ouvre mais reste vide tant que
-            ces règles ne sont pas adaptées. L&apos;app Démarches & demandes fonctionne pour tous.
+            Seule l&apos;app <b>Paramètres</b> reste réservée aux super admins dans la base : pour un autre rôle, elle
+            s&apos;ouvre mais ses données restent inaccessibles. Les autres apps (Actions syndicales, Scan News,
+            Démarches & demandes) fonctionnent pour tout rôle à qui on les donne.
           </li>
         </ul>
       </Alerte>

@@ -4,17 +4,27 @@
 
 ## Base de données — tables du site
 
+> **Accès depuis le 12/10/2026** (politiques RLS modifiées directement en base, déclaré par Fred) : les tables
+> `site_*` et les buckets suivent les apps de l'Espace CG via `site_a_app()` : apps `actions`, `scan-news`,
+> `demarches` ; ce qui relève de l'app `parametres` reste réservé à SUPER_ADMIN. Dans les tableaux
+> ci-dessous, « app `x` » = l'app qui gère la table (correspondance tirée des écrans ; la règle exacte est en
+> base). Les vues `*_public` restent en lecture publique. Règles vérifiées en base le 12/10/2026 (par
+> Claude sur claude.ai, qui gère la base). SUPER_ADMIN garde partout l'accès en plus de l'app.
+> **Restent SUPER_ADMIN uniquement** : `site_parametres`, `site_destinataires`, `site_envois_mails`,
+> `site_services`, `site_faq`, `site_apps` (écriture), `site_app_roles` (écriture), `site_app_acces`,
+> `site_journal_acces`.
+
 Créées le **24/09/2026** dans la base CG Link :
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_secteurs` | Liste modifiable des secteurs (11 pré-remplis) | Lecture publique, ajout super admin |
-| `site_actions` | Les actions syndicales (suivi + rapport de congrès) | Super admin (lecture/écriture) |
-| `site_photos` | Photos rattachées à chaque action (`action_id`, `url`, `legende`) | Super admin |
-| `site_videos` | Vidéos YouTube d'une action (`action_id`, `url`, `titre`) | Super admin |
+| `site_secteurs` | Liste modifiable des secteurs (11 pré-remplis) | Lecture publique, ajout : app `actions` |
+| `site_actions` | Les actions syndicales (suivi + rapport de congrès) | App `actions` (lecture/écriture) |
+| `site_photos` | Photos rattachées à chaque action (`action_id`, `url`, `legende`) | App `actions` |
+| `site_videos` | Vidéos YouTube d'une action (`action_id`, `url`, `titre`) | App `actions` |
 | `site_actions_public` | Vue : actions publiées, colonnes autorisées (l'entreprise seulement pour un piquet) | Lecture publique |
 | `site_photos_public` / `site_videos_public` | Vues : photos / vidéos des actions publiées | Lecture publique |
-| Bucket `action-photos` | Fichiers photo (public en lecture) | Écriture super admin |
+| Bucket `action-photos` | Fichiers photo (public en lecture) | Écriture : app `actions` |
 
 `site_photos` et `site_videos` → `site_actions` en `ON DELETE CASCADE`.
 
@@ -22,10 +32,10 @@ Blog (créés côté Supabase avant le 28/09/2026, aucune migration dans le dép
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_articles` | Articles du blog **et** explications (« On vous explique »), distingués par `categorie` | Super admin (lecture/écriture) |
+| `site_articles` | Articles du blog **et** explications (« On vous explique »), distingués par `categorie` | App `scan-news` (lecture/écriture) |
 | `site_articles_public` | Vue : articles publiés (sans `statut`, `created_at`, `updated_at`), **avec `categorie`** | Lecture publique |
-| Bucket `blog-images` | Images de couverture (public en lecture) | Écriture super admin |
-| Bucket `notes-sources` | **Privé** : notes FGTB d'origine des explications (traçabilité interne) | Lecture et écriture **côté serveur uniquement** (service_role) |
+| Bucket `blog-images` | Images de couverture, et image des mobilisations (public en lecture) | Écriture : app `scan-news` ou app `actions` (deux règles en base ; la seconde, ajoutée le 12/10/2026 à 10:20 pour les images des mobilisations, vaut pour tout le bucket) |
+| Bucket `notes-sources` | **Privé** : notes FGTB d'origine des explications (traçabilité interne) | App `scan-news` (en plus de SUPER_ADMIN) ; le code n'y accède que **côté serveur** (service_role) |
 
 `categorie` et `document_source` ajoutés par Fred avant le 29/09/2026 (aucune
 migration dans le dépôt) : `categorie` = `article` (défaut, blog) ou `explication`
@@ -36,10 +46,10 @@ Veille (créés côté Supabase avant le 28/09/2026) :
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_sources` | Flux RSS suivis : `nom`, `url_flux`, `actif` | Super admin |
-| `site_themes` | Mots-clés de pertinence : `mot_cle`, `actif` (pré-remplie) | Super admin |
-| `site_veille` | Articles ramassés : `source_id`, `source_nom`, `titre`, `resume`, `lien` (**index unique**), `date_publication`, `statut` (`nouveau` / `traite` / `ignore`) | Super admin ; écriture du ramassage en service_role |
-| `site_veille_analyses` | Classements « Check IA » : `origine` (`manuel` / `auto`), `nb_articles`, `resultat` (jsonb, `ResultatAnalyse` de `lib/veille-tri.ts`), `modele`, `created_at` ; purgés après 7 jours | Lecture super admin ; écriture et purge **uniquement** en service_role |
+| `site_sources` | Flux RSS suivis : `nom`, `url_flux`, `actif` | App `scan-news` |
+| `site_themes` | Mots-clés de pertinence : `mot_cle`, `actif` (pré-remplie) | App `scan-news` |
+| `site_veille` | Articles ramassés : `source_id`, `source_nom`, `titre`, `resume`, `lien` (**index unique**), `date_publication`, `statut` (`nouveau` / `traite` / `ignore`) | App `scan-news` ; écriture du ramassage en service_role |
+| `site_veille_analyses` | Classements « Check IA » : `origine` (`manuel` / `auto`), `nb_articles`, `resultat` (jsonb, `ResultatAnalyse` de `lib/veille-tri.ts`), `modele`, `created_at` ; purgés après 7 jours | Lecture : app `scan-news` ; écriture et purge **uniquement** en service_role |
 
 Migration `supabase/migrations/20261001090000_site_veille_analyses.sql` **demandée par Fred le
 01/10/2026** (idempotente), **exécutée par Fred le 01/10/2026**. Si la table manquait, le fil
@@ -52,8 +62,8 @@ colonnes relevées par l'OpenAPI de PostgREST) :
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_mobilisations` | `titre`, `slug`, `date_evenement` (timestamptz ; saisie `jj/mm/aaaa` + `hh:mm` à l'heure de Bruxelles, `versHorodatage()`), `lieu`, `chapo`, `image_hero` (bucket `blog-images`, `mobilisations/<id>/hero-<uuid>.jpg`), `pourquoi` (texte, paragraphes séparés par une ligne vide), `revendications` et `infos_pratiques` (une ligne par élément ; « Libellé : détail » met le libellé en gras), `lien_inscription` (formulaire FGTB fédérale, http(s)), `actif` (défaut false), `created_at`, `updated_at` | Super admin |
-| `site_parametres` | `cle` (clé primaire), `valeur`, `updated_at` ; `accueil_mobilisation` = `on` / `off` | Super admin |
+| `site_mobilisations` | `titre`, `slug`, `date_evenement` (timestamptz ; saisie `jj/mm/aaaa` + `hh:mm` à l'heure de Bruxelles, `versHorodatage()`), `lieu`, `chapo`, `image_hero` (bucket `blog-images`, `mobilisations/<id>/hero-<uuid>.jpg`), `pourquoi` (texte, paragraphes séparés par une ligne vide), `revendications` et `infos_pratiques` (une ligne par élément ; « Libellé : détail » met le libellé en gras), `lien_inscription` (formulaire FGTB fédérale, http(s)), `actif` (défaut false), `created_at`, `updated_at` | App `actions` |
+| `site_parametres` | `cle` (clé primaire), `valeur`, `updated_at` ; `accueil_mobilisation` = `on` / `off` | SUPER_ADMIN (app `parametres`) |
 | `site_accueil_mobilisation` | Vue : **une ligne seulement si** l'interrupteur est sur `on` **et** qu'une mobilisation est active (colonnes publiques) | Lecture publique |
 
 **Règle** : bloc d'accueil, bandeau et page campagne ne s'affichent **que** si la
@@ -96,21 +106,22 @@ Réseaux sociaux (créé côté Supabase avant le 28/09/2026) :
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_publications_reseaux` | Posts déclinés d'un article : `article_id` (→ `site_articles`), `reseau` (`facebook` / `instagram` / `tiktok` / `youtube`), `contenu`, `statut` (défaut `brouillon`, non utilisé par le code), `created_at`, `updated_at` | Super admin |
+| `site_publications_reseaux` | Posts déclinés d'un article : `article_id` (→ `site_articles`), `reseau` (`facebook` / `instagram` / `tiktok` / `youtube`), `contenu`, `statut` (défaut `brouillon`, non utilisé par le code), `created_at`, `updated_at` | App `scan-news` |
 
 Colonnes relevées par l'OpenAPI de PostgREST ; aucune contrainte d'unicité visible sur (`article_id`, `reseau`) : le code met à jour la ligne la plus récente, sinon en insère une. YouTube : titre sur la 1re ligne, ligne vide, puis description (`composerYoutube()` / `lireYoutube()`, `lib/reseaux.ts`). Si la base contraint `reseau` à d'autres valeurs, adapter `RESEAUX`.
 
 Assistant CG (**créées et remplies directement dans Supabase par Fred le 07/10/2026**, aucune migration dans
-le dépôt ; **ne pas modifier le schéma**). `anon` n'a aucun droit (vérifié le 08/10/2026) : lecture et écriture
-**uniquement côté serveur, en service_role** (`lib/assistant-donnees.ts`, cache mémoire 5 min) :
+le dépôt ; **ne pas modifier le schéma**). `anon` n'a aucun droit (vérifié le 08/10/2026). Règles en base depuis le 12/10/2026 : voir la colonne
+« Accès » (app `demarches`, en plus de SUPER_ADMIN). Le code passe toujours par le serveur, en service_role
+(`lib/assistant-donnees.ts`, cache mémoire 5 min ; back-office par actions serveur) :
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_chatbot_repartition` | `region` (Namur / Luxembourg), `cp_code`, `cp_nom`, `contact_nom` / `contact_email` / `contact_tel` (= la **1re ligne**, qui reçoit les questions juridiques), `permanent_nom` / `permanent_email` (**jamais lus par le chatbot**), `actif` ; 76 lignes au 08/10/2026 (conformes à `Répartition des secteurs 2025.xlsx`) | service_role |
-| `site_chatbot_secteurs` | `mot_cle`, `centrales` (plusieurs séparées par « ; »), `remarque` (arbitrages) ; 79 lignes | service_role |
-| `site_chatbot_centrales` | Coordonnées des centrales FGTB par province (17 lignes) | service_role |
-| `site_chatbot_antennes` | Antennes chômage FGTB par province (10 lignes, pas d'e-mail : contact écrit par My FGTB) | service_role |
-| `site_chatbot_demandes` | Demandes transmises : `nom`, `prenom`, `email`, `message`, `code_postal`, `region`, `categorie`, `cp_code`, `affilie`, `registre_national`, `destinataire_email`, `service_nom`, `statut` (défaut `nouveau` ; le code utilise aussi `en_cours` et `traite`, **non vérifié contre une éventuelle contrainte**), `created_at` | service_role (route de transmission, back-office) |
+| `site_chatbot_repartition` | `region` (Namur / Luxembourg), `cp_code`, `cp_nom`, `contact_nom` / `contact_email` / `contact_tel` (= la **1re ligne**, qui reçoit les questions juridiques), `permanent_nom` / `permanent_email` (**jamais lus par le chatbot**), `actif` ; 76 lignes au 08/10/2026 (conformes à `Répartition des secteurs 2025.xlsx`) | Lecture : app `demarches` |
+| `site_chatbot_secteurs` | `mot_cle`, `centrales` (plusieurs séparées par « ; »), `remarque` (arbitrages) ; 79 lignes | Lecture : app `demarches` |
+| `site_chatbot_centrales` | Coordonnées des centrales FGTB par province (17 lignes) | Lecture : app `demarches` |
+| `site_chatbot_antennes` | Antennes chômage FGTB par province (10 lignes, pas d'e-mail : contact écrit par My FGTB) | Lecture : app `demarches` |
+| `site_chatbot_demandes` | Demandes transmises : `nom`, `prenom`, `email`, `message`, `code_postal`, `region`, `categorie`, `cp_code`, `affilie`, `registre_national`, `destinataire_email`, `service_nom`, `statut` (défaut `nouveau` ; le code utilise aussi `en_cours` et `traite`, **non vérifié contre une éventuelle contrainte**), `created_at` | Lecture et mise à jour : app `demarches` ; suppression : SUPER_ADMIN uniquement ; insertion par la route de transmission (service_role) |
 
 ### Colonnes de `site_articles`
 `titre`, `slug` (adresse `/blog/<slug>` ou `/on-vous-explique/<slug>` selon
@@ -165,11 +176,11 @@ adapter `STATUT_*` dans `lib/articles.ts`.
 
 Tables `web_*` écrites par les formulaires avec la clé publique, **jamais lisibles
 par elle** (vérifié le 28/09/2026 : 0 ligne renvoyée à `anon`). **Ne pas les
-modifier, pas de migration.** **À signaler à Fred** (relevé le 07/10/2026) : sur
-`web_mandats_sepa` et `web_c1` (et sans doute les autres anciennes `web_*`), la
-politique `auth_select` laisse **tout compte connecté** (délégué CG Link compris)
-lire ces tables, NISS et IBAN compris ; et `anon` / `authenticated` ont tous les
-droits SQL (la RLS seule protège). À resserrer sur demande de Fred.
+modifier, pas de migration.** **Lecture resserrée le 12/10/2026** (directement en base, par Fred) :
+`web_c1`, `web_c3_2` et `web_mandats_sepa` ne sont lisibles qu'avec l'app `demarches` (`site_a_app()`) ;
+l'ancienne politique `auth_select`, qui laissait tout compte connecté (délégués compris) lire NISS et IBAN,
+est neutralisée (`false`). Relevé initial du 07/10/2026. `anon` / `authenticated` gardent leurs droits SQL :
+la RLS seule protège. `web_affiliations` n'a jamais été lisible (règle SELECT `false`) : rien n'a changé.
 
 | Table | Formulaire | Contenu |
 |---|---|---|
@@ -220,8 +231,8 @@ devenait illisible, les envois repartiraient vers `DESTINATAIRES_DEFAUT`
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_destinataires` | Adresses internes par envoi : `envoi` (`affiliation`, `sepa`, `changement`, `c1`, `c32`, `parcours_onem`, `modification` depuis le 07/10/2026), `email` (minuscules, unique par envoi), `actif` ; pré-remplie avec les adresses du code au 28/09/2026 | Super admin (lecture / écriture) ; lue par les routes d'envoi en service_role |
-| `site_envois_mails` | Journal : une ligne par demande et par destinataire (`demande_type`, `demande_id`, `envoi` ou `copie_personnelle`, `destinataire`, `sujet`, `statut` `envoye` / `echec`, `resend_id`, `erreur`) | Lecture super admin ; écriture **uniquement** en service_role (aucune politique d'écriture) |
+| `site_destinataires` | Adresses internes par envoi : `envoi` (`affiliation`, `sepa`, `changement`, `c1`, `c32`, `parcours_onem`, `modification` depuis le 07/10/2026), `email` (minuscules, unique par envoi), `actif` ; pré-remplie avec les adresses du code au 28/09/2026 | SUPER_ADMIN (app `parametres`, lecture / écriture) ; lue par les routes d'envoi en service_role |
+| `site_envois_mails` | Journal : une ligne par demande et par destinataire (`demande_type`, `demande_id`, `envoi` ou `copie_personnelle`, `destinataire`, `sujet`, `statut` `envoye` / `echec`, `resend_id`, `erreur`) | SUPER_ADMIN uniquement (lecture) ; écriture **uniquement** en service_role (aucune politique d'écriture) |
 
 - Routes d'envoi (`/api/send-*`) : `destinatairesInternes()` puis
   `envoyerEtJournaliser()` (`lib/envois-serveur.ts`). Le **demandeur reçoit
