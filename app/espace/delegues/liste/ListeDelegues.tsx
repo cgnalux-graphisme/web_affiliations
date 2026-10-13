@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CircleCheck, CircleSlash, Clock, Flag, Search, UserX } from "lucide-react";
+import { CircleCheck, CircleSlash, Clock, Flag, GitCompare, Search, UserX } from "lucide-react";
 import type { EntrepriseChoix, LigneDelegue } from "../../../../lib/delegues/donnees-serveur";
 import { LIBELLES_COMPTE } from "../../../../lib/delegues/delegue";
 import { LIBELLES_ORGANES } from "../../../../lib/delegues/mandats";
@@ -19,14 +19,16 @@ export default function ListeDelegues({ lignes, entreprises }: { lignes: LigneDe
   const [organe, setOrgane] = useState("");
   const [compte, setCompte] = useState("");
   const [aVerifier, setAVerifier] = useState(false);
+  const [avecEcarts, setAvecEcarts] = useState(false);
 
   const visibles = useMemo(() => lignes.filter((l) =>
     (!q || sansAccents(`${l.prenom ?? ""} ${l.nom} ${l.entrepriseNom}`).includes(sansAccents(q.trim()))) &&
     (!entreprise || l.entrepriseId === entreprise) &&
     (!organe || l.organes.includes(organe as LigneDelegue["organes"][number])) &&
     (!compte || l.compte === compte) &&
-    (!aVerifier || l.aVerifier)
-  ), [lignes, q, entreprise, organe, compte, aVerifier]);
+    (!aVerifier || l.aVerifier) &&
+    (!avecEcarts || l.ecarts > 0)
+  ), [lignes, q, entreprise, organe, compte, aVerifier, avecEcarts]);
 
   return (
     <Panneau corps={false}>
@@ -63,6 +65,10 @@ export default function ListeDelegues({ lignes, entreprises }: { lignes: LigneDe
           <input type="checkbox" className="h-5 w-5" checked={aVerifier} onChange={(e) => setAVerifier(e.target.checked)} />
           À vérifier seulement
         </label>
+        <label className="flex items-center gap-2 self-end pb-3">
+          <input type="checkbox" className="h-5 w-5" checked={avecEcarts} onChange={(e) => setAvecEcarts(e.target.checked)} />
+          Écarts avec CG Link
+        </label>
       </div>
       <p className="sr-only" aria-live="polite">{visibles.length} délégué(s) affiché(s)</p>
       {visibles.length === 0 ? (
@@ -78,7 +84,12 @@ export default function ListeDelegues({ lignes, entreprises }: { lignes: LigneDe
                   <tr key={l.id}>
                     <td>
                       <Link href={`/espace/delegues/${l.id}`} className="ecg-lien font-semibold">{[l.prenom, l.nom].filter(Boolean).join(" ")}</Link>
-                      {l.aVerifier && <div className="mt-1"><Statut ton="attente" icone={Flag}>À vérifier</Statut></div>}
+                      {(l.aVerifier || l.ecarts > 0) && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {l.aVerifier && <Statut ton="attente" icone={Flag}>À vérifier</Statut>}
+                          {l.ecarts > 0 && <Statut ton="info" icone={GitCompare}>{l.ecarts} écart{l.ecarts > 1 ? "s" : ""} CG Link</Statut>}
+                        </div>
+                      )}
                     </td>
                     <td>{l.entrepriseNom}</td>
                     <td>{l.mandats.join(" · ")}</td>

@@ -4,11 +4,12 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { formaterTelephone } from "../../../../lib/telephone";
 import { exigerSuperAdmin } from "../../../../lib/espace/acces";
 import { chargerCarte } from "../../../../lib/delegues/donnees-serveur";
-import { LIBELLES_COMPTE } from "../../../../lib/delegues/delegue";
 import { isoToDateFr } from "../../../../lib/dates";
 import { Alerte, EnteteEcran, Panneau } from "../../_partage/ui";
 import PanneauIdentite from "./PanneauIdentite";
 import PanneauMandats from "./PanneauMandats";
+import PanneauCompte from "./PanneauCompte";
+import PanneauEcarts from "./PanneauEcarts";
 
 export const metadata: Metadata = { title: "Délégué — Espace CG", robots: { index: false, follow: false } };
 
@@ -19,7 +20,7 @@ export default async function CartePage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const carte = await chargerCarte(id);
   if (!carte) notFound();
-  const { delegue: d, compte } = carte;
+  const { delegue: d } = carte;
   const nom = [d.prenom, d.nom].filter(Boolean).join(" ");
   const adresse = [
     [d.adresse_rue, d.adresse_numero].filter(Boolean).join(" ") + (d.adresse_boite ? ` bte ${d.adresse_boite}` : ""),
@@ -42,11 +43,8 @@ export default async function CartePage({ params }: { params: Promise<{ id: stri
       </div>
       <PanneauIdentite carte={carte} />
       <PanneauMandats carte={carte} />
-      <Panneau titre="Compte CG Link" sousTitre="Lecture seule : l'invitation et le blocage arrivent avec le plan 2b.">
-        <p><b>{LIBELLES_COMPTE[compte.etat]}</b></p>
-        {compte.invitedAt && <p className="text-sm">Invité le {isoToDateFr(new Date(compte.invitedAt).toISOString().slice(0, 10))}</p>}
-        {compte.derniereConnexion && <p className="text-sm">Dernière connexion : {dateHeure(compte.derniereConnexion)}</p>}
-      </Panneau>
+      <PanneauEcarts carte={carte} />
+      <PanneauCompte carte={carte} />
       {carte.journal.length > 0 && (
         <Panneau titre="Historique">
           <ul className="grid gap-1 text-sm">

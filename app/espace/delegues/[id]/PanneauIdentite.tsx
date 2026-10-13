@@ -2,17 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { ArrowRightLeft, Trash2 } from "lucide-react";
 import type { CarteDelegue } from "../../../../lib/delegues/donnees-serveur";
-import { enregistrerDelegue, supprimerDelegue } from "../actions";
+import { changerEntreprise, enregistrerDelegue, supprimerDelegue } from "../actions";
 import ChampsEdition from "../../_partage/ChampsEdition";
-import { BTN, BTN_PETIT, Panneau } from "../../_partage/ui";
+import { BTN, BTN_PETIT, CHAMP, LIBELLE, Panneau } from "../../_partage/ui";
+import { IconeChargement } from "../../../Chargement";
 
 export default function PanneauIdentite({ carte }: { carte: CarteDelegue }) {
   const router = useRouter();
   const d = carte.delegue;
   const [confirmer, setConfirmer] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [cible, setCible] = useState("");
+  const [confirmerChangement, setConfirmerChangement] = useState(false);
+  const [changement, setChangement] = useState<{ enCours: boolean; texte: string; ton: "ok" | "erreur" } | null>(null);
+
+  async function changer() {
+    setConfirmerChangement(false);
+    setChangement({ enCours: true, texte: "", ton: "ok" });
+    const r = await changerEntreprise(d.id, cible);
+    setChangement({ enCours: false, texte: r.ok ? r.message ?? "Entreprise changée." : r.erreur, ton: r.ok ? "ok" : "erreur" });
+    if (r.ok) {
+      setCible("");
+      router.refresh();
+    }
+  }
 
   async function supprimer() {
     const r = await supprimerDelegue(d.id);
@@ -29,7 +44,8 @@ export default function PanneauIdentite({ carte }: { carte: CarteDelegue }) {
         champs={[
           { nom: "prenom", libelle: "Prénom", largeur: "demi" },
           { nom: "nom", libelle: "Nom", largeur: "demi" },
-          { nom: "email", libelle: "E-mail", type: "email", largeur: "demi" },
+          // Compte CG Link : l'e-mail est l'adresse de connexion, il ne se change pas ici (affiché plus haut).
+          ...(d.cglink_user_id ? [] : [{ nom: "email", libelle: "E-mail", type: "email" as const, largeur: "demi" as const }]),
           { nom: "telephone", libelle: "Téléphone", type: "tel", exemple: "+32 (0) 470 12 34 56", largeur: "demi" },
           { nom: "adresse_rue", libelle: "Rue", type: "rue", largeur: "demi",
             aide: "Tapez 3 lettres : choisissez l'adresse proposée, le reste se remplit.",
@@ -45,6 +61,34 @@ export default function PanneauIdentite({ carte }: { carte: CarteDelegue }) {
         ]}
         enregistrer={(v) => enregistrerDelegue(d.id, v)}
       />
+      {d.cglink_user_id && <p className="ecg-texte-doux mt-3 text-sm">L'e-mail est l'adresse de connexion CG Link : il ne se change que dans CG Link.</p>}
+      <div className="mt-4 grid gap-2 border-t pt-4">
+        <label htmlFor="changer-entreprise" className={LIBELLE}>Changer d'entreprise</label>
+        <div className="flex flex-wrap gap-2">
+          <select id="changer-entreprise" value={cible} onChange={(e) => setCible(e.target.value)} className={`${CHAMP} w-auto flex-1`}>
+            <option value="">Choisir une entreprise…</option>
+            {carte.entreprises.filter((e) => e.id !== d.entreprise_id).map((e) => <option key={e.id} value={e.id}>{e.nom}</option>)}
+          </select>
+          <button type="button" className={BTN} disabled={!cible || changement?.enCours} onClick={() => setConfirmerChangement(true)}>
+            {changement?.enCours ? <IconeChargement size={15} /> : <ArrowRightLeft size={15} aria-hidden />} Changer
+          </button>
+        </div>
+        {confirmerChangement && (
+          <div role="alertdialog" aria-labelledby="confirmer-entreprise" className="grid gap-2 rounded-xl bg-[var(--ecg-fond)] p-3">
+            <b id="confirmer-entreprise">
+              Changer d'entreprise ? Les mandats en cours passent au site principal de la nouvelle entreprise (à vérifier)
+              {d.cglink_user_id ? " et le compte CG Link est déplacé." : "."}
+            </b>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" autoFocus onClick={changer} className="ecg-btn ecg-btn-principal">Confirmer</button>
+              <button type="button" onClick={() => setConfirmerChangement(false)} className={BTN}>Annuler</button>
+            </div>
+          </div>
+        )}
+        {changement && !changement.enCours && changement.texte && (
+          <p role={changement.ton === "erreur" ? "alert" : "status"} className={changement.ton === "erreur" ? "ecg-erreur" : "ecg-texte-doux"}>{changement.texte}</p>
+        )}
+      </div>
       {!d.cglink_user_id && (
         <div className="mt-4 border-t pt-4">
           {confirmer ? (
