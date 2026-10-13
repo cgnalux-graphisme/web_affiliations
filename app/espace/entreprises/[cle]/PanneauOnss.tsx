@@ -7,7 +7,7 @@ import type { Fiche } from "../../../../lib/entreprises/donnees-serveur";
 import { ecartsOnss, onssDeCompany } from "../../../../lib/entreprises/regles";
 import { ajouterOnss, enregistrerOnss, ignorerOnss, supprimerOnss } from "../actions";
 import { Alerte, BTN, BTN_PETIT, CHAMP, Panneau } from "../../_partage/ui";
-import ChampsEdition from "./ChampsEdition";
+import ChampsEdition from "../../_partage/ChampsEdition";
 
 export default function PanneauOnss({ fiche }: { fiche: Fiche }) {
   const router = useRouter();

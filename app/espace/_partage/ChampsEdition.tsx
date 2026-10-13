@@ -3,9 +3,9 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import { formatDateFr, isoToDateFr } from "../../../../lib/dates";
-import { IconeChargement } from "../../../Chargement";
-import { AIDE, BTN_PRINCIPAL, CHAMP, LIBELLE } from "../../_partage/ui";
+import { formatDateFr, isoToDateFr } from "../../../lib/dates";
+import { IconeChargement } from "../../Chargement";
+import { AIDE, BTN_PRINCIPAL, CHAMP, LIBELLE } from "./ui";
 
 export type DefChamp = {
   nom: string;

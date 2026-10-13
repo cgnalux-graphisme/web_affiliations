@@ -9,7 +9,7 @@ import type { Fiche } from "../../../../lib/entreprises/donnees-serveur";
 import type { Unite } from "../../../../lib/entreprises/types";
 import { ajouterUnite, enregistrerUnite, supprimerUnite } from "../actions";
 import { BTN, BTN_PETIT, CHAMP, Panneau, Vide } from "../../_partage/ui";
-import ChampsEdition, { type DefChamp } from "./ChampsEdition";
+import ChampsEdition, { type DefChamp } from "../../_partage/ChampsEdition";
 
 function champsUnite(fiche: Fiche, avecStatut: boolean): DefChamp[] {
   return [

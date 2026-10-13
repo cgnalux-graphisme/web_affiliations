@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import ChampsEdition from "../[cle]/ChampsEdition";
+import ChampsEdition from "../../_partage/ChampsEdition";
 import { creerEntreprise } from "../actions";
 
 export default function FormulaireNouvelle() {

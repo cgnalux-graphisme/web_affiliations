@@ -7,7 +7,7 @@ import { blocAdresse, REF_DEFAUT } from "../../../../lib/entreprises/regles";
 import type { Entreprise } from "../../../../lib/entreprises/types";
 import { enregistrerEntreprise } from "../actions";
 import { Panneau, Statut } from "../../_partage/ui";
-import ChampsEdition from "./ChampsEdition";
+import ChampsEdition from "../../_partage/ChampsEdition";
 
 const VIDE: Entreprise = {
   id: "", company_id: null, nom: null, numero_bce: null, denomination_bce: null, siege_rue: null, siege_numero: null,

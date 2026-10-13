@@ -8,7 +8,7 @@ import type { Fiche } from "../../../../lib/entreprises/donnees-serveur";
 import { enregistrerEntreprise, relierCgLink } from "../actions";
 import { BTN, CHAMP, LIBELLE, Panneau } from "../../_partage/ui";
 import { IconeChargement } from "../../../Chargement";
-import ChampsEdition from "./ChampsEdition";
+import ChampsEdition from "../../_partage/ChampsEdition";
 
 export default function PanneauIdentite({ fiche }: { fiche: Fiche }) {
   const router = useRouter();

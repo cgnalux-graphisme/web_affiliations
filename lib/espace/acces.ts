@@ -100,3 +100,15 @@ export async function accesEspace(): Promise<"equipe" | "apps" | "refuse"> {
   if ((ROLES_EQUIPE as readonly string[]).includes(profil.role)) return "equipe";
   return (await mesApps()).length > 0 ? "apps" : "refuse";
 }
+
+/** Réservé au SUPER_ADMIN par le rôle (app « Gestion délégués CG Link »), quelle que soit l'app donnée. */
+export async function estSuperAdmin(): Promise<boolean> {
+  return (await monProfil())?.role === "SUPER_ADMIN";
+}
+
+export async function exigerSuperAdmin(): Promise<User> {
+  const user = await utilisateurConnecte();
+  if (!user) redirect("/login?next=/espace");
+  if (!(await estSuperAdmin())) redirect("/espace/sans-acces?app=delegues");
+  return user;
+}

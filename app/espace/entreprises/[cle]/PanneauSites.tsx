@@ -9,16 +9,10 @@ import type { Site } from "../../../../lib/entreprises/types";
 import { ajouterSite, enregistrerSite, supprimerSite } from "../actions";
 import { BTN, BTN_PETIT, CHAMP, LIBELLE, Panneau, Statut } from "../../_partage/ui";
 import { IconeChargement } from "../../../Chargement";
-import ChampsEdition from "./ChampsEdition";
+import ChampsEdition from "../../_partage/ChampsEdition";
+import { libelleMandat } from "../../../../lib/delegues/mandats";
 import { ApercuBloc } from "./PanneauSiege";
 
-const ORGANES: Record<string, string> = { ds: "DS", ce: "CE", cppt: "CPPT", cee: "CEE", instances_cg: "Instances CG", autre: "Autre" };
-
-function libelleMandat(m: { organe: string; qualite: string | null; libelle: string | null; fonction: string | null }) {
-  const q = m.qualite === "effectif" ? " eff." : m.qualite === "suppleant" ? " supp." : "";
-  const base = m.organe === "autre" || m.organe === "instances_cg" ? m.libelle ?? ORGANES[m.organe] : `${ORGANES[m.organe]}${q}`;
-  return m.fonction ? `${base} (${m.fonction})` : base;
-}
 
 function CarteSite({ fiche, site, superAdmin }: { fiche: Fiche; site: Site; superAdmin: boolean }) {
   const router = useRouter();
