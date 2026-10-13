@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { formatDateFr, isoToDateFr } from "../../../lib/dates";
 import { formaterTelephone } from "../../../lib/telephone";
+import { formaterNiss } from "../../../lib/modification";
 import AutocompleteRue from "./AutocompleteRue";
 import { IconeChargement } from "../../Chargement";
 import { AIDE, BTN_PRINCIPAL, CHAMP, LIBELLE } from "./ui";
@@ -12,8 +13,11 @@ import { AIDE, BTN_PRINCIPAL, CHAMP, LIBELLE } from "./ui";
 export type DefChamp = {
   nom: string;
   libelle: string;
-  /** « rue » : autocomplétion d'adresses belges ; une suggestion remplit aussi les champs de `cibles`. */
-  type?: "texte" | "email" | "tel" | "zone" | "date" | "choix" | "rue";
+  /**
+   * « rue » : autocomplétion d'adresses belges ; une suggestion remplit aussi les champs de `cibles`.
+   * « registre » : numéro de registre national formaté à la frappe (85.07.30-033.28).
+   */
+  type?: "texte" | "email" | "tel" | "zone" | "date" | "choix" | "rue" | "registre";
   cibles?: { numero?: string; code_postal?: string; localite?: string; pays?: string };
   options?: { valeur: string; libelle: string }[];
   aide?: string;
@@ -44,7 +48,9 @@ export default function ChampsEdition({
     champs.map((c) => {
       const v = valeurs[c.nom];
       if (v === null || v === undefined) return [c.nom, ""];
-      return [c.nom, c.type === "date" && typeof v === "string" ? isoToDateFr(v) : String(v)];
+      if (c.type === "date" && typeof v === "string") return [c.nom, isoToDateFr(v)];
+      if (c.type === "registre") return [c.nom, formaterNiss(String(v))];
+      return [c.nom, String(v)];
     })
   );
   const [form, setForm] = useState<Record<string, string>>(initial);
@@ -109,11 +115,15 @@ export default function ChampsEdition({
               <input
                 {...commun}
                 type={c.type === "email" ? "email" : c.type === "tel" ? "tel" : "text"}
-                inputMode={c.type === "date" ? "numeric" : c.type === "tel" ? "tel" : c.type === "email" ? "email" : undefined}
+                inputMode={c.type === "date" || c.type === "registre" ? "numeric" : c.type === "tel" ? "tel" : c.type === "email" ? "email" : undefined}
                 autoComplete="off"
                 spellCheck={c.type === "email" ? false : undefined}
+                maxLength={c.type === "registre" ? 15 : undefined}
                 placeholder={c.exemple ? `${c.exemple}…` : c.type === "date" ? "jj/mm/aaaa" : undefined}
-                onChange={(e) => setForm({ ...form, [c.nom]: c.type === "date" ? formatDateFr(e.target.value) : e.target.value })}
+                onChange={(e) => setForm({
+                  ...form,
+                  [c.nom]: c.type === "date" ? formatDateFr(e.target.value) : c.type === "registre" ? formaterNiss(e.target.value) : e.target.value,
+                })}
                 // Téléphone mis au format +32 (0) 470 12 34 56 en quittant le champ.
                 onBlur={c.type === "tel" ? (e) => setForm((f) => ({ ...f, [c.nom]: formaterTelephone(e.target.value) })) : undefined}
               />

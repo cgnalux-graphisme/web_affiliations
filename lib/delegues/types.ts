@@ -8,9 +8,13 @@ export type Mandat = { id: string; delegue_id: string; site_id: string | null; o
 export type Delegue = { id: string; entreprise_id: string; cglink_user_id: string | null; unite_id: string | null;
   prenom: string | null; nom: string; email: string | null; telephone: string | null; notes: string | null; a_verifier: string | null;
   adresse_rue: string | null; adresse_numero: string | null; adresse_boite: string | null; adresse_code_postal: string | null;
-  adresse_localite: string | null; adresse_pays: string | null };
+  adresse_localite: string | null; adresse_pays: string | null;
+  /** 11 chiffres, saisi à la main (SUPER_ADMIN, ADMIN_OP, permanents). */
+  registre_national: string | null;
+  /** M = délégué, F = déléguée (courriers de libération). */
+  genre: "M" | "F" | null };
 export type DelegueCgLink = { id: string; name?: string | null; email?: string | null; phone?: string | null;
   isActive?: boolean; invitedAt?: number; mandateDs?: string | null; mandateCe?: string | null; mandateCppt?: string | null; mandateOther?: string | null };
 export type EtatCompte = "actif" | "invite" | "bloque" | "sans_compte" | "introuvable";
-export const COLONNES_DELEGUE = "id, entreprise_id, cglink_user_id, unite_id, prenom, nom, email, telephone, notes, a_verifier, adresse_rue, adresse_numero, adresse_boite, adresse_code_postal, adresse_localite, adresse_pays";
+export const COLONNES_DELEGUE = "id, entreprise_id, cglink_user_id, unite_id, prenom, nom, email, telephone, notes, a_verifier, adresse_rue, adresse_numero, adresse_boite, adresse_code_postal, adresse_localite, adresse_pays, registre_national, genre";
 export const COLONNES_MANDAT = "id, delegue_id, site_id, organe, qualite, libelle, fonction, debut, fin, a_verifier";

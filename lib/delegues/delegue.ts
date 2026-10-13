@@ -1,11 +1,12 @@
 import { formaterTelephone } from "../telephone";
+import { nissValide } from "../modification";
 import type { Delegue, DelegueCgLink, EtatCompte } from "./types";
 
 /** Règles du délégué : validation, unité de rattachement, état du compte CG Link, phrases du journal. Pur. */
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CHAMPS = ["prenom", "nom", "email", "telephone", "notes", "unite_id", "adresse_rue", "adresse_numero", "adresse_boite",
-  "adresse_code_postal", "adresse_localite", "adresse_pays"] as const;
+  "adresse_code_postal", "adresse_localite", "adresse_pays", "registre_national", "genre"] as const;
 
 export function validerDelegue(champs: Record<string, string>):
   | { ok: true; valeurs: Partial<Pick<Delegue, (typeof CHAMPS)[number]>> }
@@ -19,6 +20,11 @@ export function validerDelegue(champs: Record<string, string>):
       if (!EMAIL.test(v)) return { ok: false, erreur: "Adresse e-mail invalide. Exemple : prenom.nom@exemple.be" };
     }
     if (k === "telephone" && v) v = formaterTelephone(v);
+    if (k === "registre_national" && v) {
+      if (!nissValide(v)) return { ok: false, erreur: "Numéro de registre national invalide : vérifiez les 11 chiffres. Exemple : 85.07.30-033.28" };
+      v = v.replace(/\D/g, "");
+    }
+    if (k === "genre" && v && v !== "M" && v !== "F") return { ok: false, erreur: "Choisissez « Délégué » ou « Déléguée »." };
     valeurs[k] = v;
   }
   if ("nom" in valeurs && !valeurs.nom) return { ok: false, erreur: "Indiquez le nom du délégué." };

@@ -77,6 +77,17 @@ site principal (`siteParDefaut()`).
   numéro, code postal et localité ; suggestions seulement pour la Belgique ; clavier (flèches, Entrée,
   Échap). Code postal belge contrôlé (4 chiffres). Migration `20261013110000_site_delegues_adresse.sql`.
 
+## Registre national et genre (13/10/2026, app Libérations)
+
+- **N° de registre national** (`registre_national`, 11 chiffres) : saisi à la main sur la carte (champ formaté
+  à la frappe `85.07.30-033.28`, clé modulo 97 vérifiée par `nissValide()`, `lib/modification.ts`), enregistré
+  sans points ni tirets. Visible par SUPER_ADMIN, ADMIN_OP et les permanents (décision de Fred, 13/10/2026).
+- **Genre** (`genre`, `M` = délégué, `F` = déléguée) : accord des courriers de libération.
+- Aussi complétables depuis un dossier de l'app Libérations (bouton « Compléter », même validation, ligne de
+  journal avec `source: liberations`). Ni l'un ni l'autre n'est envoyé à CG Link.
+- Colonnes ajoutées par la migration `20261013130000_site_liberations.sql` (exécutée le 13/10/2026 ;
+  sans elles, l'app Délégués ne pourrait plus lire les cartes).
+
 ## Écritures vers CG Link (plan 2b, 13/10/2026)
 
 Plan : [docs/superpowers/plans/2026-10-13-delegues-lot-b-2b.md](../superpowers/plans/2026-10-13-delegues-lot-b-2b.md).

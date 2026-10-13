@@ -155,6 +155,19 @@ La migration ajoute aussi l'app `permanents` à `site_apps` et les rôles par d�
 pour PERMANENT), et remplit `site_entreprises.secteur_id` à partir de `companies.sector` (Construction, Bois,
 Chimie, ETA, Nettoyage, Gardiennage, Titres-Services, Carrière ; ALE, CP100, Verre et papier restent à choisir).
 
+Libérations (migration `supabase/migrations/20261013130000_site_liberations.sql`, plan validé par Fred le
+13/10/2026, **exécutée par Fred le 13/10/2026**, vérifiée). Détail des colonnes : [liberations.md](liberations.md), section « Tables ».
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_liberations` | Dossiers de libération (demande → archive) | Lecture : app `liberations` et (admin ou demandeur) ; écriture : service_role |
+| `site_liberation_dates`, `site_liberation_participants`, `site_liberation_fichiers`, `site_liberation_historique` | Dates, participants (délégués), pièces jointes, changements de statut | Lecture : `site_liberation_lisible(liberation_id)` ; écriture : service_role |
+| `site_liberations_lieux`, `site_liberations_taux_km` | Lieux des réunions, taux kilométrique daté | Lecture : app `liberations` ; écriture : service_role (admins) |
+| `site_equipe_profils` | Fonction et téléphone de l'équipe (courriers, lot 2) | Lecture : équipe ; écriture : service_role |
+| `site_delegues.registre_national`, `site_delegues.genre` | Registre national (11 chiffres) et genre (`M` / `F`) | Comme `site_delegues` |
+| Bucket `liberations` | **Privé**, 25 Mo, aucune politique : liens signés côté serveur | — |
+| `site_liberations_admin()`, `site_liberation_lisible(uuid)` | Admin = ADMIN_OP ou SUPER_ADMIN avec l'app ; dossier lisible | `authenticated` (security definer) |
+
 ### Colonnes de `site_articles`
 `titre`, `slug` (adresse `/blog/<slug>` ou `/on-vous-explique/<slug>` selon
 `categorie`), `chapo` (accroche), `points_cles`

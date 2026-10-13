@@ -4,6 +4,26 @@
 
 Le plus récent en haut. L'état **actuel** est dans CLAUDE.md (racine), section « État actuel ».
 
+## État au 13/10/2026 (nuit)
+- **Une seule branche de travail : `suivi-actions`**, **poussée le 13/10/2026 (nuit) à la demande de Fred**
+  (mise en production) avec l'app **Accès permanents**.
+- **App Accès permanents** (nouvelle, design validé par Fred le 13/10/2026) : tableau de bord du permanent,
+  périmètre lu dans CG Link (`companies.permanent_email`), **fiches de suivi** (usine / sectoriel, date ou
+  période, pièces avec leur nature, photos, 7 questions, rédaction par l'IA, PDF à la charte), historique sur
+  la fiche entreprise, partie « Actions syndicales en entreprise et en secteur » du **rapport de congrès** avec
+  écran de sélection. Contexte : [permanents.md](permanents.md).
+- **App Délégués** ouverte aux permanents (leurs entreprises, sans les paramètres de connexion) ; **app
+  Entreprises** : secteur (`site_secteurs`), permanent, filtre « Mes entreprises ».
+- **Secteurs** : 5 secteurs ajoutés le 13/10/2026 (Verre, Production du papier, Transformation du papier, ALE,
+  CP 100) ; les 93 entreprises ont un secteur.
+- **Migration `20261013120000_site_fiches_suivi.sql`** exécutée par Fred le 13/10/2026 (vérifié : tables, bucket
+  privé, 87 fiches sur 93 avec un secteur, clé publique refusée).
+- **Vérifié** : 821 tests, build, rendu réel des PDF (fiche sur 2 pages, rapport). **Pas encore vérifié dans le
+  navigateur** avec un vrai compte permanent.
+- **À faire par Fred** : 1. tester avec un compte permanent (périmètre, délégués sans compte CG Link, une fiche
+  complète avec photos, IA et PDF), puis le rapport de congrès ; 2. points ouverts du 13/10/2026 (soir) : voir
+  plus bas.
+
 ## État au 13/10/2026 (soir)
 - **Une seule branche de travail : `suivi-actions`**, **poussée le 13/10/2026 à la demande de Fred** (mise en
   production) : apps Entreprises et Gestion délégués CG Link, refonte de la fiche entreprise.

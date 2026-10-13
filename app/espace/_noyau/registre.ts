@@ -9,6 +9,7 @@ import { manifeste as demarches } from "../demarches/manifeste";
 import { manifeste as entreprises } from "../entreprises/manifeste";
 import { manifeste as delegues } from "../delegues/manifeste";
 import { manifeste as permanents } from "../permanents/manifeste";
+import { manifeste as liberations } from "../liberations/manifeste";
 import { manifeste as parametres } from "../parametres/manifeste";
 
 /**
@@ -16,7 +17,7 @@ import { manifeste as parametres } from "../parametres/manifeste";
  * Ajouter une app : créer app/espace/<code>/ (manifeste, layout, page, sections), l'ajouter ici,
  * puis insérer sa ligne dans site_apps (+ ses rôles par défaut dans site_app_roles). Voir CLAUDE.md.
  */
-export const MANIFESTES: ManifesteApp[] = [actions, scanNews, demarches, permanents, entreprises, delegues, parametres];
+export const MANIFESTES: ManifesteApp[] = [actions, scanNews, demarches, permanents, liberations, entreprises, delegues, parametres];
 
 /** Apps prévues mais pas encore construites : tuiles « Bientôt », non cliquables, sans aucun droit associé. */
 export const PROCHAINES_APPS = [
@@ -52,14 +53,16 @@ const catalogue = cache(async (): Promise<LigneApp[]> => {
   return (data ?? []) as LigneApp[];
 });
 
-function versNav(ligne: LigneApp, m: ManifesteApp, superAdmin = true): AppNav {
+/** role absent = tout voir (écrans de gestion des accès). */
+function versNav(ligne: LigneApp, m: ManifesteApp, role?: string): AppNav {
+  const superAdmin = role === undefined || role === "SUPER_ADMIN";
   return {
     code: ligne.code,
     nom: ligne.nom,
     description: ligne.description ?? "",
     icone: ligne.icone ?? "grid",
     couleur: ligne.couleur && HEX.test(ligne.couleur) ? ligne.couleur : COULEUR_DEFAUT,
-    sections: m.sections.filter((s) => superAdmin || !s.superAdmin).map((s) => ({
+    sections: m.sections.filter((s) => superAdmin || (!s.superAdmin && (!s.roles || s.roles.includes(role ?? "")))).map((s) => ({
       route: routeSection(m.code, s.chemin),
       libelle: s.libelle,
       icone: s.icone,
@@ -72,10 +75,9 @@ function versNav(ligne: LigneApp, m: ManifesteApp, superAdmin = true): AppNav {
 export const appsDeLaPersonne = cache(async (): Promise<AppNav[]> => {
   const [lignes, codes, profil] = await Promise.all([catalogue(), mesApps(), monProfil()]);
   const permis = new Set(codes);
-  const superAdmin = profil?.role === "SUPER_ADMIN";
   return lignes.flatMap((l) => {
     const m = MANIFESTES.find((x) => x.code === l.code);
-    return m && permis.has(l.code) ? [versNav(l, m, superAdmin)] : [];
+    return m && permis.has(l.code) ? [versNav(l, m, profil?.role ?? "")] : [];
   });
 });
 

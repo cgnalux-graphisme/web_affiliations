@@ -47,6 +47,10 @@ export default function PanneauIdentite({ carte }: { carte: CarteDelegue }) {
           // Compte CG Link : l'e-mail est l'adresse de connexion, il ne se change pas ici (affiché plus haut).
           ...(d.cglink_user_id ? [] : [{ nom: "email", libelle: "E-mail", type: "email" as const, largeur: "demi" as const }]),
           { nom: "telephone", libelle: "Téléphone", type: "tel", exemple: "+32 (0) 470 12 34 56", largeur: "demi" },
+          { nom: "genre", libelle: "Genre (accord des courriers)", type: "choix", largeur: "demi",
+            options: [{ valeur: "", libelle: "Non précisé" }, { valeur: "M", libelle: "Délégué" }, { valeur: "F", libelle: "Déléguée" }] },
+          { nom: "registre_national", libelle: "N° de registre national", type: "registre", exemple: "85.07.30-033.28", largeur: "demi",
+            aide: "Au dos de la carte d'identité. Sert aux courriers de libération et à la signature des présences." },
           { nom: "adresse_rue", libelle: "Rue", type: "rue", largeur: "demi",
             aide: "Tapez 3 lettres : choisissez l'adresse proposée, le reste se remplit.",
             cibles: { numero: "adresse_numero", code_postal: "adresse_code_postal", localite: "adresse_localite", pays: "adresse_pays" } },

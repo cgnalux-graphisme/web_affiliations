@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **12/10/2026**
+> Dernière mise à jour : **13/10/2026**
 
 ---
 
@@ -28,12 +28,13 @@ et les petits `CLAUDE.md` de renvoi des apps quand il travaille dans ces dossier
 | [docs/contexte/entreprises.md](docs/contexte/entreprises.md) | App **Entreprises** : fiches, import BCE, sites (UTE), unités d'établissement, ONSS, bloc adresse, affiliés |
 | [docs/contexte/delegues.md](docs/contexte/delegues.md) | App **Gestion délégués CG Link** (SUPER_ADMIN ; permanents limités à leurs entreprises, sans les comptes CG Link) : import CG Link, cartes d'identité, mandats, unité de rattachement, à vérifier, journal |
 | [docs/contexte/permanents.md](docs/contexte/permanents.md) | App **Accès permanents** : périmètre du permanent (CG Link), tableau de bord, fiches de suivi (IA, PDF), rapport de congrès, historique des entreprises |
+| [docs/contexte/liberations.md](docs/contexte/liberations.md) | App **Libérations** : cahier des charges des 4 lots (demande, courriers, QR code du jour J, frais, archive), décisions de Fred, lot 1 (droits, parcours, routes, tables) |
 | [docs/contexte/journal.md](docs/contexte/journal.md) | Anciens « État au… » (historique, du plus récent au plus ancien) |
 
 Renvois chargés automatiquement par Claude Code (quelques lignes chacun, ils pointent vers le bon document) :
 `app/espace/actions/CLAUDE.md`, `app/espace/scan-news/CLAUDE.md`, `app/espace/demarches/CLAUDE.md`,
 `app/espace/entreprises/CLAUDE.md`, `app/espace/delegues/CLAUDE.md`, `app/espace/permanents/CLAUDE.md`,
-`supabase/CLAUDE.md`.
+`app/espace/liberations/CLAUDE.md`, `supabase/CLAUDE.md`.
 
 ### Mettre à jour ce fichier et ses ramifications
 
@@ -137,23 +138,24 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 
 ---
 
-## État actuel (13/10/2026, nuit)
-- **Une seule branche de travail : `suivi-actions`**, **poussée le 13/10/2026 (nuit) à la demande de Fred**
-  (mise en production) avec l'app **Accès permanents**.
-- **App Accès permanents** (nouvelle, design validé par Fred le 13/10/2026) : tableau de bord du permanent,
-  périmètre lu dans CG Link (`companies.permanent_email`), **fiches de suivi** (usine / sectoriel, date ou
-  période, pièces avec leur nature, photos, 7 questions, rédaction par l'IA, PDF à la charte), historique sur
-  la fiche entreprise, partie « Actions syndicales en entreprise et en secteur » du **rapport de congrès** avec
-  écran de sélection. Contexte : [docs/contexte/permanents.md](docs/contexte/permanents.md).
-- **App Délégués** ouverte aux permanents (leurs entreprises, sans les paramètres de connexion) ; **app
-  Entreprises** : secteur (`site_secteurs`), permanent, filtre « Mes entreprises ».
-- **Secteurs** : 5 secteurs ajoutés le 13/10/2026 (Verre, Production du papier, Transformation du papier, ALE,
-  CP 100) ; les 93 entreprises ont un secteur.
-- **Migration `20261013120000_site_fiches_suivi.sql`** exécutée par Fred le 13/10/2026 (vérifié : tables, bucket privé, 87 fiches sur 93 avec un secteur, clé publique refusée).
-- **Vérifié** : 821 tests, build, rendu réel des PDF (fiche sur 2 pages, rapport). **Pas encore vérifié dans le
-  navigateur** avec un vrai compte permanent.
-- **À faire par Fred** : 1. tester avec un compte permanent (périmètre, délégués sans compte CG Link, une fiche
-  complète avec photos, IA et PDF), puis le rapport de congrès ; 2. points ouverts du 13/10/2026 (soir) : voir
+## État actuel (13/10/2026, Libérations lot 1)
+- **Une seule branche de travail : `suivi-actions`**, **poussée le 13/10/2026 à la demande de Fred** (mise en
+  production) avec le lot 1 des Libérations.
+- **Nouvelle app Libérations** (code `liberations`, découpée en 4 lots) : cahier des charges complet et
+  décisions de Fred dans [docs/contexte/liberations.md](docs/contexte/liberations.md). **Lot 1 écrit** : demande
+  (formulaire, dates, lieu, prise en charge, participants = délégués, pièces jointes), liste par statut, fiche
+  du dossier (ce qui manque avant les courriers, « Compléter » la carte d'un délégué), parcours brouillon →
+  demande → en traitement → annulé / archivé, Paramètres (lieux, taux kilométrique daté).
+- **App Délégués** : registre national et genre ajoutés à la carte (saisis à la main).
+- **Migration `20261013130000_site_liberations.sql`** exécutée par Fred le 13/10/2026 (vérifié : 8 tables,
+  5 lieux, app et rôles PERMANENT / ADMIN_OP, colonnes `registre_national` et `genre`, bucket privé, clé
+  publique refusée sur les 8 tables).
+- **Vérifié** : 857 tests, types, build. **Pas encore vérifié dans le navigateur.**
+- **À faire par Fred** : 1. tester le lot 1 avec un compte permanent et un compte ADMIN_OP ; 2. ajouter le
+  taux kilométrique réel dans Paramètres ; 3. préparer le **lot 2 (courriers)** : textes de la lettre à
+  l'employeur pour chacun des 4 types, phrase quand la CG fédérale paie la perte de salaire, modèles actuels de
+  l'attestation de perte de salaire et de la fiche de paiement, fonction de chaque permanent et téléphone des
+  admins, adresse d'expédition des e-mails aux employeurs ; 4. points ouverts des états précédents : voir
   [docs/contexte/journal.md](docs/contexte/journal.md).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).

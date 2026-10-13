@@ -53,8 +53,11 @@ ouverte aussi aux PERMANENT, limitée à leurs entreprises et sans les paramètr
 (« Accès permanents », #A0522D, `key`, ordre 35) → PERMANENT (SUPER_ADMIN toujours). Détail :
 [docs/contexte/delegues.md](../../docs/contexte/delegues.md), [docs/contexte/entreprises.md](../../docs/contexte/entreprises.md),
 [docs/contexte/permanents.md](../../docs/contexte/permanents.md).
+`liberations` (« Libérations », #D55E00, `calendar-check`, ordre 45, migration `20261013130000`, exécutée
+le 13/10/2026) → ADMIN_OP et PERMANENT (SUPER_ADMIN toujours). Détail : [docs/contexte/liberations.md](../../docs/contexte/liberations.md).
 Une section de manifeste peut porter `superAdmin: true` : elle est masquée du menu des autres (la page
-revérifie le rôle).
+revérifie le rôle). Depuis le 13/10/2026, elle peut aussi porter `roles: [...]` (ex. `["ADMIN_OP", "SUPER_ADMIN"]`) :
+masquée du menu des autres rôles (SUPER_ADMIN la voit toujours), la page revérifie.
 
 **Protection côté serveur, à trois niveaux** (`lib/espace/acces.ts`) :
 1. `/espace…` exige une connexion (`proxy.ts`, puis `app/espace/layout.tsx`). L'équipe (`ROLES_EQUIPE` :
@@ -176,6 +179,7 @@ Une app présente en base mais sans dossier n'apparaît pas ; les apps « Bient�
 | `/espace/actions/<id>/modifier` | app `actions` | Modifier / supprimer une action |
 | `/espace/actions/rapport` | app `actions` | Rapport de congrès PDF : composer (période, entreprise, secteur, permanent, actions et / ou fiches de suivi), cocher les éléments, générer |
 | `/espace/permanents/accueil` · `/fiches` · `/fiches/nouvelle` · `/fiches/<id>` · `/fiches/<id>/modifier` | app `permanents` | **Accès permanents** (13/10/2026) : tableau de bord, fiches de suivi (lecture : tous ; modification : auteur ou SUPER_ADMIN), éditeur en 5 étapes, PDF. Détail : [docs/contexte/permanents.md](../../docs/contexte/permanents.md) |
+| `/espace/liberations/dossiers` · `/nouvelle` · `/<id>` · `/<id>/modifier` · `/parametres` | app `liberations` (admin : tout ; permanent : ses dossiers ; paramètres : admins) | **Libérations** (lot 1, 13/10/2026) : demandes de libération des délégués. Détail : [docs/contexte/liberations.md](../../docs/contexte/liberations.md) |
 | `/api/permanents/redaction` | app `permanents` (auteur ou SUPER_ADMIN) | Texte d'une fiche de suivi rédigé par Claude Sonnet 5 (POST `{ ficheId }`), rien n'est enregistré |
 | `/espace/demarches/demandes` | app `demarches` | Back-office des demandes : historique des formulaires par type (onglets), recherche, dates, tri, pagination |
 | `/espace/demarches/demandes/<type>/<id>` | app `demarches` | Une demande : toutes ses informations, signature, « Régénérer le PDF » + « Télécharger » |

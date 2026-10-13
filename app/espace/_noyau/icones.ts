@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  CalendarCheck,
   ClipboardList,
   Building2,
   CircleHelp,
@@ -65,6 +66,7 @@ export const ICONES: Record<string, LucideIcon> = {
   "id-card": IdCard,
   "map-pin": MapPin,
   clipboard: ClipboardList,
+  "calendar-check": CalendarCheck,
 };
 
 export function icone(nom: string | null | undefined): LucideIcon {

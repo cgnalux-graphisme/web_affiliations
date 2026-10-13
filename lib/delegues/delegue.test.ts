@@ -89,3 +89,18 @@ describe("phraseJournal : comptes CG Link", () => {
     expect(phraseJournal(action, { champ: "telephone" })).toBe(phrase);
   });
 });
+
+describe("validerDelegue : registre national et genre", () => {
+  it("garde les 11 chiffres d'un numéro valide", () => {
+    expect(validerDelegue({ nom: "Dupont", registre_national: "85.07.30-033.28" })).toEqual({ ok: true, valeurs: { nom: "Dupont", registre_national: "85073003328" } });
+    expect(validerDelegue({ nom: "Dupont", registre_national: "" })).toEqual({ ok: true, valeurs: { nom: "Dupont", registre_national: null } });
+  });
+  it("refuse un numéro dont la clé est fausse", () => {
+    expect(validerDelegue({ nom: "Dupont", registre_national: "85.07.30-033.29" }).ok).toBe(false);
+  });
+  it("accepte M, F ou vide", () => {
+    expect(validerDelegue({ nom: "Dupont", genre: "F" })).toEqual({ ok: true, valeurs: { nom: "Dupont", genre: "F" } });
+    expect(validerDelegue({ nom: "Dupont", genre: "" })).toEqual({ ok: true, valeurs: { nom: "Dupont", genre: null } });
+    expect(validerDelegue({ nom: "Dupont", genre: "X" }).ok).toBe(false);
+  });
+});

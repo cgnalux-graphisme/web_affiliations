@@ -17,6 +17,8 @@ export type SectionApp = {
   aussi?: string[];
   /** Section réservée au SUPER_ADMIN (masquée du menu des autres ; la page revérifie le rôle). */
   superAdmin?: boolean;
+  /** Section réservée à ces rôles (SUPER_ADMIN toujours) : masquée du menu des autres ; la page revérifie le rôle. */
+  roles?: readonly string[];
 };
 
 export type ManifesteApp = {
