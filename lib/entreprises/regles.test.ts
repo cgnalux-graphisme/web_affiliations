@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CompanyCgLink, Entreprise, Onss, Site, Unite } from "./types";
 import {
   blocAdresse, cleDe, construireListe, correspond, ecartsOnss, lireCle, nomAffiche,
-  nomManquant, onssACreer, onssDeCompany, planSuppressionSite, REF_DEFAUT,
+  dansNosProvinces, nomManquant, onssACreer, onssDeCompany, planSuppressionSite, REF_DEFAUT,
 } from "./regles";
 
 const E: Entreprise = {
@@ -14,7 +14,7 @@ const E: Entreprise = {
 const S: Site = { id: "s2", entreprise_id: "e1", nom: "Usine", principal: false, unite_postale_id: "u1",
   ref_nom: "Mme Martin", ref_fonction: "DRH", ref_email: null, ref_telephone: null, ordre: 1 };
 const U: Unite = { id: "u1", entreprise_id: "e1", site_id: "s2", numero_ue: "2000000001", denomination: null,
-  rue: "Zoning Nord", numero: "5", boite: null, code_postal: "6700", localite: "Arlon", statut: "actif", date_debut: null, origine: "bce" };
+  rue: "Zoning Nord", numero: "5", boite: null, code_postal: "6700", localite: "Arlon", statut: "actif", date_debut: null, origine: "bce", suivie: true };
 const C: CompanyCgLink = { id: "c1", name: "Acme", sector: "Construction", onss: "123-4567-89", onss2: "222", onss2_label: "Site B",
   onss3: null, onss3_label: null, onss4: "", onss4_label: null };
 
@@ -92,7 +92,7 @@ describe("construireListe", () => {
     companies: [C, { ...C, id: "c2", name: "Beta", onss: null, onss2: null }],
     fiches: [E, { ...E, id: "e2", company_id: null, nom: "Gamma", numero_bce: null }],
     sites: [{ entreprise_id: "e1" }, { entreprise_id: "e1" }],
-    unites: [{ entreprise_id: "e1", localite: "Arlon", statut: "actif" }, { entreprise_id: "e1", localite: "Namur", statut: "arrete" }],
+    unites: [{ entreprise_id: "e1", localite: "Arlon", statut: "actif", suivie: true }, { entreprise_id: "e1", localite: "Namur", statut: "arrete", suivie: true }],
     onss: [{ id: "o1", entreprise_id: "e1", site_id: null, numero: "123456789", libelle: null }],
     ignores: [],
     affilies: new Map([["c1", 42]]),
@@ -141,5 +141,27 @@ describe("construireListe, entreprises regroupées", () => {
   });
   it("additionne les affiliés des entreprises regroupées", () => {
     expect(liste[0].affilies).toBe(602);
+  });
+});
+
+describe("dansNosProvinces", () => {
+  it("reconnaît Namur et Luxembourg", () => {
+    for (const cp of ["5000", "5680", "5999", "6600", "6700", "6997"]) expect(dansNosProvinces(cp)).toBe(true);
+  });
+  it("écarte les autres provinces et les codes illisibles", () => {
+    for (const cp of ["1500", "4000", "6000", "6599", "7000", "", null, "B-5000x"]) expect(dansNosProvinces(cp)).toBe(false);
+  });
+});
+
+describe("construireListe, unités non suivies", () => {
+  it("ne montre pas les localités des unités hors de nos provinces", () => {
+    const liste = construireListe({
+      companies: [C], fiches: [E], sites: [], onss: [], ignores: [], affilies: new Map(), delegues: new Map(),
+      unites: [
+        { entreprise_id: "e1", localite: "Arlon", statut: "actif", suivie: true },
+        { entreprise_id: "e1", localite: "Halle", statut: "actif", suivie: false },
+      ],
+    });
+    expect(liste[0].localites).toEqual(["Arlon"]);
   });
 });

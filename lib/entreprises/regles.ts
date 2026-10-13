@@ -6,6 +6,14 @@ import type { CompanyCgLink, Entreprise, Onss, Site, Unite } from "./types";
 export const REF_DEFAUT = "Service Ressources Humaines";
 export type BlocAdresse = { lignes: string[]; incomplet: boolean };
 
+/** Code postal des provinces de Namur (5000-5999) ou de Luxembourg (6600-6999) : unité suivie par défaut. */
+export function dansNosProvinces(codePostal: string | null | undefined): boolean {
+  const cp = (codePostal ?? "").trim();
+  if (!/^\d{4}$/.test(cp)) return false;
+  const n = Number(cp);
+  return (n >= 5000 && n <= 5999) || (n >= 6600 && n <= 6999);
+}
+
 /** Une fiche hors CG Link doit garder un nom (une fiche reliée prend celui de CG Link). */
 export function nomManquant(companyId: string | null, nom: string | null | undefined): boolean {
   return !companyId && !nom?.trim();
@@ -99,7 +107,7 @@ export function construireListe(entrees: {
   companies: CompanyCgLink[];
   fiches: Entreprise[];
   sites: Pick<Site, "entreprise_id">[];
-  unites: Pick<Unite, "entreprise_id" | "localite" | "statut">[];
+  unites: Pick<Unite, "entreprise_id" | "localite" | "statut" | "suivie">[];
   onss: Onss[];
   ignores: { cible_id: string; valeur: string }[];
   affilies: Map<string, number>;
@@ -119,7 +127,7 @@ export function construireListe(entrees: {
     const onssCg = c ? onssDeCompany(c) : [];
     const e = f && c ? ecartsOnss(onssCg, onssIci, ign) : null;
     const localites = f
-      ? [...new Set(entrees.unites.filter((u) => u.entreprise_id === f.id && u.statut === "actif" && u.localite).map((u) => u.localite as string))]
+      ? [...new Set(entrees.unites.filter((u) => u.entreprise_id === f.id && u.statut === "actif" && u.suivie !== false && u.localite).map((u) => u.localite as string))]
       : [];
     return {
       cle: cleDe(f?.id ?? null, c?.id ?? null),

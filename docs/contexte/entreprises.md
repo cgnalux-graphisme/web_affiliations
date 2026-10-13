@@ -71,6 +71,15 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
 - Vérifié le 12/10/2026 : lecture réelle depuis le poste de dev. **Non vérifié** : la BCE répond-elle aux
   serveurs de Vercel ? Sinon, message « La BCE n'a pas répondu… » et saisie manuelle.
 
+## Unités suivies (13/10/2026)
+
+La BCE renvoie toutes les unités d'établissement, y compris hors de nos provinces. Case **« Suivie »** par
+unité (`site_entreprise_unites.suivie`) : cochée par défaut si le code postal est dans la province de Namur
+(5000-5999) ou de Luxembourg (6600-6999) (`dansNosProvinces()`), modifiable à la main. Les unités non suivies
+restent sur la fiche dans un bloc replié « pour info » ; **seules les unités suivies apparaissent ailleurs**
+(adresse postale d'un site, localités de la liste, rattachement d'un délégué au lot B). Migration
+`20261013090000_site_unites_suivies.sql` (à exécuter par Fred).
+
 ## Bloc adresse (publipostage)
 
 `blocAdresse(entreprise, nomCgLink, site?, unites?)` (`lib/entreprises/regles.ts`) :

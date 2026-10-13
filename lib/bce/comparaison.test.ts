@@ -13,7 +13,7 @@ const ub = (n: string, extra: Partial<UniteBce> = {}): UniteBce => ({
   rue: "Rue A", numero: "1", boite: null, code_postal: "5000", localite: "Namur", ...extra,
 });
 const u = (id: string, n: string, extra: Partial<Unite> = {}): Unite => ({
-  id, entreprise_id: "e1", site_id: "s1", origine: "bce", ...ub(n), ...extra,
+  id, entreprise_id: "e1", site_id: "s1", origine: "bce", suivie: true, ...ub(n), ...extra,
 });
 const entite = { denomination: "NOUVEAU NOM", siege: { rue: "Rue Fonteny Maroy", numero: "13", boite: null, code_postal: "6800", localite: "Libramont-Chevigny" } };
 

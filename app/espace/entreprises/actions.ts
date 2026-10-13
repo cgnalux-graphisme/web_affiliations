@@ -11,7 +11,7 @@ import { lireBce } from "../../../lib/bce/lecture-serveur";
 import {
   comparerBce, majEntrepriseDepuisBce, majUnitesDepuisBce, type ChoixBce, type ComparaisonBce,
 } from "../../../lib/bce/comparaison";
-import { lireCle, nomManquant, onssACreer, onssDeCompany, planSuppressionSite } from "../../../lib/entreprises/regles";
+import { dansNosProvinces, lireCle, nomManquant, onssACreer, onssDeCompany, planSuppressionSite } from "../../../lib/entreprises/regles";
 import { COLONNES_COMPANY } from "../../../lib/entreprises/donnees-serveur";
 import { COLONNES_ENTREPRISE, COLONNES_SITE, COLONNES_UNITE, type CompanyCgLink, type Entreprise, type Site, type Unite } from "../../../lib/entreprises/types";
 
@@ -31,7 +31,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CHAMPS_ENTREPRISE = ["nom", "numero_bce", "notes", "siege_rue", "siege_numero", "siege_boite", "siege_code_postal",
   "siege_localite", "ref_nom", "ref_fonction", "ref_email", "ref_telephone"] as const;
 const CHAMPS_SITE = ["nom", "unite_postale_id", "ref_nom", "ref_fonction", "ref_email", "ref_telephone"] as const;
-const CHAMPS_UNITE = ["denomination", "rue", "numero", "boite", "code_postal", "localite", "date_debut", "site_id", "statut"] as const;
+const CHAMPS_UNITE = ["denomination", "rue", "numero", "boite", "code_postal", "localite", "date_debut", "site_id", "statut", "suivie"] as const;
 
 async function session(): Promise<SupabaseClient | null> {
   return (await aApp("entreprises")) ? await getSupabaseServer() : null;
@@ -48,8 +48,8 @@ const texte = (v: string | undefined) => {
 };
 
 /** Ne garde que les champs permis, convertis et validés. */
-function nettoyer(champs: Champs, permis: readonly string[]): { ok: true; valeurs: Record<string, string | null> } | { ok: false; erreur: string } {
-  const valeurs: Record<string, string | null> = {};
+function nettoyer(champs: Champs, permis: readonly string[]): { ok: true; valeurs: Record<string, string | boolean | null> } | { ok: false; erreur: string } {
+  const valeurs: Record<string, string | boolean | null> = {};
   for (const k of permis) {
     if (!(k in champs)) continue;
     let v = texte(champs[k]);
@@ -65,6 +65,10 @@ function nettoyer(champs: Champs, permis: readonly string[]): { ok: true; valeur
       v = iso;
     }
     if (k === "statut" && v && v !== "actif" && v !== "arrete") return { ok: false, erreur: "Statut inconnu." };
+    if (k === "suivie") {
+      valeurs[k] = v === "true";
+      continue;
+    }
     valeurs[k] = v;
   }
   return { ok: true, valeurs };
@@ -135,7 +139,7 @@ export async function enregistrerEntreprise(cle: string, champs: Champs): Promis
   if (!f) return { ok: false, erreur: ECHEC };
   if ("nom" in n.valeurs) {
     const { data: actuelle } = await db.from("site_entreprises").select("company_id").eq("id", f.id).maybeSingle();
-    if (nomManquant((actuelle?.company_id as string | null) ?? null, n.valeurs.nom)) {
+    if (nomManquant((actuelle?.company_id as string | null) ?? null, n.valeurs.nom as string | null)) {
       return { ok: false, erreur: "Indiquez le nom de l'entreprise." };
     }
   }
@@ -217,9 +221,11 @@ export async function ajouterUnite(cle: string, champs: Champs): Promise<Resulta
   const n = nettoyer(champs, CHAMPS_UNITE);
   if (!n.ok) return n;
   if (!n.valeurs.rue || !n.valeurs.localite) return { ok: false, erreur: "Indiquez au moins la rue et la localité." };
+  // Une unité encodée à la main est suivie, sauf si on la décoche.
+  if (!("suivie" in n.valeurs)) n.valeurs.suivie = true;
   const f = await ficheDeCle(db, cle);
   if (!f) return { ok: false, erreur: ECHEC };
-  let siteId = n.valeurs.site_id;
+  let siteId = (n.valeurs.site_id as string | null) ?? null;
   if (!siteId) {
     const { data: p } = await db.from("site_entreprise_sites").select("id").eq("entreprise_id", f.id).eq("principal", true).maybeSingle();
     siteId = (p?.id as string | undefined) ?? null;
@@ -343,7 +349,8 @@ export async function appliquerBce(cle: string, choix: ChoixBce): Promise<Result
   const { error } = await db.rpc("site_appliquer_bce", {
     p_entreprise: etat.f.id,
     p_maj: majE,
-    p_inserer: majU.inserer,
+    // Nouvelle unité : suivie si elle est dans nos provinces (Namur, Luxembourg), sinon gardée pour info.
+    p_inserer: majU.inserer.map((u) => ({ ...u, suivie: dansNosProvinces(u.code_postal) })),
     p_modifier: majU.modifier,
   });
   if (error) {

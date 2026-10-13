@@ -36,6 +36,11 @@ function LigneUnite({ fiche, u }: { fiche: Fiche; u: Unite }) {
     if (!r.ok) setErreur(r.erreur);
     else router.refresh();
   }
+  async function suivre(suivie: boolean) {
+    const r = await enregistrerUnite(u.id, { suivie: String(suivie) });
+    if (!r.ok) setErreur(r.erreur);
+    else router.refresh();
+  }
   async function supprimer() {
     const r = await supprimerUnite(u.id);
     if (!r.ok) setErreur(r.erreur);
@@ -45,6 +50,10 @@ function LigneUnite({ fiche, u }: { fiche: Fiche; u: Unite }) {
   return (
     <>
       <tr>
+        <td>
+          <input type="checkbox" className="h-5 w-5" checked={u.suivie} onChange={(e) => suivre(e.target.checked)}
+            aria-label={`Unité ${u.numero_ue ? formaterNumeroUe(u.numero_ue) : u.rue ?? ""} suivie par la CG`} />
+        </td>
         <td className="tabular-nums">{u.numero_ue ? formaterNumeroUe(u.numero_ue) : "Sans n°"}</td>
         <td>
           {[u.rue, u.numero, u.boite && `bte ${u.boite}`].filter(Boolean).join(" ")}
@@ -71,10 +80,10 @@ function LigneUnite({ fiche, u }: { fiche: Fiche; u: Unite }) {
           )}
         </td>
       </tr>
-      {erreur && <tr><td colSpan={5}><p role="alert" className="ecg-erreur">{erreur}</p></td></tr>}
+      {erreur && <tr><td colSpan={6}><p role="alert" className="ecg-erreur">{erreur}</p></td></tr>}
       {ouvert && (
         <tr>
-          <td colSpan={5}>
+          <td colSpan={6}>
             <ChampsEdition id={`u-${u.id}`} valeurs={u} champs={champsUnite(fiche, true)} enregistrer={(v) => enregistrerUnite(u.id, v)} onSucces={() => setOuvert(false)} />
           </td>
         </tr>
@@ -88,7 +97,7 @@ function Tableau({ fiche, unites }: { fiche: Fiche; unites: Unite[] }) {
     <div className="ecg-tableau-cadre">
       <table className="ecg-tableau">
         <thead>
-          <tr><th scope="col">N° d'unité</th><th scope="col">Adresse</th><th scope="col">Début</th><th scope="col">Site</th><th scope="col"><span className="sr-only">Actions</span></th></tr>
+          <tr><th scope="col">Suivie</th><th scope="col">N° d'unité</th><th scope="col">Adresse</th><th scope="col">Début</th><th scope="col">Site</th><th scope="col"><span className="sr-only">Actions</span></th></tr>
         </thead>
         <tbody>{unites.map((u) => <LigneUnite key={u.id} fiche={fiche} u={u} />)}</tbody>
       </table>
@@ -99,14 +108,16 @@ function Tableau({ fiche, unites }: { fiche: Fiche; unites: Unite[] }) {
 export default function PanneauUnites({ fiche }: { fiche: Fiche }) {
   const router = useRouter();
   const [ajout, setAjout] = useState(false);
-  const actives = fiche.unites.filter((u) => u.statut === "actif");
+  // Suivies = nos provinces (ou cochées à la main) : seules elles servent ailleurs (adresse postale, délégués).
+  const actives = fiche.unites.filter((u) => u.statut === "actif" && u.suivie);
+  const horsSuivi = fiche.unites.filter((u) => u.statut === "actif" && !u.suivie);
   const arretees = fiche.unites.filter((u) => u.statut === "arrete");
   const principal = fiche.sites.find((s) => s.principal);
 
   return (
     <Panneau
       titre="Unités d'établissement"
-      sousTitre={`${actives.length} active${actives.length > 1 ? "s" : ""}`}
+      sousTitre={`${actives.length} suivie${actives.length > 1 ? "s" : ""} par la CG. Cochez « Suivie » pour qu'une unité apparaisse dans les autres menus.`}
       corps={false}
       actions={<button type="button" onClick={() => setAjout(!ajout)} aria-expanded={ajout} className={BTN}><Plus size={15} aria-hidden /> Ajouter à la main</button>}
     >
@@ -121,9 +132,19 @@ export default function PanneauUnites({ fiche }: { fiche: Fiche }) {
         </div>
       )}
       {actives.length === 0 && !ajout ? (
-        <div className="px-5 pb-5"><Vide icone="map-pin" titre="Aucune unité d'établissement.">Importez-les depuis la BCE ou ajoutez-les à la main.</Vide></div>
+        <div className="px-5 pb-5"><Vide icone="map-pin" titre={horsSuivi.length ? "Aucune unité suivie par la CG." : "Aucune unité d'établissement."}>
+          {horsSuivi.length ? "Cochez « Suivie » sur une unité ci-dessous pour l'utiliser." : "Importez-les depuis la BCE ou ajoutez-les à la main."}
+        </Vide></div>
       ) : (
         actives.length > 0 && <Tableau fiche={fiche} unites={actives} />
+      )}
+      {horsSuivi.length > 0 && (
+        <details className="px-5 py-3">
+          <summary className="flex cursor-pointer items-center gap-1 font-semibold">
+            <ChevronDown size={16} aria-hidden /> {horsSuivi.length} unité{horsSuivi.length > 1 ? "s" : ""} non suivie{horsSuivi.length > 1 ? "s" : ""} (hors de nos provinces, pour info)
+          </summary>
+          <Tableau fiche={fiche} unites={horsSuivi} />
+        </details>
       )}
       {arretees.length > 0 && (
         <details className="px-5 py-3">

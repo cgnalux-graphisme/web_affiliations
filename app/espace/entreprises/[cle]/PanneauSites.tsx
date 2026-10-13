@@ -77,7 +77,7 @@ function CarteSite({ fiche, site, superAdmin }: { fiche: Fiche; site: Site; supe
             { nom: "nom", libelle: "Nom du site (UTE)", largeur: "demi" },
             {
               nom: "unite_postale_id", libelle: "Adresse postale", type: "choix", largeur: "demi",
-              options: [{ valeur: "", libelle: "Siège social" }, ...fiche.unites.filter((u) => u.statut === "actif").map((u) => ({
+              options: [{ valeur: "", libelle: "Siège social" }, ...fiche.unites.filter((u) => u.statut === "actif" && u.suivie).map((u) => ({
                 valeur: u.id, libelle: [u.rue, u.numero, u.localite].filter(Boolean).join(" "),
               }))],
             },
