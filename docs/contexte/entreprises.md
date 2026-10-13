@@ -74,7 +74,11 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
   environ vers `captchaform.html`, même espacée de 8 s. L'app ne le contourne pas : elle le reconnaît
   (`ERREUR_BCE_CAPTCHA`, message « vérification anti-robot, réessayez dans quelques minutes »). L'import groupé
   attend 3 s entre deux fiches, fait une pause de 30 s puis un seul nouvel essai en cas de captcha, et propose
-  « Relancer les fiches en erreur ». Piste durable si cela reste gênant : le fichier **Open Data de la BCE**
+  « Relancer les fiches en erreur ».
+- **« Enregistrer tous les changements »** (13/10/2026, demande de Fred) : après la comparaison groupée, un
+  bouton (avec confirmation) applique sur chaque fiche tout ce qui serait coché par défaut (dénomination,
+  siège, unités nouvelles et modifiées), une fiche après l'autre, avec la même pause anti-robot ; le serveur
+  relit la BCE avant d'écrire (`appliquerBce`). « Voir le détail » reste possible fiche par fiche. Piste durable si cela reste gênant : le fichier **Open Data de la BCE**
   (gratuit, inscription au SPF Économie, mise à jour mensuelle), sans captcha.
 - Vérifié le 12/10/2026 : lecture réelle depuis le poste de dev. **Non vérifié** : la BCE répond-elle aux
   serveurs de Vercel ? Sinon, message « La BCE n'a pas répondu… » et saisie manuelle.
