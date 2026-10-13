@@ -62,3 +62,26 @@ export function planImport(e: {
   plan.sansFiche = [...sansFiche];
   return plan;
 }
+
+/**
+ * Import d'un délégué et de ses mandats, tout ou rien : si les mandats ne passent pas, le délégué créé est
+ * supprimé, pour qu'un nouvel import le reprenne entièrement (sinon il serait vu « déjà importé », sans mandats).
+ */
+export async function importerUnDelegue(
+  d: DelegueACreer,
+  ops: {
+    insererDelegue: (delegue: Omit<DelegueACreer, "mandats">) => Promise<{ id: string | null } | "erreur">;
+    insererMandats: (delegueId: string, mandats: DelegueACreer["mandats"]) => Promise<boolean>;
+    supprimerDelegue: (delegueId: string) => Promise<void>;
+  }
+): Promise<"cree" | "deja" | "erreur"> {
+  const { mandats, ...delegue } = d;
+  const r = await ops.insererDelegue(delegue);
+  if (r === "erreur") return "erreur";
+  if (!r.id) return "deja";
+  if (mandats.length && !(await ops.insererMandats(r.id, mandats))) {
+    await ops.supprimerDelegue(r.id);
+    return "erreur";
+  }
+  return "cree";
+}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Hash, IdCard, MapPin, Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import type { Fiche } from "../../../../lib/entreprises/donnees-serveur";
-import { blocAdresse, initiales } from "../../../../lib/entreprises/regles";
+import { blocAdresse, initiales, siteABlocPropre } from "../../../../lib/entreprises/regles";
 import type { Site } from "../../../../lib/entreprises/types";
 import { libelleMandat } from "../../../../lib/delegues/mandats";
 import { ajouterSite, enregistrerSite, supprimerSite } from "../actions";
@@ -43,7 +43,7 @@ function CarteSite({ fiche, site, superAdmin }: { fiche: Fiche; site: Site; supe
         <h3 id={`site-${site.id}`} className="text-lg font-bold">{site.nom}</h3>
         {site.principal && <span className="ecg-puce"><Star size={13} aria-hidden /> Site principal</span>}
         <span className="ml-auto flex gap-1">
-          <button type="button" className={`${BTN} ${BTN_PETIT}`} aria-expanded={edition} onClick={() => setEdition(!edition)}
+          <button type="button" className={BTN} aria-expanded={edition} onClick={() => setEdition(!edition)}
             aria-label={edition ? `Fermer la modification du site ${site.nom}` : `Modifier le site ${site.nom}`}>
             {edition ? <X size={15} aria-hidden /> : <Pencil size={15} aria-hidden />} {edition ? "Fermer" : "Modifier"}
           </button>
@@ -125,7 +125,7 @@ function CarteSite({ fiche, site, superAdmin }: { fiche: Fiche; site: Site; supe
               )}
             </div>
           </div>
-          {bloc && !site.principal && <ApercuBloc {...bloc} titre="Bloc adresse du site" />}
+          {bloc && (!site.principal || siteABlocPropre(site)) && <ApercuBloc {...bloc} titre="Bloc adresse du site" />}
         </div>
       )}
       {erreur && <p role="alert" className="ecg-erreur">{erreur}</p>}
@@ -159,7 +159,7 @@ export default function PanneauSites({ fiche, superAdmin }: { fiche: Fiche; supe
       titre="Sites d'exploitation (UTE)"
       sousTitre="Unités, ONSS et mandats se rattachent à un site."
       actions={
-        <button type="button" className={`${BTN} ${BTN_PETIT}`} aria-expanded={ajout} onClick={() => setAjout(!ajout)}>
+        <button type="button" className={BTN} aria-expanded={ajout} onClick={() => setAjout(!ajout)}>
           <Plus size={15} aria-hidden /> Ajouter un site
         </button>
       }

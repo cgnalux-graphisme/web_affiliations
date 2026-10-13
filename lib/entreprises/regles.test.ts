@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CompanyCgLink, Entreprise, Onss, Site, Unite } from "./types";
 import {
   blocAdresse, cleDe, construireListe, correspond, ecartsOnss, lireCle, nomAffiche,
-  dansNosProvinces, formaterOnss, initiales, nomManquant, onssACreer, onssDeCompany, planSuppressionSite, REF_DEFAUT,
+  dansNosProvinces, formaterOnss, initiales, siteABlocPropre, nomManquant, onssACreer, onssDeCompany, planSuppressionSite, REF_DEFAUT,
 } from "./regles";
 
 const E: Entreprise = {
@@ -175,5 +175,13 @@ describe("affichage", () => {
     expect(initiales("Jean", "Dupont")).toBe("JD");
     expect(initiales(null, "van Damme")).toBe("V");
     expect(initiales("  ", "")).toBe("?");
+  });
+});
+
+describe("siteABlocPropre", () => {
+  it("vrai si le site a sa propre adresse postale ou sa propre personne de référence", () => {
+    expect(siteABlocPropre({ ...S, unite_postale_id: null, ref_nom: null })).toBe(false);
+    expect(siteABlocPropre({ ...S, unite_postale_id: "u1", ref_nom: null })).toBe(true);
+    expect(siteABlocPropre({ ...S, unite_postale_id: null, ref_nom: "Mme X" })).toBe(true);
   });
 });

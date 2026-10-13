@@ -90,14 +90,24 @@ export async function chargerCarte(id: string): Promise<CarteDelegue | null> {
     delegue.cglink_user_id ? connexions() : Promise.resolve(new Map<string, string | null>()),
   ]);
   const entree = delegue.cglink_user_id ? entrees.get(delegue.cglink_user_id) : undefined;
+  type LigneUnite = { id: string; site_id: string | null; rue: string | null; numero: string | null; localite: string | null };
+  const libelleUnite = (u: LigneUnite) => [u.rue, u.numero, u.localite && `— ${u.localite}`].filter(Boolean).join(" ");
+  const choix = ((unites ?? []) as LigneUnite[]).map((u) => ({ id: u.id, site_id: u.site_id, libelle: libelleUnite(u) }));
+  // Unité actuelle plus suivie ou arrêtée : gardée dans la liste, signalée, pour ne pas bloquer la carte.
+  if (delegue.unite_id && !choix.some((u) => u.id === delegue.unite_id)) {
+    const { data: actuelle } = await db.from("site_entreprise_unites").select("id, site_id, rue, numero, localite").eq("id", delegue.unite_id).maybeSingle();
+    if (actuelle) {
+      const u = actuelle as LigneUnite;
+      choix.push({ id: u.id, site_id: u.site_id, libelle: `${libelleUnite(u)} (plus suivie)` });
+    }
+  }
   const derniereConnexion = delegue.cglink_user_id ? cnx.get(delegue.cglink_user_id) ?? null : null;
   return {
     delegue,
     entrepriseNom: noms.get(delegue.entreprise_id) ?? "",
     mandats: (mandats ?? []) as Mandat[],
     sites: (sites ?? []) as CarteDelegue["sites"],
-    unites: ((unites ?? []) as { id: string; site_id: string | null; rue: string | null; numero: string | null; localite: string | null }[])
-      .map((u) => ({ id: u.id, site_id: u.site_id, libelle: [u.rue, u.numero, u.localite && `— ${u.localite}`].filter(Boolean).join(" ") })),
+    unites: choix,
     compte: { etat: etatCompte(delegue.cglink_user_id, entree, derniereConnexion), invitedAt: entree?.invitedAt ?? null, derniereConnexion },
     journal: ((journal ?? []) as { id: string; created_at: string; action: string; details: Record<string, unknown> }[])
       .map((j) => ({ id: j.id, created_at: j.created_at, phrase: phraseJournal(j.action, j.details ?? {}) })),

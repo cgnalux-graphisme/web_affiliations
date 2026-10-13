@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Pencil, X } from "lucide-react";
-import { BTN, BTN_PETIT, Panneau } from "../../_partage/ui";
+import { BTN, Panneau } from "../../_partage/ui";
 
 /**
  * Section de la fiche : lecture d'abord, formulaire seulement à la demande (« Modifier »).
@@ -39,7 +39,7 @@ export default function SectionEditable({
         <>
           {actions}
           {edition && (
-            <button type="button" className={`${BTN} ${BTN_PETIT}`} aria-expanded={edite} onClick={() => setEdite(!edite)}>
+            <button type="button" className={BTN} aria-expanded={edite} onClick={() => setEdite(!edite)}>
               {edite ? <X size={15} aria-hidden /> : <Pencil size={15} aria-hidden />}
               {edite ? "Fermer" : libelleModifier}
             </button>

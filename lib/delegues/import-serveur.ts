@@ -1,5 +1,5 @@
 import { getSupabaseService } from "../supabase-service";
-import { planImport, type CompanyImport, type FicheImport } from "./import";
+import { importerUnDelegue, planImport, type CompanyImport, type FicheImport } from "./import";
 
 /** Import des délégués de CG Link. SERVEUR UNIQUEMENT, après vérification du rôle SUPER_ADMIN. */
 
@@ -37,27 +37,30 @@ export async function executerImport(auteurId: string): Promise<RapportImport | 
 
   const rapport: RapportImport = { crees: 0, mandats: 0, dejaPresents: plan.dejaPresents, rejetes: plan.rejetes, sansFiche: plan.sansFiche, erreurs: 0 };
   for (const d of plan.delegues) {
-    const { mandats, ...delegue } = d;
-    // ignoreDuplicates : un import lancé deux fois en même temps ne crée pas de doublon.
-    const { data, error } = await db.from("site_delegues").upsert(delegue, { onConflict: "cglink_user_id", ignoreDuplicates: true }).select("id");
-    if (error) {
-      console.error("[delegues] import, délégué :", error.code);
-      rapport.erreurs++;
-      continue;
-    }
-    const id = (data ?? [])[0]?.id as string | undefined;
-    if (!id) {
-      rapport.dejaPresents++;
-      continue;
-    }
-    rapport.crees++;
-    if (mandats.length) {
-      const r = await db.from("site_delegue_mandats").insert(mandats.map((m) => ({ ...m, delegue_id: id })));
-      if (r.error) {
-        console.error("[delegues] import, mandats :", r.error.code);
-        rapport.erreurs++;
-      } else rapport.mandats += mandats.length;
-    }
+    const resultat = await importerUnDelegue(d, {
+      // ignoreDuplicates : un import lancé deux fois en même temps ne crée pas de doublon.
+      insererDelegue: async (delegue) => {
+        const { data, error } = await db.from("site_delegues").upsert(delegue, { onConflict: "cglink_user_id", ignoreDuplicates: true }).select("id");
+        if (error) {
+          console.error("[delegues] import, délégué :", error.code);
+          return "erreur";
+        }
+        return { id: ((data ?? [])[0]?.id as string | undefined) ?? null };
+      },
+      insererMandats: async (id, mandats) => {
+        const { error } = await db.from("site_delegue_mandats").insert(mandats.map((m) => ({ ...m, delegue_id: id })));
+        if (error) console.error("[delegues] import, mandats :", error.code);
+        return !error;
+      },
+      supprimerDelegue: async (id) => {
+        await db.from("site_delegues").delete().eq("id", id);
+      },
+    });
+    if (resultat === "cree") {
+      rapport.crees++;
+      rapport.mandats += d.mandats.length;
+    } else if (resultat === "deja") rapport.dejaPresents++;
+    else rapport.erreurs++;
   }
   await db.from("site_journal_delegues").insert({
     auteur_id: auteurId, action: "import",

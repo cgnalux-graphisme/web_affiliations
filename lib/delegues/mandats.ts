@@ -119,3 +119,15 @@ export function siteParDefaut(
   if (siteUnite && sites.some((s) => s.id === siteUnite)) return siteUnite;
   return sites.find((s) => s.principal)?.id ?? null;
 }
+
+/** Site d'un mandat (ajout et modification) : le site choisi s'il appartient à l'entreprise, sinon le site par défaut. */
+export function siteDuMandat(
+  choisi: string | null,
+  uniteId: string | null,
+  unites: { id: string; site_id: string | null }[],
+  sites: { id: string; principal: boolean }[]
+): { ok: true; site_id: string | null } | { ok: false; erreur: string } {
+  if (!choisi) return { ok: true, site_id: siteParDefaut(uniteId, unites, sites) };
+  if (!sites.some((s) => s.id === choisi)) return { ok: false, erreur: "Ce site n'appartient pas à l'entreprise du délégué." };
+  return { ok: true, site_id: choisi };
+}

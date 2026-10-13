@@ -25,7 +25,7 @@ export default function PanneauOnss({ fiche }: { fiche: Fiche }) {
 
   return (
     <Panneau id="onss" className="ecg-section" titre="Numéros ONSS" corps={false}
-      actions={<button type="button" className={`${BTN} ${BTN_PETIT}`} aria-expanded={ajout} onClick={() => setAjout(!ajout)}><Plus size={15} aria-hidden /> Ajouter</button>}>
+      actions={<button type="button" className={BTN} aria-expanded={ajout} onClick={() => setAjout(!ajout)}><Plus size={15} aria-hidden /> Ajouter</button>}>
       {ecarts && (ecarts.manquantsIci.length > 0 || ecarts.absentsCgLink.length > 0) && (
         <div className="px-5 pt-4">
           <Alerte ton="attention" icone={TriangleAlert} titre="Écarts avec CG Link">

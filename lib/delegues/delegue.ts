@@ -62,3 +62,13 @@ export function phraseJournal(action: string, d: Record<string, unknown>): strin
     default: return action;
   }
 }
+
+/** À l'enregistrement d'une carte : l'unité actuelle reste acceptée même si elle n'est plus suivie ou est arrêtée. */
+export function uniteModifiable(
+  nouvelle: string | null,
+  actuelle: string | null,
+  entrepriseId: string,
+  unites: { id: string; entreprise_id: string; statut: string; suivie: boolean }[]
+): boolean {
+  return nouvelle === actuelle || uniteAutorisee(nouvelle, entrepriseId, unites);
+}

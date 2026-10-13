@@ -176,3 +176,8 @@ export function initiales(prenom: string | null | undefined, nom: string | null 
   const i = [prenom, nom].map((x) => (x ?? "").trim().charAt(0).toUpperCase()).join("");
   return i || "?";
 }
+
+/** Un site a son propre bloc adresse s'il a sa propre adresse postale ou sa propre personne de référence. */
+export function siteABlocPropre(site: Pick<Site, "unite_postale_id" | "ref_nom">): boolean {
+  return Boolean(site.unite_postale_id || site.ref_nom?.trim());
+}

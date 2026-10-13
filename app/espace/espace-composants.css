@@ -1052,6 +1052,15 @@ select.ecg-champ {
   font-weight: 600;
   color: var(--ecg-texte);
 }
+/* Puce cliquable : zone de clic agrandie à 44 px sans changer son aspect. */
+a.ecg-puce {
+  position: relative;
+}
+a.ecg-puce::after {
+  content: "";
+  position: absolute;
+  inset: -7px 0;
+}
 a.ecg-puce:hover {
   border-color: var(--app);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classerAutre, importerMandats, libelleMandat, mandatEnCours, siteParDefaut, validerMandat } from "./mandats";
+import { classerAutre, importerMandats, libelleMandat, mandatEnCours, siteDuMandat, siteParDefaut, validerMandat } from "./mandats";
 
 const organe = (t: string) => {
   const c = classerAutre(t);
@@ -102,5 +102,17 @@ describe("siteParDefaut", () => {
     expect(siteParDefaut(null, [], sites)).toBe("p");
     expect(siteParDefaut("u1", [{ id: "u1", site_id: null }], sites)).toBe("p");
     expect(siteParDefaut(null, [], [])).toBeNull();
+  });
+});
+
+describe("siteDuMandat (ajout comme modification)", () => {
+  const sites = [{ id: "p", principal: true }, { id: "s2", principal: false }];
+  it("site vide : site de l'unité de rattachement, sinon principal (jamais aucun site)", () => {
+    expect(siteDuMandat(null, "u1", [{ id: "u1", site_id: "s2" }], sites)).toEqual({ ok: true, site_id: "s2" });
+    expect(siteDuMandat(null, null, [], sites)).toEqual({ ok: true, site_id: "p" });
+  });
+  it("garde le site choisi s'il appartient à l'entreprise, refuse sinon", () => {
+    expect(siteDuMandat("s2", null, [], sites)).toEqual({ ok: true, site_id: "s2" });
+    expect(siteDuMandat("zz", null, [], sites)).toEqual({ ok: false, erreur: "Ce site n'appartient pas à l'entreprise du délégué." });
   });
 });

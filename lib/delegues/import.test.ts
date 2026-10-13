@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEBUT_MANDATS_IMPORTES, planImport, type CompanyImport, type FicheImport } from "./import";
+import { DEBUT_MANDATS_IMPORTES, importerUnDelegue, planImport, type CompanyImport, type FicheImport } from "./import";
 
 const d = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: "Jean Dupont", email: `${id}@exemple.be`, phone: "", ...extra });
 const fiches: FicheImport[] = [
@@ -53,5 +53,26 @@ describe("planImport", () => {
     expect(p.sansFiche).toEqual(["INCONNUE"]);
     expect(p.rejetes).toEqual([{ entreprise: "REMACLE", texte: "O" }]);
     expect(p.delegues.map((x) => x.cglink_user_id)).toEqual(["u6"]);
+  });
+});
+
+describe("importerUnDelegue", () => {
+  const d = { entreprise_id: "f", cglink_user_id: "u", prenom: "J", nom: "D", email: null, telephone: null, a_verifier: null,
+    mandats: [{ organe: "ds" as const, qualite: "effectif" as const, libelle: null, fonction: null, a_verifier: null, site_id: "s", debut: DEBUT_MANDATS_IMPORTES }] };
+  it("annule le délégué si ses mandats n'ont pas pu être enregistrés (un nouvel import le reprendra)", async () => {
+    const supprimes: string[] = [];
+    const r = await importerUnDelegue(d, {
+      insererDelegue: async () => ({ id: "x" }),
+      insererMandats: async () => false,
+      supprimerDelegue: async (id) => { supprimes.push(id); },
+    });
+    expect(r).toBe("erreur");
+    expect(supprimes).toEqual(["x"]);
+  });
+  it("compte un délégué créé avec ses mandats, ou déjà présent", async () => {
+    const ops = { insererMandats: async () => true, supprimerDelegue: async () => {} };
+    expect(await importerUnDelegue(d, { ...ops, insererDelegue: async () => ({ id: "x" }) })).toBe("cree");
+    expect(await importerUnDelegue(d, { ...ops, insererDelegue: async () => ({ id: null }) })).toBe("deja");
+    expect(await importerUnDelegue(d, { ...ops, insererDelegue: async () => "erreur" })).toBe("erreur");
   });
 });

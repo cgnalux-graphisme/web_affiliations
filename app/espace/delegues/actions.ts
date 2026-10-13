@@ -5,8 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { estSuperAdmin, utilisateurConnecte } from "../../../lib/espace/acces";
 import { getSupabaseService } from "../../../lib/supabase-service";
 import { dateFrToIso } from "../../../lib/dates";
-import { uniteAutorisee, validerDelegue } from "../../../lib/delegues/delegue";
-import { libelleMandat, siteParDefaut, validerMandat } from "../../../lib/delegues/mandats";
+import { uniteAutorisee, uniteModifiable, validerDelegue } from "../../../lib/delegues/delegue";
+import { libelleMandat, siteDuMandat, validerMandat } from "../../../lib/delegues/mandats";
 import { executerImport, type RapportImport } from "../../../lib/delegues/import-serveur";
 import { COLONNES_DELEGUE, COLONNES_MANDAT, type Delegue, type Mandat } from "../../../lib/delegues/types";
 
@@ -86,7 +86,8 @@ export async function enregistrerDelegue(id: string, champs: Record<string, stri
   if (!d) return { ok: false, erreur: ECHEC };
   const v = validerDelegue(champs);
   if (!v.ok) return v;
-  if ("unite_id" in v.valeurs && !uniteAutorisee(v.valeurs.unite_id ?? null, d.entreprise_id, await unitesDe(c, d.entreprise_id))) {
+  // L'unité actuelle reste acceptée même si elle n'est plus suivie (sinon la carte ne s'enregistre plus).
+  if ("unite_id" in v.valeurs && !uniteModifiable(v.valeurs.unite_id ?? null, d.unite_id, d.entreprise_id, await unitesDe(c, d.entreprise_id))) {
     return { ok: false, erreur: "Cette unité n'est pas une unité suivie de l'entreprise." };
   }
   const { error } = await c.db.from("site_delegues").update(v.valeurs).eq("id", id);
@@ -120,10 +121,9 @@ export async function ajouterMandat(delegueId: string, champs: Record<string, st
     unitesDe(c, d.entreprise_id),
     c.db.from("site_entreprise_sites").select("id, principal").eq("entreprise_id", d.entreprise_id),
   ]);
-  const listeSites = (sites ?? []) as { id: string; principal: boolean }[];
-  const siteId = v.valeurs.site_id ?? siteParDefaut(d.unite_id, unites, listeSites);
-  if (siteId && !listeSites.some((s) => s.id === siteId)) return { ok: false, erreur: "Ce site n'appartient pas à l'entreprise du délégué." };
-  const { error } = await c.db.from("site_delegue_mandats").insert({ ...v.valeurs, site_id: siteId, delegue_id: delegueId });
+  const site = siteDuMandat(v.valeurs.site_id, d.unite_id, unites, (sites ?? []) as { id: string; principal: boolean }[]);
+  if (!site.ok) return site;
+  const { error } = await c.db.from("site_delegue_mandats").insert({ ...v.valeurs, site_id: site.site_id, delegue_id: delegueId });
   if (error) return { ok: false, erreur: ECHEC };
   await journal(c, "mandat_ajout", d, { mandat: libelleMandat(v.valeurs) });
   rafraichir(delegueId);
@@ -145,11 +145,14 @@ export async function enregistrerMandat(mandatId: string, champs: Record<string,
   if (!lu) return { ok: false, erreur: ECHEC };
   const v = validerMandat(champs);
   if (!v.ok) return v;
-  if (v.valeurs.site_id) {
-    const { data: s } = await c.db.from("site_entreprise_sites").select("id").eq("id", v.valeurs.site_id).eq("entreprise_id", lu.d.entreprise_id).maybeSingle();
-    if (!s) return { ok: false, erreur: "Ce site n'appartient pas à l'entreprise du délégué." };
-  }
-  const { error } = await c.db.from("site_delegue_mandats").update(v.valeurs).eq("id", mandatId);
+  // Site vide : site de l'unité de rattachement, sinon principal (comme à l'ajout ; jamais aucun site).
+  const [unites, { data: sites }] = await Promise.all([
+    unitesDe(c, lu.d.entreprise_id),
+    c.db.from("site_entreprise_sites").select("id, principal").eq("entreprise_id", lu.d.entreprise_id),
+  ]);
+  const site = siteDuMandat(v.valeurs.site_id, lu.d.unite_id, unites, (sites ?? []) as { id: string; principal: boolean }[]);
+  if (!site.ok) return site;
+  const { error } = await c.db.from("site_delegue_mandats").update({ ...v.valeurs, site_id: site.site_id }).eq("id", mandatId);
   if (error) return { ok: false, erreur: ECHEC };
   await journal(c, "mandat_modification", lu.d, { mandat: libelleMandat(v.valeurs) });
   rafraichir(lu.d.id);

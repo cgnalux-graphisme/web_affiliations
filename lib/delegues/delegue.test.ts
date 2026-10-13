@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { etatCompte, phraseJournal, uniteAutorisee, validerDelegue } from "./delegue";
+import { etatCompte, phraseJournal, uniteAutorisee, uniteModifiable, validerDelegue } from "./delegue";
 
 describe("validerDelegue", () => {
   it("exige le nom", () => {
@@ -47,5 +47,15 @@ describe("phraseJournal", () => {
     expect(phraseJournal("import", { crees: 3, mandats: 5, rejetes: 1 })).toBe("Import depuis CG Link : 3 délégués, 5 mandats, 1 texte non importé.");
     expect(phraseJournal("mandat_ajout", { mandat: "DS eff." })).toBe("Mandat ajouté : DS eff.");
     expect(phraseJournal("inconnue", {})).toBe("inconnue");
+  });
+});
+
+describe("uniteModifiable", () => {
+  const unites = [{ id: "u1", entreprise_id: "e1", statut: "arrete", suivie: true }];
+  it("laisse enregistrer une carte dont l'unité actuelle n'est plus suivie ou est arrêtée", () => {
+    expect(uniteModifiable("u1", "u1", "e1", unites)).toBe(true);
+  });
+  it("refuse de choisir une nouvelle unité non autorisée", () => {
+    expect(uniteModifiable("u1", null, "e1", unites)).toBe(false);
   });
 });
