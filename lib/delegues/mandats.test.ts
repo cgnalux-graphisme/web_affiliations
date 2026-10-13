@@ -68,9 +68,10 @@ describe("libelleMandat et mandatEnCours", () => {
     expect(libelleMandat({ organe: "instances_cg", qualite: null, libelle: "Comité exécutif", fonction: null })).toBe("Comité exécutif");
     expect(libelleMandat({ organe: "cee", qualite: null, libelle: null, fonction: null })).toBe("CEE");
   });
-  it("un mandat sans fin ou finissant aujourd'hui ou plus tard est en cours", () => {
+  it("un mandat sans fin ou finissant après aujourd'hui est en cours ; terminé aujourd'hui, il ne l'est plus", () => {
     expect(mandatEnCours({ fin: null }, "2026-10-13")).toBe(true);
-    expect(mandatEnCours({ fin: "2026-10-13" }, "2026-10-13")).toBe(true);
+    expect(mandatEnCours({ fin: "2026-10-14" }, "2026-10-13")).toBe(true);
+    expect(mandatEnCours({ fin: "2026-10-13" }, "2026-10-13")).toBe(false);
     expect(mandatEnCours({ fin: "2026-10-12" }, "2026-10-13")).toBe(false);
   });
 });

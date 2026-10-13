@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deplacerEntree, fusionnerEntree, lireReponseFonction, versCgLink } from "./cglink";
+import { champsAEnvoyer, deplacerEntree, fusionnerEntree, lireReponseFonction, versCgLink } from "./cglink";
 
 const J = "2026-10-13";
 const m = (organe: string, qualite: string | null, extra: Record<string, unknown> = {}) =>
@@ -59,5 +59,13 @@ describe("lireReponseFonction", () => {
     expect(lireReponseFonction(400, { error: "User already registered" })).toEqual({ ok: false, erreur: "CG Link a refusé : User already registered" });
     expect(lireReponseFonction(500, null)).toEqual({ ok: false, erreur: "CG Link n'a pas répondu correctement. Réessayez dans un instant." });
     expect(lireReponseFonction(401, {})).toEqual({ ok: false, erreur: "Votre session a expiré. Reconnectez-vous puis réessayez." });
+  });
+});
+
+describe("champsAEnvoyer", () => {
+  it("n'efface jamais dans CG Link un téléphone vide ici", () => {
+    const c = { name: "J D", phone: "", mandateDs: "Effectif", mandateCe: "Pas de mandat", mandateCppt: "Pas de mandat", mandateOther: "" };
+    expect(champsAEnvoyer(c)).toEqual({ name: "J D", mandateDs: "Effectif", mandateCe: "Pas de mandat", mandateCppt: "Pas de mandat", mandateOther: "" });
+    expect(champsAEnvoyer({ ...c, phone: "+32 (0) 470 12 34 56" }).phone).toBe("+32 (0) 470 12 34 56");
   });
 });

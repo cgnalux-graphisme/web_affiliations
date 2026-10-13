@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculerEcarts, planReprise } from "./ecarts";
+import { versCgLink } from "./cglink";
 import type { Delegue, Mandat } from "./types";
 
 const J = "2026-10-13";
@@ -44,5 +45,26 @@ describe("planReprise", () => {
   it("autre : classe le texte, refuse ce qui n'est pas un mandat", () => {
     expect(planReprise("autre", D, [], { ...E, mandateOther: "Comité exécutif" }, J)[0]).toMatchObject({ type: "ajouter", mandat: { organe: "instances_cg", libelle: "Comité exécutif" } });
     expect(planReprise("autre", D, [], { ...E, mandateOther: "O" }, J)).toEqual([{ type: "erreur", erreur: "Le texte de CG Link n'est pas reconnu comme un mandat : ajoutez-le à la main." }]);
+  });
+});
+
+describe("reprise sans écrasement ni doublon", () => {
+  it("après « Reprendre » un « Pas de mandat », l'écart disparaît et rien ne repart vers CG Link", () => {
+    const ms = [M("1", "ds", "effectif")];
+    const e = { ...E, mandateDs: "Pas de mandat" };
+    const op = planReprise("ds", D, ms, e, J)[0];
+    expect(op.type).toBe("terminer");
+    const apres = ms.map((m) => ({ ...m, fin: J }));
+    expect(calculerEcarts(D, apres, e, [], J).map((x) => x.champ)).not.toContain("ds");
+    expect(versCgLink(D, apres, J).mandateDs).toBe("Pas de mandat");
+  });
+  it("« Autres mandats » : n'ajoute que les éléments absents d'ici, sans doublon", () => {
+    const ops = planReprise("autre", D, [M("1", "cee", "effectif")], { ...E, mandateOther: "CEE effectif ; Comité exécutif" }, J);
+    expect(ops).toHaveLength(1);
+    expect(ops[0]).toMatchObject({ type: "ajouter", mandat: { organe: "instances_cg", libelle: "Comité exécutif" } });
+  });
+  it("une fonction « Secrétaire (CE) » s'ajoute au mandat CE en cours au lieu d'en créer un", () => {
+    expect(planReprise("autre", D, [M("2", "ce", "effectif")], { ...E, mandateOther: "Secrétaire (CE)" }, J))
+      .toEqual([{ type: "fonction", id: "2", fonction: "Secrétaire" }]);
   });
 });

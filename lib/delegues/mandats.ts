@@ -79,8 +79,9 @@ export function libelleMandat(m: Pick<Mandat, "organe" | "qualite" | "libelle" |
   return m.fonction ? `${base} (${m.fonction})` : base;
 }
 
+/** En cours : sans fin, ou fin après aujourd'hui (un mandat terminé aujourd'hui n'est plus en cours). */
 export function mandatEnCours(m: Pick<Mandat, "fin">, aujourdhui: string): boolean {
-  return !m.fin || m.fin >= aujourdhui;
+  return !m.fin || m.fin > aujourdhui;
 }
 
 const texte = (v: string | undefined) => (v ?? "").trim() || null;

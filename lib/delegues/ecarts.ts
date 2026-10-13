@@ -39,6 +39,7 @@ export type OperationReprise =
   | { type: "maj_delegue"; valeurs: Partial<Delegue> }
   | { type: "terminer"; ids: string[]; fin: string }
   | { type: "qualite"; id: string; qualite: Qualite }
+  | { type: "fonction"; id: string; fonction: string }
   | { type: "ajouter"; mandat: { organe: Organe; qualite: Qualite | null; libelle: string | null; fonction: string | null; debut: string; a_verifier: string } }
   | { type: "erreur"; erreur: string };
 
@@ -51,9 +52,29 @@ export function planReprise(champ: ChampEcart, d: Delegue, mandats: Mandat[], en
   if (champ === "email") return [{ type: "maj_delegue", valeurs: { email: espaces(entree.email).toLowerCase() || null } }];
   if (champ === "telephone") return [{ type: "maj_delegue", valeurs: { telephone: formaterTelephone(entree.phone) || null } }];
   if (champ === "autre") {
-    const c = classerAutre(espaces(entree.mandateOther));
-    if (c.rejete) return [{ type: "erreur", erreur: "Le texte de CG Link n'est pas reconnu comme un mandat : ajoutez-le à la main." }];
-    return [{ type: "ajouter", mandat: { organe: c.mandat.organe, qualite: c.mandat.qualite, libelle: c.mandat.libelle, fonction: c.mandat.fonction, debut: aujourdhui, a_verifier: note } }];
+    // Le texte CG Link est une liste « a ; b ; c » : seuls les éléments absents d'ici sont repris, un par un.
+    const morceaux = (t: string | null | undefined) => espaces(t).split(/\s*;\s*/).filter(Boolean);
+    const ici = new Set(morceaux(versCgLink(d, mandats, aujourdhui).mandateOther).map((x) => x.toLowerCase()));
+    const ops: OperationReprise[] = [];
+    let rejetes = 0;
+    for (const texte of morceaux(entree.mandateOther).filter((x) => !ici.has(x.toLowerCase()))) {
+      const fonction = texte.match(/^(.+?)\s*\((DS|CE|CPPT)\)$/i);
+      if (fonction) {
+        const organe = fonction[2].toLowerCase() as Organe;
+        const cible = mandats.find((m) => m.organe === organe && mandatEnCours(m, aujourdhui));
+        if (cible) ops.push({ type: "fonction", id: cible.id, fonction: fonction[1].trim() });
+        else rejetes++;
+        continue;
+      }
+      const c = classerAutre(texte);
+      if (c.rejete) {
+        rejetes++;
+        continue;
+      }
+      ops.push({ type: "ajouter", mandat: { organe: c.mandat.organe, qualite: c.mandat.qualite, libelle: c.mandat.libelle, fonction: c.mandat.fonction, debut: aujourdhui, a_verifier: note } });
+    }
+    if (!ops.length && rejetes) return [{ type: "erreur", erreur: "Le texte de CG Link n'est pas reconnu comme un mandat : ajoutez-le à la main." }];
+    return ops;
   }
   const enCours = mandats.filter((m) => m.organe === champ && mandatEnCours(m, aujourdhui));
   const cible = qualiteCg(champ === "ds" ? entree.mandateDs : champ === "ce" ? entree.mandateCe : entree.mandateCppt);

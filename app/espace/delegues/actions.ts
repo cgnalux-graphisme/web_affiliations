@@ -11,7 +11,7 @@ import { planReprise, type ChampEcart } from "../../../lib/delegues/ecarts";
 import { fusionnerEntree } from "../../../lib/delegues/cglink";
 import { appelerFonctionCgLink, companyDuDelegue, modifierDelegues, synchroniser } from "../../../lib/delegues/cglink-serveur";
 import { executerImport, type RapportImport } from "../../../lib/delegues/import-serveur";
-import { COLONNES_DELEGUE, COLONNES_MANDAT, type Delegue, type Mandat } from "../../../lib/delegues/types";
+import { COLONNES_DELEGUE, COLONNES_MANDAT, type Delegue, type DelegueCgLink, type Mandat } from "../../../lib/delegues/types";
 
 /**
  * Écritures de l'app Gestion délégués CG Link : rôle SUPER_ADMIN revérifié à chaque action, puis service_role
@@ -53,6 +53,19 @@ async function lireDelegue(c: Ctx, id: string): Promise<Delegue | null> {
 async function unitesDe(c: Ctx, entrepriseId: string) {
   const { data } = await c.db.from("site_entreprise_unites").select("id, entreprise_id, statut, suivie, site_id").eq("entreprise_id", entrepriseId);
   return (data ?? []) as { id: string; entreprise_id: string; statut: string; suivie: boolean; site_id: string | null }[];
+}
+
+const ERREUR_LECTURE_CGLINK = "CG Link n'a pas répondu. Réessayez dans un instant.";
+
+/** Entrée CG Link d'un délégué qui a un compte : « introuvable » et « erreur de lecture » sont distingués. */
+async function lieuCgLink(
+  c: Ctx,
+  cglinkId: string
+): Promise<{ ok: true; id: string; entree: DelegueCgLink } | { ok: false; erreur: string; introuvable?: true }> {
+  const lieu = await companyDuDelegue(c.db, cglinkId);
+  if (lieu === "erreur") return { ok: false, erreur: ERREUR_LECTURE_CGLINK };
+  if (!lieu) return { ok: false, erreur: "Compte CG Link introuvable.", introuvable: true };
+  return { ok: true, ...lieu };
 }
 
 /** Après une modification : si le délégué a un compte, sa carte est envoyée à CG Link (jamais l'e-mail). */
@@ -255,8 +268,8 @@ export async function renvoyerInvitation(id: string): Promise<Resultat> {
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id || !d.email) return { ok: false, erreur: ECHEC };
-  const lieu = await companyDuDelegue(c.db, d.cglink_user_id);
-  if (!lieu) return { ok: false, erreur: "Compte CG Link introuvable." };
+  const lieu = await lieuCgLink(c, d.cglink_user_id);
+  if (!lieu.ok) return lieu;
   const r = await appelerFonctionCgLink("invite-user", {
     email: lieu.entree.email ?? d.email, name: [d.prenom, d.nom].filter(Boolean).join(" "), role: "DELEGATE", companyId: lieu.id, redirectTo: REDIRECTION_CGLINK,
   });
@@ -270,8 +283,8 @@ export async function annulerInvitation(id: string): Promise<Resultat> {
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id) return { ok: false, erreur: ECHEC };
-  const lieu = await companyDuDelegue(c.db, d.cglink_user_id);
-  if (!lieu) return { ok: false, erreur: "Compte CG Link introuvable." };
+  const lieu = await lieuCgLink(c, d.cglink_user_id);
+  if (!lieu.ok) return lieu;
   const r = await appelerFonctionCgLink("cancel-invite", { companyId: lieu.id, delegateId: d.cglink_user_id });
   if (!r.ok) return r;
   await c.db.from("site_delegues").update({ cglink_user_id: null }).eq("id", id);
@@ -285,8 +298,8 @@ export async function changerAcces(id: string, actif: boolean): Promise<Resultat
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id) return { ok: false, erreur: ECHEC };
-  const lieu = await companyDuDelegue(c.db, d.cglink_user_id);
-  if (!lieu) return { ok: false, erreur: "Compte CG Link introuvable." };
+  const lieu = await lieuCgLink(c, d.cglink_user_id);
+  if (!lieu.ok) return lieu;
   const r = await modifierDelegues(c.db, lieu.id, (ds) => fusionnerEntree(ds, d.cglink_user_id!, { isActive: actif }));
   if (r !== "ok") return { ok: false, erreur: r === "conflit" ? "CG Link a été modifié en même temps. Réessayez." : ECHEC };
   await journal(c, actif ? "deblocage" : "blocage", d);
@@ -299,7 +312,9 @@ export async function retirerLienCgLink(id: string): Promise<Resultat> {
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id) return { ok: false, erreur: ECHEC };
-  if (await companyDuDelegue(c.db, d.cglink_user_id)) return { ok: false, erreur: "Le compte existe encore dans CG Link : utilisez « Bloquer »." };
+  const lieu = await lieuCgLink(c, d.cglink_user_id);
+  if (lieu.ok) return { ok: false, erreur: "Le compte existe encore dans CG Link : utilisez « Bloquer »." };
+  if (!lieu.introuvable) return lieu;
   await c.db.from("site_delegues").update({ cglink_user_id: null }).eq("id", id);
   await journal(c, "lien_retire", d);
   rafraichir(id);
@@ -325,25 +340,39 @@ export async function changerEntreprise(id: string, entrepriseId: string): Promi
   if (!fiche) return { ok: false, erreur: "Choisissez une entreprise." };
   if (d.cglink_user_id) {
     if (!fiche.company_id) return { ok: false, erreur: "Cette entreprise n'est pas reliée à CG Link : le compte du délégué ne peut pas y être déplacé." };
-    const lieu = await companyDuDelegue(c.db, d.cglink_user_id);
-    if (!lieu) return { ok: false, erreur: "Compte CG Link introuvable." };
+    const lieu = await lieuCgLink(c, d.cglink_user_id);
+    if (!lieu.ok) return lieu;
     if (lieu.id !== fiche.company_id) {
       // Ajout dans la nouvelle entreprise d'abord, retrait ensuite : en cas d'échec, jamais de compte sans entreprise.
       const ajout = await modifierDelegues(c.db, fiche.company_id, (ds) => [...ds.filter((x) => x.id !== d.cglink_user_id), lieu.entree]);
       if (ajout !== "ok") return { ok: false, erreur: "CG Link n'a pas pu être mis à jour. Rien n'a changé." };
       const retrait = await modifierDelegues(c.db, lieu.id, (ds) => ds.filter((x) => x.id !== d.cglink_user_id));
       const profil = await c.db.from("profiles").update({ company_id: fiche.company_id }).eq("id", d.cglink_user_id);
-      if (retrait !== "ok" || profil.error) console.error("[delegues] déplacement CG Link :", retrait, profil.error?.code);
+      if (retrait !== "ok" || profil.error) {
+        console.error("[delegues] déplacement CG Link :", retrait, profil.error?.code);
+        await journal(c, "changement_entreprise", d, { echec: "cglink", retrait, profil: profil.error?.code ?? null });
+        return {
+          ok: false,
+          erreur:
+            "Déplacement CG Link incomplet : le compte figure peut-être dans les deux entreprises CG Link. Rien n'a changé dans l'Espace ; vérifiez dans CG Link puis réessayez.",
+        };
+      }
     }
+  }
+  const { error } = await c.db.from("site_delegues").update({ entreprise_id: entrepriseId, unite_id: null }).eq("id", id);
+  if (error) {
+    return { ok: false, erreur: d.cglink_user_id ? "Le compte a été déplacé dans CG Link, mais pas la carte ici. Réessayez le changement." : ECHEC };
   }
   const { data: principal } = await c.db.from("site_entreprise_sites").select("id").eq("entreprise_id", entrepriseId).eq("principal", true).maybeSingle();
   const jour = new Date().toISOString().slice(0, 10);
-  await c.db.from("site_delegue_mandats").update({ site_id: principal?.id ?? null, a_verifier: "Entreprise changée : vérifiez le site du mandat" })
-    .eq("delegue_id", id).or(`fin.is.null,fin.gte.${jour}`);
-  const { error } = await c.db.from("site_delegues").update({ entreprise_id: entrepriseId, unite_id: null }).eq("id", id);
-  if (error) return { ok: false, erreur: ECHEC };
+  const mandats = await c.db
+    .from("site_delegue_mandats")
+    .update({ site_id: principal?.id ?? null, a_verifier: "Entreprise changée : vérifiez le site du mandat" })
+    .eq("delegue_id", id)
+    .or("fin.is.null,fin.gt." + jour);
   await journal(c, "changement_entreprise", { id, entreprise_id: entrepriseId }, { avant: d.entreprise_id });
   rafraichir(id);
+  if (mandats.error) return { ok: true, message: "Entreprise changée, mais les mandats en cours n'ont pas pu être déplacés : corrigez leur site." };
   return { ok: true, message: "Entreprise changée. Vérifiez le site des mandats en cours." };
 }
 
@@ -352,8 +381,8 @@ export async function reprendreEcart(id: string, champ: ChampEcart): Promise<Res
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id) return { ok: false, erreur: ECHEC };
-  const lieu = await companyDuDelegue(c.db, d.cglink_user_id);
-  if (!lieu) return { ok: false, erreur: "Compte CG Link introuvable." };
+  const lieu = await lieuCgLink(c, d.cglink_user_id);
+  if (!lieu.ok) return lieu;
   const [{ data: ms }, unites, { data: sites }] = await Promise.all([
     c.db.from("site_delegue_mandats").select(COLONNES_MANDAT).eq("delegue_id", id),
     unitesDe(c, d.entreprise_id),
@@ -367,6 +396,7 @@ export async function reprendreEcart(id: string, champ: ChampEcart): Promise<Res
       op.type === "maj_delegue" ? await c.db.from("site_delegues").update(op.valeurs).eq("id", id)
       : op.type === "terminer" ? await c.db.from("site_delegue_mandats").update({ fin: op.fin }).in("id", op.ids)
       : op.type === "qualite" ? await c.db.from("site_delegue_mandats").update({ qualite: op.qualite }).eq("id", op.id)
+      : op.type === "fonction" ? await c.db.from("site_delegue_mandats").update({ fonction: op.fonction }).eq("id", op.id)
       : await c.db.from("site_delegue_mandats").insert({ ...op.mandat, delegue_id: id,
           site_id: siteParDefaut(d.unite_id, unites, (sites ?? []) as { id: string; principal: boolean }[]) });
     if (r.error) return { ok: false, erreur: ECHEC };

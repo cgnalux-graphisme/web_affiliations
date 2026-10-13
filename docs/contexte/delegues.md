@@ -94,6 +94,22 @@ Préalable vérifié le 13/10/2026 : `workers` n'est plus lisible avec la clé p
   de mandat » termine le mandat, jamais de suppression), « Ignorer » (valeur mémorisée dans
   `site_ecarts_ignores`, réapparaît si elle change), « Envoyer ma carte à CG Link ».
 
+### Limites connues (relecture du 13/10/2026)
+
+- **CG Link réécrit tout le tableau `companies.delegates`** à partir de sa copie en mémoire (rafraîchie toutes
+  les 60 s), sans relire ni vérifier `updated_at` (`services/DataContext.tsx`, `updateCurrentDelegate`,
+  `setDelegateActive`). Une écriture de CG Link dans la minute qui suit peut donc défaire une écriture de
+  l'Espace (blocage, déplacement d'entreprise). À corriger **dans CG Link** (prompt Cursor remis à Fred le
+  13/10/2026). En attendant : après un blocage ou un changement d'entreprise, rouvrir la carte une à deux
+  minutes plus tard pour vérifier.
+- **Fin de mandat** : un mandat est en cours si sa fin est **après** aujourd'hui ; terminé aujourd'hui, il ne
+  l'est plus (sinon « Reprendre » un « Pas de mandat » de CG Link était réécrit « Effectif » le jour même).
+- La synchronisation n'efface jamais un téléphone de CG Link par une valeur vide (`champsAEnvoyer()`).
+- « Reprendre » les autres mandats : élément par élément (liste « a ; b »), sans doublon ; « Secrétaire (CE) »
+  devient la fonction du mandat CE en cours.
+- Invitation : si `invite-user` répond 200 mais n'a pas pu écrire l'entreprise (défaut côté CG Link), la carte
+  montre « Compte CG Link introuvable » ; vérifier dans CG Link avant « Retirer le lien ».
+
 ## Écritures
 
 Actions serveur (`app/espace/delegues/actions.ts`) : rôle revérifié, puis **service_role** (les tables

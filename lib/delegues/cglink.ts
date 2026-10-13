@@ -59,3 +59,9 @@ export function lireReponseFonction(statut: number, corps: unknown): { ok: true;
   if (typeof c.error === "string" && c.error) return { ok: false, erreur: `CG Link a refusé : ${c.error}` };
   return { ok: false, erreur: "CG Link n'a pas répondu correctement. Réessayez dans un instant." };
 }
+
+/** Champs envoyés à CG Link : un téléphone vide ici n'efface jamais celui que le délégué a saisi dans CG Link. */
+export function champsAEnvoyer(c: ChampsCgLink): Partial<ChampsCgLink> {
+  const { phone, ...reste } = c;
+  return phone ? { ...reste, phone } : reste;
+}

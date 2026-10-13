@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServer } from "../supabase-server";
-import { fusionnerEntree, lireReponseFonction, versCgLink } from "./cglink";
+import { champsAEnvoyer, fusionnerEntree, lireReponseFonction, versCgLink } from "./cglink";
 import type { Delegue, DelegueCgLink, Mandat } from "./types";
 
 /**
@@ -31,8 +31,13 @@ export async function modifierDelegues(
   return "conflit";
 }
 
-export async function companyDuDelegue(db: SupabaseClient, cglinkId: string) {
-  const { data } = await db.from("companies").select("id, delegates");
+/** Entreprise CG Link qui contient l'entrée du délégué ; « erreur » si CG Link n'a pas répondu (≠ introuvable). */
+export async function companyDuDelegue(db: SupabaseClient, cglinkId: string): Promise<{ id: string; entree: DelegueCgLink } | null | "erreur"> {
+  const { data, error } = await db.from("companies").select("id, delegates").order("id");
+  if (error) {
+    console.error("[delegues] lecture CG Link :", error.code);
+    return "erreur";
+  }
   for (const c of (data ?? []) as { id: string; delegates: DelegueCgLink[] | null }[]) {
     const entree = (c.delegates ?? []).find((d) => d.id === cglinkId);
     if (entree) return { id: c.id, entree };
@@ -68,9 +73,10 @@ export async function appelerFonctionCgLink(nom: "invite-user" | "cancel-invite"
 export async function synchroniser(db: SupabaseClient, d: Delegue, mandats: Mandat[]) {
   if (!d.cglink_user_id) return { ok: true as const };
   const lieu = await companyDuDelegue(db, d.cglink_user_id);
+  if (lieu === "erreur") return { ok: false as const, erreur: ERREUR_SYNCHRO };
   if (!lieu) return { ok: false as const, erreur: "Compte CG Link introuvable : retirez le lien ou relancez l'import." };
   const champs = versCgLink(d, mandats, new Date().toISOString().slice(0, 10));
-  const r = await modifierDelegues(db, lieu.id, (ds) => fusionnerEntree(ds, d.cglink_user_id!, champs));
+  const r = await modifierDelegues(db, lieu.id, (ds) => fusionnerEntree(ds, d.cglink_user_id!, champsAEnvoyer(champs)));
   if (r !== "ok") return { ok: false as const, erreur: r === "conflit" ? "CG Link a été modifié en même temps. Réessayez." : ERREUR_SYNCHRO };
   const p = await db.from("profiles").update({ name: champs.name }).eq("id", d.cglink_user_id);
   if (p.error) console.error("[delegues] profil CG Link :", p.error.code);
