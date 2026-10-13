@@ -48,6 +48,7 @@ import {
 import { IconeChargement } from "./app/Chargement";
 
 import { EnteteFormulaire, EtapesFormulaire } from "./app/formulaires/Charte";
+import { suggestionsPhoton, urlPhoton, type PhotonSuggestion } from "./lib/adresse-photon";
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. VALIDATION IBAN INTERNATIONALE (algorithme officiel MOD-97)
 //    L'IBAN commence par 2 lettres (code pays ISO) + 2 chiffres de contrôle
@@ -896,15 +897,6 @@ function DateInputFR({
 //    les doublons issus de plusieurs POIs sur la même rue.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** Structure d'une suggestion retournée par Photon */
-interface PhotonSuggestion {
-  street: string;
-  housenumber: string;
-  postcode: string;
-  city: string;
-  display: string;
-}
-
 /** Champ "Rue" avec autocomplétion via Photon — affiché uniquement pour la Belgique */
 function AddressAutocomplete({
   value,
@@ -947,54 +939,9 @@ function AddressAutocomplete({
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        // bbox = rectangle englobant la Belgique (lon_min, lat_min, lon_max, lat_max)
-        const url =
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(v)}` +
-          `&lang=fr&limit=10&bbox=2.376,49.496,6.628,51.547`;
-        const res  = await fetch(url);
-        const json = await res.json();
-
-        const features: unknown[] = json.features ?? [];
-
-        // On ne garde que les résultats belges qui ont un nom de rue
-        const raw: PhotonSuggestion[] = (features as Array<{
-          properties: {
-            countrycode?: string;
-            street?: string;
-            name?: string;
-            housenumber?: string;
-            postcode?: string;
-            city?: string;
-            locality?: string;
-            district?: string;
-          };
-        }>)
-          .filter((f) => f.properties?.countrycode === "BE" && f.properties?.street)
-          .map((f) => {
-            const p           = f.properties;
-            const street      = p.street ?? "";
-            const housenumber = p.housenumber ?? "";
-            const postcode    = p.postcode ?? "";
-            const city        = p.city ?? p.locality ?? p.district ?? "";
-            const display     = [
-              street + (housenumber ? ` ${housenumber}` : ""),
-              [postcode, city].filter(Boolean).join(" "),
-            ]
-              .filter(Boolean)
-              .join(", ");
-            return { street, housenumber, postcode, city, display };
-          });
-
-        // Déduplique : une même rue dans une même ville ne doit apparaître qu'une fois
-        const seen  = new Set<string>();
-        const unique = raw.filter((r) => {
-          const key = `${r.street}|${r.postcode}|${r.city}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-
-        setSuggestions(unique.slice(0, 6));
+        const res  = await fetch(urlPhoton(v));
+        const unique = suggestionsPhoton(await res.json());
+        setSuggestions(unique);
         setOpen(unique.length > 0);
       } catch {
         setSuggestions([]);

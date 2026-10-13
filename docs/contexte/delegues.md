@@ -54,6 +54,19 @@ Badge de la tuile : « N à vérifier ».
 revérifiée côté serveur). Un nouveau mandat sans site choisi prend le site (UTE) de cette unité, sinon le
 site principal (`siteParDefaut()`).
 
+## Téléphone et adresse (13/10/2026)
+
+- **Téléphone** au format `+32 (0) 470 12 34 56` (GSM), `+32 (0) 81 64 99 63` / `+32 (0) 2 511 11 11` (fixes),
+  `+352 621 123 456`, `+33 (0) 6 12 34 56 78` : `formaterTelephone()` (`lib/telephone.ts`), appliqué en quittant
+  le champ (tous les champs « tel » de l'Espace, `ChampsEdition`), à l'enregistrement et à l'import ; les
+  numéros déjà en base sont affichés formatés et réécrits au prochain enregistrement.
+- **Adresse complète** (`adresse_rue`, `adresse_numero`, `adresse_boite`, `adresse_code_postal`,
+  `adresse_localite`, `adresse_pays`, défaut « Belgique ») : champ « Rue » avec **autocomplétion Photon**
+  comme le formulaire d'affiliation (`app/espace/_partage/AutocompleteRue.tsx`, logique partagée
+  `lib/adresse-photon.ts`, utilisée aussi par `FormulaireWebIndependant.tsx`) ; choisir une adresse remplit
+  numéro, code postal et localité ; suggestions seulement pour la Belgique ; clavier (flèches, Entrée,
+  Échap). Code postal belge contrôlé (4 chiffres). Migration `20261013110000_site_delegues_adresse.sql`.
+
 ## Écritures
 
 Actions serveur (`app/espace/delegues/actions.ts`) : rôle revérifié, puis **service_role** (les tables

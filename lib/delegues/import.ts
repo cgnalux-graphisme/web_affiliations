@@ -1,3 +1,4 @@
+import { formaterTelephone } from "../telephone";
 import { decouperNom } from "./noms";
 import { importerMandats, type MandatImport } from "./mandats";
 import type { DelegueCgLink } from "./types";
@@ -54,7 +55,7 @@ export function planImport(e: {
       prenom: nom.prenom,
       nom: nom.nom,
       email: choisie.d.email?.trim().toLowerCase() || null,
-      telephone: choisie.d.phone?.trim() || null,
+      telephone: formaterTelephone(choisie.d.phone) || null,
       a_verifier: notes.length ? notes.join(" ; ") : null,
       mandats: mandats.map((m) => ({ ...m, site_id: fiche.site_principal_id, debut: DEBUT_MANDATS_IMPORTES })),
     });

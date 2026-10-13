@@ -25,12 +25,20 @@ export default function PanneauIdentite({ carte }: { carte: CarteDelegue }) {
       sousTitre={carte.unites.length ? "L'unité de rattachement donne le site par défaut des nouveaux mandats." : "Aucune unité suivie sur la fiche de l'entreprise : cochez « Suivie » dans l'app Entreprises."}>
       <ChampsEdition
         id="identite"
-        valeurs={d}
+        valeurs={{ ...d, adresse_pays: d.adresse_pays ?? "Belgique" }}
         champs={[
           { nom: "prenom", libelle: "Prénom", largeur: "demi" },
           { nom: "nom", libelle: "Nom", largeur: "demi" },
           { nom: "email", libelle: "E-mail", type: "email", largeur: "demi" },
-          { nom: "telephone", libelle: "Téléphone", type: "tel", largeur: "demi" },
+          { nom: "telephone", libelle: "Téléphone", type: "tel", exemple: "+32 (0) 470 12 34 56", largeur: "demi" },
+          { nom: "adresse_rue", libelle: "Rue", type: "rue", largeur: "demi",
+            aide: "Tapez 3 lettres : choisissez l'adresse proposée, le reste se remplit.",
+            cibles: { numero: "adresse_numero", code_postal: "adresse_code_postal", localite: "adresse_localite", pays: "adresse_pays" } },
+          { nom: "adresse_numero", libelle: "Numéro", largeur: "tiers" },
+          { nom: "adresse_boite", libelle: "Boîte", largeur: "tiers" },
+          { nom: "adresse_code_postal", libelle: "Code postal", largeur: "tiers" },
+          { nom: "adresse_localite", libelle: "Localité", largeur: "demi" },
+          { nom: "adresse_pays", libelle: "Pays", largeur: "tiers" },
           { nom: "unite_id", libelle: "Unité d'établissement de rattachement", type: "choix",
             options: [{ valeur: "", libelle: "Non précisée" }, ...carte.unites.map((u) => ({ valeur: u.id, libelle: u.libelle }))] },
           { nom: "notes", libelle: "Notes internes", type: "zone" },

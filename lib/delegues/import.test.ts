@@ -12,7 +12,7 @@ describe("planImport", () => {
     const companies: CompanyImport[] = [{ id: "A", name: "ACME", delegates: [d("u1", { mandateDs: "Effectif", phone: "0470 00 00 00" })] }];
     const p = planImport({ companies, fiches, dejaImportes: new Set(), companyDuProfil: new Map() });
     expect(p.delegues).toHaveLength(1);
-    expect(p.delegues[0]).toMatchObject({ entreprise_id: "fA", cglink_user_id: "u1", prenom: "Jean", nom: "Dupont", telephone: "0470 00 00 00", a_verifier: null });
+    expect(p.delegues[0]).toMatchObject({ entreprise_id: "fA", cglink_user_id: "u1", prenom: "Jean", nom: "Dupont", telephone: "+32 (0) 470 00 00 00", a_verifier: null });
     expect(p.delegues[0].mandats).toEqual([
       { organe: "ds", qualite: "effectif", libelle: null, fonction: null, a_verifier: null, site_id: "sA", debut: DEBUT_MANDATS_IMPORTES },
     ]);

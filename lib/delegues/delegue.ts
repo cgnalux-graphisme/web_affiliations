@@ -1,9 +1,11 @@
+import { formaterTelephone } from "../telephone";
 import type { Delegue, DelegueCgLink, EtatCompte } from "./types";
 
 /** Règles du délégué : validation, unité de rattachement, état du compte CG Link, phrases du journal. Pur. */
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CHAMPS = ["prenom", "nom", "email", "telephone", "notes", "unite_id"] as const;
+const CHAMPS = ["prenom", "nom", "email", "telephone", "notes", "unite_id", "adresse_rue", "adresse_numero", "adresse_boite",
+  "adresse_code_postal", "adresse_localite", "adresse_pays"] as const;
 
 export function validerDelegue(champs: Record<string, string>):
   | { ok: true; valeurs: Partial<Pick<Delegue, (typeof CHAMPS)[number]>> }
@@ -16,9 +18,14 @@ export function validerDelegue(champs: Record<string, string>):
       v = v.toLowerCase();
       if (!EMAIL.test(v)) return { ok: false, erreur: "Adresse e-mail invalide. Exemple : prenom.nom@exemple.be" };
     }
+    if (k === "telephone" && v) v = formaterTelephone(v);
     valeurs[k] = v;
   }
   if ("nom" in valeurs && !valeurs.nom) return { ok: false, erreur: "Indiquez le nom du délégué." };
+  const belge = !valeurs.adresse_pays || /^belgique$/i.test(valeurs.adresse_pays);
+  if (belge && valeurs.adresse_code_postal && !/^\d{4}$/.test(valeurs.adresse_code_postal)) {
+    return { ok: false, erreur: "Code postal belge : 4 chiffres. Exemple : 5000" };
+  }
   return { ok: true, valeurs };
 }
 

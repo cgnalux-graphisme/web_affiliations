@@ -59,3 +59,16 @@ describe("uniteModifiable", () => {
     expect(uniteModifiable("u1", null, "e1", unites)).toBe(false);
   });
 });
+
+describe("validerDelegue : téléphone et adresse", () => {
+  it("met le téléphone au format +32 (0) …", () => {
+    expect(validerDelegue({ nom: "Dupont", telephone: "0470/12.34.56" })).toEqual({ ok: true, valeurs: { nom: "Dupont", telephone: "+32 (0) 470 12 34 56" } });
+  });
+  it("accepte l'adresse complète et nettoie le code postal", () => {
+    const r = validerDelegue({ nom: "Dupont", adresse_rue: "Rue Dewez", adresse_numero: "40", adresse_boite: "", adresse_code_postal: " 5000 ", adresse_localite: "Namur", adresse_pays: "Belgique" });
+    expect(r).toEqual({ ok: true, valeurs: { nom: "Dupont", adresse_rue: "Rue Dewez", adresse_numero: "40", adresse_boite: null, adresse_code_postal: "5000", adresse_localite: "Namur", adresse_pays: "Belgique" } });
+  });
+  it("refuse un code postal belge qui n'a pas 4 chiffres", () => {
+    expect(validerDelegue({ nom: "Dupont", adresse_code_postal: "50000", adresse_pays: "Belgique" })).toEqual({ ok: false, erreur: "Code postal belge : 4 chiffres. Exemple : 5000" });
+  });
+});

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Mail, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
+import { formaterTelephone } from "../../../../lib/telephone";
 import { exigerSuperAdmin } from "../../../../lib/espace/acces";
 import { chargerCarte } from "../../../../lib/delegues/donnees-serveur";
 import { LIBELLES_COMPTE } from "../../../../lib/delegues/delegue";
@@ -20,6 +21,11 @@ export default async function CartePage({ params }: { params: Promise<{ id: stri
   if (!carte) notFound();
   const { delegue: d, compte } = carte;
   const nom = [d.prenom, d.nom].filter(Boolean).join(" ");
+  const adresse = [
+    [d.adresse_rue, d.adresse_numero].filter(Boolean).join(" ") + (d.adresse_boite ? ` bte ${d.adresse_boite}` : ""),
+    [d.adresse_code_postal, d.adresse_localite].filter(Boolean).join(" "),
+    d.adresse_pays && !/^belgique$/i.test(d.adresse_pays) ? d.adresse_pays : "",
+  ].filter((x) => x.trim()).join(", ");
 
   return (
     <div className="ecg-ecran">
@@ -27,7 +33,12 @@ export default async function CartePage({ params }: { params: Promise<{ id: stri
       {d.a_verifier && <Alerte ton="attention" titre="À vérifier">{d.a_verifier}</Alerte>}
       <div className="flex flex-wrap gap-4">
         {d.email && <a className="ecg-lien inline-flex items-center gap-1" href={`mailto:${d.email}`}><Mail size={16} aria-hidden /> {d.email}</a>}
-        {d.telephone && <a className="ecg-lien inline-flex items-center gap-1" href={`tel:${d.telephone.replace(/\s/g, "")}`}><Phone size={16} aria-hidden /> {d.telephone}</a>}
+        {d.telephone && (
+          <a className="ecg-lien inline-flex items-center gap-1" href={`tel:${formaterTelephone(d.telephone).replace(/\s|\(0\)/g, "")}`}>
+            <Phone size={16} aria-hidden /> {formaterTelephone(d.telephone)}
+          </a>
+        )}
+        {adresse && <span className="inline-flex items-center gap-1"><MapPin size={16} aria-hidden /> {adresse}</span>}
       </div>
       <PanneauIdentite carte={carte} />
       <PanneauMandats carte={carte} />

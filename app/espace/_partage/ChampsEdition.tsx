@@ -4,13 +4,17 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { formatDateFr, isoToDateFr } from "../../../lib/dates";
+import { formaterTelephone } from "../../../lib/telephone";
+import AutocompleteRue from "./AutocompleteRue";
 import { IconeChargement } from "../../Chargement";
 import { AIDE, BTN_PRINCIPAL, CHAMP, LIBELLE } from "./ui";
 
 export type DefChamp = {
   nom: string;
   libelle: string;
-  type?: "texte" | "email" | "tel" | "zone" | "date" | "choix";
+  /** « rue » : autocomplétion d'adresses belges ; une suggestion remplit aussi les champs de `cibles`. */
+  type?: "texte" | "email" | "tel" | "zone" | "date" | "choix" | "rue";
+  cibles?: { numero?: string; code_postal?: string; localite?: string; pays?: string };
   options?: { valeur: string; libelle: string }[];
   aide?: string;
   exemple?: string;
@@ -79,6 +83,24 @@ export default function ChampsEdition({
             <label htmlFor={idChamp} className={LIBELLE}>{c.libelle}</label>
             {c.type === "zone" ? (
               <textarea {...commun} rows={3} onChange={(e) => setForm({ ...form, [c.nom]: e.target.value })} />
+            ) : c.type === "rue" ? (
+              <AutocompleteRue
+                id={idChamp}
+                value={form[c.nom] ?? ""}
+                describedBy={c.aide ? `${idChamp}-aide` : undefined}
+                // Suggestions belges seulement (pays vide ou « Belgique »), comme le formulaire d'affiliation.
+                actif={!c.cibles?.pays || !form[c.cibles.pays] || /^belgique$/i.test(form[c.cibles.pays].trim())}
+                onChange={(v) => setForm((f) => ({ ...f, [c.nom]: v }))}
+                onSelect={(sug) =>
+                  setForm((f) => ({
+                    ...f,
+                    [c.nom]: sug.street,
+                    ...(c.cibles?.numero && sug.housenumber ? { [c.cibles.numero]: sug.housenumber } : {}),
+                    ...(c.cibles?.code_postal && sug.postcode ? { [c.cibles.code_postal]: sug.postcode } : {}),
+                    ...(c.cibles?.localite && sug.city ? { [c.cibles.localite]: sug.city } : {}),
+                  }))
+                }
+              />
             ) : c.type === "choix" ? (
               <select {...commun} onChange={(e) => setForm({ ...form, [c.nom]: e.target.value })}>
                 {c.options?.map((o) => <option key={o.valeur} value={o.valeur}>{o.libelle}</option>)}
@@ -92,6 +114,8 @@ export default function ChampsEdition({
                 spellCheck={c.type === "email" ? false : undefined}
                 placeholder={c.exemple ? `${c.exemple}…` : c.type === "date" ? "jj/mm/aaaa" : undefined}
                 onChange={(e) => setForm({ ...form, [c.nom]: c.type === "date" ? formatDateFr(e.target.value) : e.target.value })}
+                // Téléphone mis au format +32 (0) 470 12 34 56 en quittant le champ.
+                onBlur={c.type === "tel" ? (e) => setForm((f) => ({ ...f, [c.nom]: formaterTelephone(e.target.value) })) : undefined}
               />
             )}
             {c.aide && <p id={`${idChamp}-aide`} className={AIDE}>{c.aide}</p>}
