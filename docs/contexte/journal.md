@@ -4,6 +4,25 @@
 
 Le plus récent en haut. L'état **actuel** est dans CLAUDE.md (racine), section « État actuel ».
 
+## État au 12/10/2026 (après-midi)
+- **App Entreprises (lot A) construite sur la branche `entreprises`** (créée depuis `suivi-actions`, **non
+  poussée**) : liste, fiche, sites (UTE), unités d'établissement, ONSS, personne de référence et bloc adresse,
+  affiliés, import BCE (une fiche ou toutes). Vérifié en local : types, 676 tests, build de production,
+  redirection vers `/login` sans session, lecture réelle de la BCE. Contexte :
+  [docs/contexte/entreprises.md](docs/contexte/entreprises.md). Spec et plans dans `docs/superpowers/`.
+- **Migration `20261012120000_site_entreprises_delegues.sql` exécutée par Fred le 13/10/2026** et vérifiée
+  (lecture seule) : 93 fiches (tableau de Fred + HEIDELBERG MATERIALS BENELUX + IL&C LUXEMBOURG ; XLG HOME
+  regroupée dans TRIXXO), 93 sites principaux, 99 ONSS ; clé publique refusée partout.
+- **Faille signalée à Fred le 12/10/2026** : la table CG Link `workers` (NISS, noms, 10 684 lignes) est
+  lisible avec la clé publique. Prompt de correction remis à Fred pour sa session Cursor de CG Link (RLS de
+  `workers` + verrou sur `profiles.company_id`). À faire avant le lot B3 (écritures vers CG Link).
+- **À faire par Fred** : 1. compléter le n° BCE d'IL&C LUXEMBOURG ; 2. parcourir l'app Entreprises connecté (liste de
+  vérification dans le message de fin du 12/10/2026) ; 3. valider couleurs et icônes (`#E69F00` bâtiment,
+  `#CC79A7` carte d'identité) ; 4. corriger `workers` côté CG Link. Ensuite : plan du lot B (app « Gestion
+  délégués CG Link », SUPER_ADMIN uniquement).
+- Les points « À faire par Fred » de l'état précédent (Redirect URLs, tests des comptes) restent ouverts :
+  voir [docs/contexte/journal.md](docs/contexte/journal.md).
+
 ## État au 12/10/2026 (matin)
 - **Espace CG, lots 1 à 3 terminés et vérifiés en local** (types, 631 tests, build de production) sur
   `suivi-actions`, **commités et poussés le 12/10/2026** (mise en production), avec la doc découpée et les

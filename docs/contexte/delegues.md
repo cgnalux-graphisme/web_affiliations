@@ -1,0 +1,68 @@
+# App « Gestion délégués CG Link » : contexte
+
+> Ramification de [CLAUDE.md](../../CLAUDE.md). Créé le 13/10/2026.
+> Spec : [docs/superpowers/specs/2026-10-12-entreprises-delegues-design.md](../superpowers/specs/2026-10-12-entreprises-delegues-design.md)
+> (section 7 et 7.1 bis). Plan : [docs/superpowers/plans/2026-10-13-delegues-lot-b-2a.md](../superpowers/plans/2026-10-13-delegues-lot-b-2a.md).
+
+## Rôle
+
+À terme, l'Espace CG remplace CG Link pour la gestion des délégués (Fred est le seul à les gérer). Cette app
+tient les délégués, leur carte d'identité et leurs mandats. **Plan 2a (13/10/2026)** : import, liste, carte,
+mandats, unité de rattachement, « À vérifier », journal, **sans aucune écriture vers CG Link**. **Plan 2b (à
+venir)** : invitation, blocage, synchronisation vers CG Link (`companies.delegates`, `profiles`) et écarts ;
+préalable : correctif de sécurité `workers` / `profiles.company_id` côté CG Link.
+
+## Accès
+
+App `delegues` (couleur `#CC79A7`, icône `id-card`, ordre 50). **SUPER_ADMIN uniquement, vérifié par le
+rôle** (`estSuperAdmin()` / `exigerSuperAdmin()`, `lib/espace/acces.ts`) dans le layout, chaque page et
+chaque action : donner l'app à un autre compte dans « Comptes & accès » n'ouvre rien. Aucun rôle par défaut
+dans `site_app_roles`. L'app Entreprises affiche les délégués en lecture seule (lien « Gérer » pour les
+SUPER_ADMIN).
+
+## Routes
+
+| Route | Contenu |
+|---|---|
+| `/espace/delegues/liste` | Tous les délégués : recherche, filtres entreprise / mandat / compte CG Link / à vérifier |
+| `/espace/delegues/nouveau` | Créer un délégué (entreprise, prénom, nom, e-mail, téléphone) |
+| `/espace/delegues/<id>` | Carte d'identité : identité, **unité d'établissement de rattachement**, notes, mandats (en cours, terminés repliés), compte CG Link (lecture seule), historique |
+| `/espace/delegues/a-verifier` | Délégués et mandats marqués par l'import : « C'est correct » ou correction sur la carte |
+| `/espace/delegues/import` | Import depuis CG Link et rapport |
+| `/espace/delegues/journal` | Journal des opérations (50 par page) |
+
+Badge de la tuile : « N à vérifier ».
+
+## Import depuis CG Link (`lib/delegues/import.ts`, `import-serveur.ts`)
+
+- Source : `companies.delegates` (jsonb). Un délégué = un compte CG Link (`cglink_user_id`, unique) :
+  **relancer l'import ne recrée ni ne modifie** un délégué déjà importé.
+- Fiche d'arrivée : celle de l'entreprise, ou celle qui la regroupe (`autres_company_ids` : XLG HOME →
+  TRIXXO). Un délégué présent dans deux entreprises (MARLUX + REMACLE) va dans l'entreprise de son profil
+  CG Link (`profiles.company_id`), marqué « à vérifier » avec l'autre nom.
+- Nom : « Prénom Nom » (167 / 176) sans marque ; mot en majuscules = nom ; un mot ou 3 et plus → « à
+  vérifier » (`decouperNom()`).
+- Mandats (`importerMandats()`) : DS, CE, CPPT « Effectif » / « Suppléant » rangés directement (« Pas de
+  mandat » ignoré) ; texte « Autre » classé (`classerAutre()`) en CEE (européen), Instances CG (comité
+  exécutif, vérificateur, bureau des femmes, régional), CE (« Secrétaire CE » fusionné dans le mandat CE),
+  Autre ; numéro, prénom ou lettre isolée → non importé, listé dans le rapport. Tout ce qui vient de
+  « Autre » est marqué « à vérifier ». Site : site principal ; début : **13/05/2024**.
+
+## Unité d'établissement de rattachement
+
+`site_delegues.unite_id` : une unité **suivie et active** de la fiche du délégué (`uniteAutorisee()`,
+revérifiée côté serveur). Un nouveau mandat sans site choisi prend le site (UTE) de cette unité, sinon le
+site principal (`siteParDefaut()`).
+
+## Écritures
+
+Actions serveur (`app/espace/delegues/actions.ts`) : rôle revérifié, puis **service_role** (les tables
+délégués n'ont aucune politique d'écriture). Chaque modification écrit une ligne dans
+`site_journal_delegues` (phrases : `phraseJournal()`). Un délégué qui a un compte CG Link ne se supprime pas
+ici. Le journal n'a pas de clé étrangère vers les délégués (il survit aux suppressions) : les noms sont lus
+par une seconde requête.
+
+## Migrations
+
+`20261013100000_site_delegues_unite.sql` (colonne `unite_id`, app activée) : **à exécuter par Fred** dans
+Supabase › SQL Editor, comme `20261013090000_site_unites_suivies.sql`.

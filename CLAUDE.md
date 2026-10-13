@@ -26,11 +26,12 @@ et les petits `CLAUDE.md` de renvoi des apps quand il travaille dans ces dossier
 | [docs/contexte/design.md](docs/contexte/design.md) | Direction D en détail : palette et contrastes, composants, pied de page, logos, PDF, formulaires, chargement |
 | [docs/contexte/feuille-de-route.md](docs/contexte/feuille-de-route.md) | Les phases (0, 1, 4) et les idées à venir |
 | [docs/contexte/entreprises.md](docs/contexte/entreprises.md) | App **Entreprises** : fiches, import BCE, sites (UTE), unités d'établissement, ONSS, bloc adresse, affiliés |
+| [docs/contexte/delegues.md](docs/contexte/delegues.md) | App **Gestion délégués CG Link** (SUPER_ADMIN) : import CG Link, cartes d'identité, mandats, unité de rattachement, à vérifier, journal |
 | [docs/contexte/journal.md](docs/contexte/journal.md) | Anciens « État au… » (historique, du plus récent au plus ancien) |
 
 Renvois chargés automatiquement par Claude Code (quelques lignes chacun, ils pointent vers le bon document) :
 `app/espace/actions/CLAUDE.md`, `app/espace/scan-news/CLAUDE.md`, `app/espace/demarches/CLAUDE.md`,
-`app/espace/entreprises/CLAUDE.md`,
+`app/espace/entreprises/CLAUDE.md`, `app/espace/delegues/CLAUDE.md`,
 `supabase/CLAUDE.md`.
 
 ### Mettre à jour ce fichier et ses ramifications
@@ -135,24 +136,20 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 
 ---
 
-## État actuel (12/10/2026, après-midi)
-- **App Entreprises (lot A) construite sur la branche `entreprises`** (créée depuis `suivi-actions`, **non
-  poussée**) : liste, fiche, sites (UTE), unités d'établissement, ONSS, personne de référence et bloc adresse,
-  affiliés, import BCE (une fiche ou toutes). Vérifié en local : types, 676 tests, build de production,
-  redirection vers `/login` sans session, lecture réelle de la BCE. Contexte :
-  [docs/contexte/entreprises.md](docs/contexte/entreprises.md). Spec et plans dans `docs/superpowers/`.
-- **Migration `20261012120000_site_entreprises_delegues.sql` exécutée par Fred le 13/10/2026** et vérifiée
-  (lecture seule) : 93 fiches (tableau de Fred + HEIDELBERG MATERIALS BENELUX + IL&C LUXEMBOURG ; XLG HOME
-  regroupée dans TRIXXO), 93 sites principaux, 99 ONSS ; clé publique refusée partout.
-- **Faille signalée à Fred le 12/10/2026** : la table CG Link `workers` (NISS, noms, 10 684 lignes) est
-  lisible avec la clé publique. Prompt de correction remis à Fred pour sa session Cursor de CG Link (RLS de
-  `workers` + verrou sur `profiles.company_id`). À faire avant le lot B3 (écritures vers CG Link).
-- **À faire par Fred** : 1. compléter le n° BCE d'IL&C LUXEMBOURG ; 2. parcourir l'app Entreprises connecté (liste de
-  vérification dans le message de fin du 12/10/2026) ; 3. valider couleurs et icônes (`#E69F00` bâtiment,
-  `#CC79A7` carte d'identité) ; 4. corriger `workers` côté CG Link. Ensuite : plan du lot B (app « Gestion
-  délégués CG Link », SUPER_ADMIN uniquement).
-- Les points « À faire par Fred » de l'état précédent (Redirect URLs, tests des comptes) restent ouverts :
-  voir [docs/contexte/journal.md](docs/contexte/journal.md).
+## État actuel (13/10/2026)
+- **Une seule branche de travail : `suivi-actions`** (`entreprises` fusionnée puis supprimée le 13/10/2026).
+  Rien n'est poussé.
+- **App Entreprises** en place et vérifiée par Fred (migration `20261012120000` exécutée : 93 fiches, 99 ONSS).
+  Ajout du 13/10/2026 : unités d'établissement **suivies** (nos provinces), les autres gardées pour info.
+- **App Gestion délégués CG Link (plan 2a)** construite : import CG Link, liste, carte d'identité avec unité
+  de rattachement, mandats, à vérifier, journal ; SUPER_ADMIN uniquement ; aucune écriture vers CG Link.
+  Contexte : [docs/contexte/delegues.md](docs/contexte/delegues.md).
+- **À faire par Fred** : 1. exécuter `20261013090000_site_unites_suivies.sql` puis
+  `20261013100000_site_delegues_unite.sql` (SQL Editor) ; 2. lancer l'import des délégués et traiter
+  « À vérifier » ; 3. corriger `workers` / `profiles.company_id` côté CG Link (prompt Cursor du 12/10/2026),
+  préalable au plan 2b (écritures vers CG Link).
+- Les points ouverts des états précédents (Redirect URLs, tests des comptes) : voir
+  [docs/contexte/journal.md](docs/contexte/journal.md).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 

@@ -133,7 +133,7 @@ Entreprises et délégués (migration `supabase/migrations/20261012120000_site_e
 | `site_entreprise_sites` | Sites = UTE : `nom`, `principal` (un seul par entreprise), `unite_postale_id`, `ref_*`, `ordre` | App `entreprises` |
 | `site_entreprise_unites` | Unités d'établissement : `numero_ue` (unique par fiche), adresse, `statut` (`actif` / `arrete`), `date_debut`, `site_id`, `origine` (`bce` / `manuel`), `suivie` (unité suivie par la CG, 13/10/2026) | App `entreprises` |
 | `site_entreprise_onss` | ONSS : `numero` (chiffres, unique par entreprise), `libelle`, `site_id` | App `entreprises` |
-| `site_delegues` | Délégués (lot B) : `entreprise_id`, `cglink_user_id` (unique), `prenom`, `nom`, `email`, `telephone`, `notes`, `a_verifier` | Lecture : apps `entreprises` ou `delegues` ; écriture : service_role seulement |
+| `site_delegues` | Délégués : `entreprise_id`, `cglink_user_id` (unique), `unite_id` (unité suivie de rattachement, 13/10/2026), `prenom`, `nom`, `email`, `telephone`, `notes`, `a_verifier` | Lecture : apps `entreprises` ou `delegues` ; écriture : service_role seulement |
 | `site_delegue_mandats` | Mandats : `organe` (`ds`, `ce`, `cppt`, `cee`, `instances_cg`, `autre`), `qualite` (`effectif` / `suppleant`, obligatoire pour DS / CE / CPPT), `libelle`, `fonction`, `site_id`, `debut`, `fin`, `a_verifier` | Idem |
 | `site_ecarts_ignores` | Écarts CG Link ignorés (`cible`, `cible_id`, `champ`, `valeur`) | Lecture : app `delegues` ; écriture : service_role |
 | `site_journal_delegues` | Journal de la gestion des délégués (lot B) | Idem |

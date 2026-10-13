@@ -48,7 +48,7 @@ des écrans du back-office »).
 Au 08/10/2026 : `actions`, `scan-news`, `parametres` → SUPER_ADMIN ; `demarches` → SUPER_ADMIN et ADMIN_OP.
 Au 12/10/2026 (migration `20261012120000`, à exécuter par Fred) : `entreprises` → SUPER_ADMIN, ADMIN_OP et
 PERMANENT (couleur #E69F00, icône `building`) ; `delegues` (« Gestion délégués CG Link », #CC79A7, `id-card`)
-inscrite **inactive** jusqu'au lot B, réservée au SUPER_ADMIN par le code. Détail : [docs/contexte/entreprises.md](../../docs/contexte/entreprises.md).
+activée le 13/10/2026 (migration `20261013100000`), réservée au SUPER_ADMIN **par le rôle** (layout, pages, actions). Détail : [docs/contexte/delegues.md](../../docs/contexte/delegues.md). Détail : [docs/contexte/entreprises.md](../../docs/contexte/entreprises.md).
 
 **Protection côté serveur, à trois niveaux** (`lib/espace/acces.ts`) :
 1. `/espace…` exige une connexion (`proxy.ts`, puis `app/espace/layout.tsx`). L'équipe (`ROLES_EQUIPE` :
@@ -189,6 +189,8 @@ Une app présente en base mais sans dossier n'apparaît pas ; les apps « Bient�
 | `/espace/entreprises/nouvelle` | app `entreprises` | Fiche d'une entreprise absente de CG Link |
 | `/espace/entreprises/<cle>` · `/bce` | app `entreprises` | Fiche (`<cle>` = id de fiche ou `c-<companies.id>`) : identité, siège, personne de référence, bloc adresse, sites (UTE), unités, ONSS, affiliés ; import BCE avec comparaison |
 | `/espace/entreprises/bce` | app `entreprises` | Import BCE de toutes les fiches qui ont un n° d'entreprise |
+| `/espace/delegues/liste` · `/nouveau` · `/<id>` | **SUPER_ADMIN (rôle)** + app `delegues` | **Gestion délégués CG Link** (13/10/2026) : liste filtrable, création, carte d'identité (unité de rattachement, mandats, compte CG Link en lecture seule, historique) |
+| `/espace/delegues/a-verifier` · `/import` · `/journal` | **SUPER_ADMIN (rôle)** + app `delegues` | Éléments marqués par l'import ; import depuis CG Link (relançable) ; journal des opérations |
 | `/espace/parametres/envois` | app `parametres` | Paramètres : adresses internes qui reçoivent chaque envoi automatique des formulaires (ajouter, activer / désactiver, supprimer) |
 | `/api/admin/demandes` | app `demarches` | Liste d'un type de demande (GET `?type=&q=&du=&au=&tri=&page=`) — clé service_role |
 | `/api/admin/demandes/<type>/<id>` · `/pdf` · `/liees` · `/envois` | app `demarches` | Détail complet d'une demande ; PDF C1 / C3.2 rempli côté serveur ; demandes de la même personne ; historique des e-mails |
