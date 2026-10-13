@@ -110,10 +110,15 @@ export function analyserEntite(html: string): EntiteBce | "inconnu" | null {
 }
 
 export function analyserUnites(html: string): { unites: UniteBce[]; total: number; parPage: number } | null {
-  const banniere = html.match(/(\d+)\s+unités? d(?:'|’|&#39;)établissement trouvées?(?:,\s*affichage de\s*(\d+)\s*à\s*(\d+))?/i);
+  // La BCE écrit le nombre en chiffres (« 38 unités… »), mais en lettres pour 1 et 0 (« Une unité… »,
+  // « Aucune unité… »).
+  const banniere = html.match(/(\d+|une|aucune)\s+unités? d(?:'|’|&#39;)établissement trouvées?(?:,\s*affichage de\s*(\d+)\s*à\s*(\d+))?/i);
+  if (!banniere) return null;
+  const mot = banniere[1].toLowerCase();
+  const total = mot === "une" ? 1 : mot === "aucune" ? 0 : Number(mot);
+  if (total === 0) return { unites: [], total: 0, parPage: 0 };
   const corps = html.match(/<tbody>([\s\S]*?)<\/tbody>/i);
-  if (!banniere || !corps) return null;
-  const total = Number(banniere[1]);
+  if (!corps) return null;
   const parPage = banniere[2] ? Number(banniere[3]) - Number(banniere[2]) + 1 : total;
 
   const unites: UniteBce[] = [];

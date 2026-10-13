@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ERREUR_BCE_INCOMPLET, ERREUR_BCE_INCONNU, ERREUR_BCE_INJOIGNABLE, ERREUR_BCE_PAGE, lireBce } from "./lecture-serveur";
+import { ERREUR_BCE_CAPTCHA, ERREUR_BCE_INCOMPLET, ERREUR_BCE_INCONNU, ERREUR_BCE_INJOIGNABLE, ERREUR_BCE_PAGE, lireBce } from "./lecture-serveur";
 
 const fixture = (f: string) => readFileSync(join(__dirname, "__fixtures__", f), "utf8");
 
@@ -60,5 +60,16 @@ describe("lireBce, garde-fous", () => {
       vestiginglijst: fixture("colruyt-unites-p1.html"),
     }));
     expect(r).toEqual({ ok: false, erreur: ERREUR_BCE_INCOMPLET });
+  });
+});
+
+describe("lireBce : vérification anti-robot de la BCE", () => {
+  it("reconnaît la page captcha (au lieu de dire que la page a changé)", async () => {
+    const r = await lireBce("0455495766", faux({ zoeknummerform: fixture("captcha.html") }));
+    expect(r).toEqual({ ok: false, erreur: ERREUR_BCE_CAPTCHA, captcha: true });
+  });
+  it("reconnaît aussi le captcha sur la liste des unités", async () => {
+    const r = await lireBce("0850076920", faux({ zoeknummerform: fixture("accg-entite.html"), vestiginglijst: fixture("captcha.html") }));
+    expect(r).toEqual({ ok: false, erreur: ERREUR_BCE_CAPTCHA, captcha: true });
   });
 });

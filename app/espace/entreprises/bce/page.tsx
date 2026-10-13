@@ -16,7 +16,7 @@ export default async function ImportBcePage() {
   return (
     <div className="ecg-ecran">
       <EnteteEcran icone="upload" titre="Import BCE de toutes les fiches"
-        description="Les fiches qui ont un n° d'entreprise sont comparées une à une avec la BCE (2 secondes entre deux). Rien n'est enregistré sans votre validation." />
+        description="Les fiches qui ont un n° d'entreprise sont comparées une à une avec la BCE (3 secondes entre deux ; si la BCE demande une vérification anti-robot, pause de 30 secondes puis nouvel essai). Rien n'est enregistré sans votre validation." />
       {r.ok ? <ImportGroupe fiches={fiches} sansNumero={r.lignes.length - fiches.length} /> : <Alerte ton="erreur">La liste n'a pas pu être lue. Rechargez la page.</Alerte>}
     </div>
   );

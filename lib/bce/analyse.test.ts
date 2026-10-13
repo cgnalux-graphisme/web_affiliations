@@ -83,3 +83,16 @@ describe("analyserUnites", () => {
     expect(analyserUnites("<html></html>")).toBeNull();
   });
 });
+
+describe("analyserUnites : une seule unité (« Une unité d'établissement trouvée. »)", () => {
+  it("lit la page d'une entreprise qui n'a qu'une unité", () => {
+    const r = analyserUnites(fixture("ale-ciney-unites.html"));
+    expect(r).not.toBeNull();
+    expect(r!.total).toBe(1);
+    expect(r!.unites).toHaveLength(1);
+    expect(r!.unites[0].numero_ue).toMatch(/^\d{10}$/);
+  });
+  it("reconnaît aussi « Aucune unité » (0)", () => {
+    expect(analyserUnites("<span class=\"pagebanner\">Aucune unité d'établissement trouvée.</span><table><tbody></tbody></table>")).toEqual({ unites: [], total: 0, parPage: 0 });
+  });
+});

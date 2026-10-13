@@ -1,7 +1,7 @@
 import { analyserEntite, analyserUnites, type EntiteBce, type UniteBce } from "./analyse";
-import { ERREUR_BCE_INCOMPLET, ERREUR_BCE_INCONNU, ERREUR_BCE_INJOIGNABLE, ERREUR_BCE_PAGE } from "./messages";
+import { ERREUR_BCE_CAPTCHA, ERREUR_BCE_INCOMPLET, ERREUR_BCE_INCONNU, ERREUR_BCE_INJOIGNABLE, ERREUR_BCE_PAGE } from "./messages";
 
-export { ERREUR_BCE_INCOMPLET, ERREUR_BCE_INCONNU, ERREUR_BCE_INJOIGNABLE, ERREUR_BCE_PAGE };
+export { ERREUR_BCE_CAPTCHA, ERREUR_BCE_INCOMPLET, ERREUR_BCE_INCONNU, ERREUR_BCE_INJOIGNABLE, ERREUR_BCE_PAGE };
 
 /**
  * Lecture de la BCE publique (kbopub). SERVEUR UNIQUEMENT (appelé par les actions serveur de l'app
@@ -14,7 +14,13 @@ const DELAI_MS = 15_000;
 const PAGES_MAX = 20;
 const BUDGET_MS = 45_000;
 
-export type ResultatBce = { ok: true; entite: EntiteBce; unites: UniteBce[] } | { ok: false; erreur: string };
+export type ResultatBce =
+  | { ok: true; entite: EntiteBce; unites: UniteBce[] }
+  | { ok: false; erreur: string; captcha?: true };
+
+/** La BCE redirige vers un formulaire captcha quand elle soupçonne un robot : on ne le contourne pas, on le signale. */
+const estCaptcha = (html: string) => /captchaform/i.test(html);
+const CAPTCHA = { ok: false as const, erreur: ERREUR_BCE_CAPTCHA, captcha: true as const };
 
 async function page(url: string, f: typeof fetch, finAu: number): Promise<string | null> {
   const reste = Math.min(DELAI_MS, finAu - Date.now());
@@ -35,6 +41,7 @@ export async function lireBce(numero: string, f: typeof fetch = fetch, budgetMs 
   const finAu = Date.now() + budgetMs;
   const html = await page(`${BASE}/zoeknummerform.html?nummer=${numero}&actionLu=Zoek&lang=fr`, f, finAu);
   if (html === null) return { ok: false, erreur: ERREUR_BCE_INJOIGNABLE };
+  if (estCaptcha(html)) return CAPTCHA;
   const entite = analyserEntite(html);
   if (entite === "inconnu") return { ok: false, erreur: ERREUR_BCE_INCONNU };
   if (entite === null) return { ok: false, erreur: ERREUR_BCE_PAGE };
@@ -46,6 +53,7 @@ export async function lireBce(numero: string, f: typeof fetch = fetch, budgetMs 
     const suffixe = p > 1 ? `&page=${p}` : "";
     const liste = await page(`${BASE}/vestiginglijst.html?ondernemingsnummer=${sansZero}&lang=fr${suffixe}`, f, finAu);
     if (liste === null) return { ok: false, erreur: ERREUR_BCE_INJOIGNABLE };
+    if (estCaptcha(liste)) return CAPTCHA;
     const r = analyserUnites(liste);
     if (r === null) {
       // Une entreprise sans unité n'a pas de tableau : page 1 sans bannière = 0 unité.

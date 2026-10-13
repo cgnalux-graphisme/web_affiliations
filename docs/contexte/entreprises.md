@@ -68,6 +68,14 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
   Budget de 45 s par lecture ; une liste d'unités incomplète est refusée ; le siège se remplace en bloc. Une
   nouvelle unité va au site principal. Rien n'est supprimé : une unité absente de la BCE est seulement
   signalée.
+- **Une seule unité** : la BCE écrit « **Une** unité d'établissement trouvée. » (et « Aucune » pour 0) au lieu
+  d'un chiffre ; géré depuis le 13/10/2026 (31 entreprises sur 91 étaient en échec avant la correction).
+- **Captcha anti-robot de la BCE** (constaté le 13/10/2026) : kbopub redirige une demande automatique sur deux
+  environ vers `captchaform.html`, même espacée de 8 s. L'app ne le contourne pas : elle le reconnaît
+  (`ERREUR_BCE_CAPTCHA`, message « vérification anti-robot, réessayez dans quelques minutes »). L'import groupé
+  attend 3 s entre deux fiches, fait une pause de 30 s puis un seul nouvel essai en cas de captcha, et propose
+  « Relancer les fiches en erreur ». Piste durable si cela reste gênant : le fichier **Open Data de la BCE**
+  (gratuit, inscription au SPF Économie, mise à jour mensuelle), sans captcha.
 - Vérifié le 12/10/2026 : lecture réelle depuis le poste de dev. **Non vérifié** : la BCE répond-elle aux
   serveurs de Vercel ? Sinon, message « La BCE n'a pas répondu… » et saisie manuelle.
 
