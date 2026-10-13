@@ -147,7 +147,10 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 - **À faire par Fred** : 1. exécuter `20261013090000_site_unites_suivies.sql` puis
   `20261013100000_site_delegues_unite.sql` (SQL Editor) ; 2. lancer l'import des délégués et traiter
   « À vérifier » ; 3. corriger `workers` / `profiles.company_id` côté CG Link (prompt Cursor du 12/10/2026),
-  préalable au plan 2b (écritures vers CG Link).
+  ✔ fait (vérifié le 13/10/2026 : `workers` refusé à la clé publique).
+- **Plan 2b construit (13/10/2026)** : comptes CG Link (inviter, bloquer, annuler), synchronisation automatique
+  de la carte vers CG Link (jamais l'e-mail), changement d'entreprise, écarts. À tester par Fred avec un
+  délégué de test sur une adresse secondaire.
 - Les points ouverts des états précédents (Redirect URLs, tests des comptes) : voir
   [docs/contexte/journal.md](docs/contexte/journal.md).
 

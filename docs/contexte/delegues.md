@@ -8,9 +8,7 @@
 
 À terme, l'Espace CG remplace CG Link pour la gestion des délégués (Fred est le seul à les gérer). Cette app
 tient les délégués, leur carte d'identité et leurs mandats. **Plan 2a (13/10/2026)** : import, liste, carte,
-mandats, unité de rattachement, « À vérifier », journal, **sans aucune écriture vers CG Link**. **Plan 2b (à
-venir)** : invitation, blocage, synchronisation vers CG Link (`companies.delegates`, `profiles`) et écarts ;
-préalable : correctif de sécurité `workers` / `profiles.company_id` côté CG Link.
+mandats, unité de rattachement, « À vérifier », journal, **sans aucune écriture vers CG Link**. **Plan 2b (13/10/2026)** : comptes CG Link, synchronisation, écarts (voir plus bas).
 
 ## Accès
 
@@ -66,6 +64,35 @@ site principal (`siteParDefaut()`).
   `lib/adresse-photon.ts`, utilisée aussi par `FormulaireWebIndependant.tsx`) ; choisir une adresse remplit
   numéro, code postal et localité ; suggestions seulement pour la Belgique ; clavier (flèches, Entrée,
   Échap). Code postal belge contrôlé (4 chiffres). Migration `20261013110000_site_delegues_adresse.sql`.
+
+## Écritures vers CG Link (plan 2b, 13/10/2026)
+
+Plan : [docs/superpowers/plans/2026-10-13-delegues-lot-b-2b.md](../superpowers/plans/2026-10-13-delegues-lot-b-2b.md).
+Préalable vérifié le 13/10/2026 : `workers` n'est plus lisible avec la clé publique (401).
+
+- **Panneau « Compte CG Link »** de la carte : inviter (fonction CG Link `invite-user`, avec la session du super
+  admin ; e-mail obligatoire, fiche reliée à CG Link), renvoyer l'invitation, annuler l'invitation
+  (`cancel-invite` : compte, profil et entrée supprimés, le délégué reste dans l'Espace), bloquer / rétablir
+  (`isActive`), envoyer la carte, retirer le lien d'un compte introuvable. Confirmation avant les actions
+  irréversibles.
+- **Synchronisation automatique** après toute modification d'identité ou de mandat d'un délégué qui a un compte :
+  nom, téléphone, `mandateDs` / `mandateCe` / `mandateCppt` (Effectif, Suppléant, Pas de mandat ; mandats en
+  cours seulement, effectif prioritaire), `mandateOther` (CEE, Instances CG, Autre, fonctions), `profiles.name`
+  (`versCgLink()`, `synchroniser()`). Échec : l'Espace garde la modification et propose « Envoyer à CG Link ».
+- **Jamais l'e-mail** : CG Link retrouve le délégué par `companies.delegates[].email` à la connexion. Pour un
+  délégué qui a un compte, l'e-mail est en lecture seule dans l'Espace.
+- **Écriture sûre** de `companies.delegates` : relecture, modification de la seule entrée du délégué (autres
+  champs conservés : `mustChangePassword`, `acceptedRgpd`, `invitedAt`…), écriture si `updated_at` n'a pas bougé,
+  3 essais (`modifierDelegues()`, `fusionnerEntree()`).
+- **Entreprise CG Link d'un compte** : celle dont `delegates` contient son identifiant (`companyDuDelegue()`),
+  ce qui couvre les entreprises regroupées (XLG HOME dans TRIXXO).
+- **Changer d'entreprise** : entrée ajoutée à la nouvelle entreprise CG Link puis retirée de l'ancienne,
+  `profiles.company_id` mis à jour ; unité de rattachement vidée ; mandats en cours déplacés au site principal
+  de la nouvelle fiche, marqués « à vérifier ».
+- **Écarts** (`calculerEcarts()`, panneau « Écarts avec CG Link » et filtre de la liste) : nom, e-mail,
+  téléphone, mandats DS / CE / CPPT, autres mandats. « Reprendre » (CG Link → Espace, `planReprise()` : « Pas
+  de mandat » termine le mandat, jamais de suppression), « Ignorer » (valeur mémorisée dans
+  `site_ecarts_ignores`, réapparaît si elle change), « Envoyer ma carte à CG Link ».
 
 ## Écritures
 
