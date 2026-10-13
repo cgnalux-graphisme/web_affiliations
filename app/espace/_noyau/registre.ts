@@ -7,6 +7,7 @@ import { manifeste as actions } from "../actions/manifeste";
 import { manifeste as scanNews } from "../scan-news/manifeste";
 import { manifeste as demarches } from "../demarches/manifeste";
 import { manifeste as entreprises } from "../entreprises/manifeste";
+import { manifeste as delegues } from "../delegues/manifeste";
 import { manifeste as parametres } from "../parametres/manifeste";
 
 /**
@@ -14,7 +15,7 @@ import { manifeste as parametres } from "../parametres/manifeste";
  * Ajouter une app : créer app/espace/<code>/ (manifeste, layout, page, sections), l'ajouter ici,
  * puis insérer sa ligne dans site_apps (+ ses rôles par défaut dans site_app_roles). Voir CLAUDE.md.
  */
-export const MANIFESTES: ManifesteApp[] = [actions, scanNews, demarches, entreprises, parametres];
+export const MANIFESTES: ManifesteApp[] = [actions, scanNews, demarches, entreprises, delegues, parametres];
 
 /** Apps prévues mais pas encore construites : tuiles « Bientôt », non cliquables, sans aucun droit associé. */
 export const PROCHAINES_APPS = [
