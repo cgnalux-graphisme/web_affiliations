@@ -165,3 +165,14 @@ export function correspond(l: LigneListe, recherche: string): boolean {
   if (textes.some((t) => t.includes(q))) return true;
   return qChiffres.length >= 3 && [l.numeroBce ?? "", ...l.onss].some((n) => n.includes(qChiffres));
 }
+
+/** N° ONSS à 9 chiffres affiché comme dans les documents : 0390551-09. */
+export function formaterOnss(numero: string): string {
+  return /^\d{9}$/.test(numero) ? `${numero.slice(0, 7)}-${numero.slice(7)}` : numero;
+}
+
+/** Initiales d'une personne pour une pastille (« ? » si rien). */
+export function initiales(prenom: string | null | undefined, nom: string | null | undefined): string {
+  const i = [prenom, nom].map((x) => (x ?? "").trim().charAt(0).toUpperCase()).join("");
+  return i || "?";
+}

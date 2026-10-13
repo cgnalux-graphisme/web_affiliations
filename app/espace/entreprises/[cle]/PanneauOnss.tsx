@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { EyeOff, Trash2, TriangleAlert } from "lucide-react";
+import { EyeOff, Hash, Plus, Trash2, TriangleAlert } from "lucide-react";
 import type { Fiche } from "../../../../lib/entreprises/donnees-serveur";
-import { ecartsOnss, onssDeCompany } from "../../../../lib/entreprises/regles";
+import { ecartsOnss, formaterOnss, onssDeCompany } from "../../../../lib/entreprises/regles";
 import { ajouterOnss, enregistrerOnss, ignorerOnss, supprimerOnss } from "../actions";
 import { Alerte, BTN, BTN_PETIT, CHAMP, Panneau } from "../../_partage/ui";
 import ChampsEdition from "../../_partage/ChampsEdition";
@@ -12,6 +12,7 @@ import ChampsEdition from "../../_partage/ChampsEdition";
 export default function PanneauOnss({ fiche }: { fiche: Fiche }) {
   const router = useRouter();
   const [erreur, setErreur] = useState("");
+  const [ajout, setAjout] = useState(false);
   const ecarts = fiche.company && fiche.fiche ? ecartsOnss(onssDeCompany(fiche.company), fiche.onss, fiche.onssIgnores) : null;
   const sites = fiche.sites.map((s) => ({ valeur: s.id, libelle: s.nom }));
 
@@ -23,14 +24,15 @@ export default function PanneauOnss({ fiche }: { fiche: Fiche }) {
   }
 
   return (
-    <Panneau titre="Numéros ONSS" corps={false}>
+    <Panneau id="onss" className="ecg-section" titre="Numéros ONSS" corps={false}
+      actions={<button type="button" className={`${BTN} ${BTN_PETIT}`} aria-expanded={ajout} onClick={() => setAjout(!ajout)}><Plus size={15} aria-hidden /> Ajouter</button>}>
       {ecarts && (ecarts.manquantsIci.length > 0 || ecarts.absentsCgLink.length > 0) && (
         <div className="px-5 pt-4">
           <Alerte ton="attention" icone={TriangleAlert} titre="Écarts avec CG Link">
             <ul className="mt-1 grid gap-2">
               {ecarts.manquantsIci.map((o) => (
                 <li key={o.numero} className="flex flex-wrap items-center gap-2">
-                  Dans CG Link mais pas ici : <b>{o.numero}</b>{o.libelle && ` (${o.libelle})`}
+                  Dans CG Link mais pas ici : <b>{formaterOnss(o.numero)}</b>{o.libelle && ` (${o.libelle})`}
                   <button type="button" className={`${BTN} ${BTN_PETIT}`} onClick={() => faire(ajouterOnss(fiche.cle, { numero: o.numero, libelle: o.libelle ?? "" }))}>Reprendre</button>
                   <button type="button" className={`${BTN} ${BTN_PETIT} ecg-btn-fantome`} onClick={() => faire(ignorerOnss(fiche.fiche!.id, o.numero))}>
                     <EyeOff size={14} aria-hidden /> Ignorer
@@ -39,7 +41,7 @@ export default function PanneauOnss({ fiche }: { fiche: Fiche }) {
               ))}
               {ecarts.absentsCgLink.map((o) => (
                 <li key={o.id} className="flex flex-wrap items-center gap-2">
-                  Ici mais pas dans CG Link : <b>{o.numero}</b>
+                  Ici mais pas dans CG Link : <b>{formaterOnss(o.numero)}</b>
                   <button type="button" className={`${BTN} ${BTN_PETIT} ecg-btn-fantome`} onClick={() => faire(ignorerOnss(fiche.fiche!.id, o.numero))}>
                     <EyeOff size={14} aria-hidden /> Ignorer
                   </button>
@@ -53,7 +55,8 @@ export default function PanneauOnss({ fiche }: { fiche: Fiche }) {
       <ul className="ecg-lignes">
         {fiche.onss.map((o) => (
           <li key={o.id} className="flex flex-wrap items-center gap-3 py-2">
-            <b className="tabular-nums">{o.numero}</b>
+            <span className="ecg-stat-ico h-8 w-8 bg-[var(--app-pale)]" aria-hidden><Hash size={15} /></span>
+            <b className="tabular-nums">{formaterOnss(o.numero)}</b>
             <span className="min-w-0 flex-1">{o.libelle ?? ""}</span>
             <label className="sr-only" htmlFor={`onss-site-${o.id}`}>Site de l'ONSS {o.numero}</label>
             <select id={`onss-site-${o.id}`} value={o.site_id ?? ""} className={`${CHAMP} w-auto`}
@@ -68,7 +71,7 @@ export default function PanneauOnss({ fiche }: { fiche: Fiche }) {
           </li>
         ))}
       </ul>
-      <div className="ecg-panneau-pied block">
+      {ajout && <div className="ecg-panneau-pied block">
         <ChampsEdition
           id="nouvel-onss"
           valeurs={{}}
@@ -79,9 +82,12 @@ export default function PanneauOnss({ fiche }: { fiche: Fiche }) {
           ]}
           enregistrer={(v) => ajouterOnss(fiche.cle, v)}
           libelleBouton="Ajouter"
-          onSucces={(d) => d?.cle && d.cle !== fiche.cle && router.replace(`/espace/entreprises/${d.cle}`)}
+          onSucces={(d) => {
+            setAjout(false);
+            if (d?.cle && d.cle !== fiche.cle) router.replace(`/espace/entreprises/${d.cle}`);
+          }}
         />
-      </div>
+      </div>}
     </Panneau>
   );
 }

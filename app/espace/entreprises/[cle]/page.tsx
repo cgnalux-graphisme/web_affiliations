@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Upload, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { exigerApp, monProfil } from "../../../../lib/espace/acces";
-import { chargerFiche } from "../../../../lib/entreprises/donnees-serveur";
+import { chargerFiche, type Affilies } from "../../../../lib/entreprises/donnees-serveur";
 import { nomAffiche } from "../../../../lib/entreprises/regles";
-import { isoToDateFr } from "../../../../lib/dates";
-import { Alerte, BTN, EnteteEcran, Panneau } from "../../_partage/ui";
+import { Alerte, Panneau } from "../../_partage/ui";
+import EnTeteFiche from "./EnTeteFiche";
+import PanneauCourrier from "./PanneauCourrier";
 import PanneauIdentite from "./PanneauIdentite";
-import PanneauSiege from "./PanneauSiege";
 import PanneauSites from "./PanneauSites";
 import PanneauUnites from "./PanneauUnites";
 import PanneauOnss from "./PanneauOnss";
@@ -17,6 +16,31 @@ import PanneauOnss from "./PanneauOnss";
 export const maxDuration = 120;
 
 export const metadata: Metadata = { title: "Entreprise — Espace CG", robots: { index: false, follow: false } };
+
+/** Affiliés actifs : total et répartition par type de contrat (barres doublées du nombre, jamais la couleur seule). */
+function CarteAffilies({ affilies }: { affilies: Affilies }) {
+  const max = Math.max(1, ...affilies.parContrat.map((p) => p.nombre));
+  return (
+    <Panneau id="affilies" className="ecg-section" titre="Affiliés" sousTitre="Actifs dans CG Link, lus à l'ouverture de la page.">
+      <p className="flex items-center gap-3">
+        <span className="ecg-stat-ico bg-[var(--app-pale)]" aria-hidden><Users size={18} /></span>
+        <span className="font-condensed text-4xl font-bold tabular-nums">{affilies.total}</span>
+      </p>
+      {affilies.parContrat.length > 0 && (
+        <ul className="mt-4 grid gap-2.5 text-sm">
+          {affilies.parContrat.map((p) => (
+            <li key={p.type}>
+              <div className="flex justify-between gap-2"><span>{p.type}</span><b className="tabular-nums">{p.nombre}</b></div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--ecg-fond)]" aria-hidden>
+                <div className="h-full rounded-full bg-[var(--app)]" style={{ width: `${Math.round((p.nombre / max) * 100)}%` }} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panneau>
+  );
+}
 
 export default async function FichePage({ params }: { params: Promise<{ cle: string }> }) {
   await exigerApp("entreprises");
@@ -40,36 +64,19 @@ export default async function FichePage({ params }: { params: Promise<{ cle: str
 
   return (
     <div className="ecg-ecran">
-      <EnteteEcran
-        icone="building"
-        titre={nom}
-        description={f.fiche?.denomination_bce ?? (f.fiche?.bce_importe_le ? undefined : "Dénomination BCE non importée.")}
-        actions={
-          <Link href={`/espace/entreprises/${cle}/bce`} className={BTN}>
-            <Upload size={18} aria-hidden /> Importer depuis la BCE
-          </Link>
-        }
-      />
-      {f.fiche?.bce_importe_le && (
-        <p className="ecg-texte-doux text-sm">Dernier import BCE : {isoToDateFr(f.fiche.bce_importe_le.slice(0, 10))}</p>
-      )}
-      <PanneauIdentite fiche={f} />
-      <PanneauSiege fiche={f} />
-      <PanneauSites fiche={f} superAdmin={superAdmin} />
-      <PanneauUnites fiche={f} />
-      <PanneauOnss fiche={f} />
-      {f.affilies && (
-        <Panneau titre="Affiliés" sousTitre="Affiliés actifs dans CG Link, lus à l'ouverture de la page.">
-          <p className="flex items-center gap-2 text-2xl font-bold">
-            <Users size={22} aria-hidden /> {f.affilies.total}
-          </p>
-          {f.affilies.parContrat.length > 0 && (
-            <ul className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              {f.affilies.parContrat.map((p) => <li key={p.type}>{p.type} : <b>{p.nombre}</b></li>)}
-            </ul>
-          )}
-        </Panneau>
-      )}
+      <EnTeteFiche fiche={f} nom={nom} cle={cle} />
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid min-w-0 gap-6">
+          <PanneauSites fiche={f} superAdmin={superAdmin} />
+          <PanneauUnites fiche={f} />
+          <PanneauOnss fiche={f} />
+          <PanneauIdentite fiche={f} />
+        </div>
+        <aside className="grid gap-6 lg:sticky lg:top-6" aria-label="Courrier et affiliés">
+          <PanneauCourrier fiche={f} />
+          {f.affilies && <CarteAffilies affilies={f.affilies} />}
+        </aside>
+      </div>
     </div>
   );
 }

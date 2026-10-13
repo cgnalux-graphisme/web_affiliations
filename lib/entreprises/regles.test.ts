@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CompanyCgLink, Entreprise, Onss, Site, Unite } from "./types";
 import {
   blocAdresse, cleDe, construireListe, correspond, ecartsOnss, lireCle, nomAffiche,
-  dansNosProvinces, nomManquant, onssACreer, onssDeCompany, planSuppressionSite, REF_DEFAUT,
+  dansNosProvinces, formaterOnss, initiales, nomManquant, onssACreer, onssDeCompany, planSuppressionSite, REF_DEFAUT,
 } from "./regles";
 
 const E: Entreprise = {
@@ -163,5 +163,17 @@ describe("construireListe, unités non suivies", () => {
       ],
     });
     expect(liste[0].localites).toEqual(["Arlon"]);
+  });
+});
+
+describe("affichage", () => {
+  it("formate un n° ONSS à 9 chiffres comme dans les documents (0390551-09)", () => {
+    expect(formaterOnss("039055109")).toBe("0390551-09");
+    expect(formaterOnss("12345")).toBe("12345");
+  });
+  it("donne les initiales d'une personne", () => {
+    expect(initiales("Jean", "Dupont")).toBe("JD");
+    expect(initiales(null, "van Damme")).toBe("V");
+    expect(initiales("  ", "")).toBe("?");
   });
 });

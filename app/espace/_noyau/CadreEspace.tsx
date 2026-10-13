@@ -9,6 +9,7 @@ import { pieger } from "../../pieger-focus";
 import { icone } from "./icones";
 import type { AppNav } from "./types";
 import { FournisseurTransition, LienTransition } from "./Transition";
+import { foncePourTexteBlanc } from "../../../lib/espace/couleurs";
 
 export type ProfilCadre = { prenom: string; nomComplet: string; email: string; role: string; initiales: string };
 
@@ -65,7 +66,13 @@ export default function CadreEspace({
     };
   }, [menuOuvert]);
 
-  const style = { "--app": app?.couleur ?? ACCENT_DEFAUT } as React.CSSProperties;
+  const couleur = app?.couleur ?? ACCENT_DEFAUT;
+  // Couleur claire (ex. orange) : version foncée assombrie juste assez pour un texte blanc AA (sinon formule CSS).
+  const fonce = foncePourTexteBlanc(couleur);
+  const style = {
+    "--app": couleur,
+    ...(fonce.hex && fonce.part < 72 ? { "--app-fonce": fonce.hex } : {}),
+  } as React.CSSProperties;
 
   return (
     <FournisseurTransition>

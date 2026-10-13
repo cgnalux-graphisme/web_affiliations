@@ -116,6 +116,8 @@ export default function PanneauUnites({ fiche }: { fiche: Fiche }) {
 
   return (
     <Panneau
+      id="unites"
+      className="ecg-section"
       titre="Unités d'établissement"
       sousTitre={`${actives.length} suivie${actives.length > 1 ? "s" : ""} par la CG. Cochez « Suivie » pour qu'une unité apparaisse dans les autres menus.`}
       corps={false}

@@ -1007,3 +1007,135 @@ select.ecg-champ {
     animation: none;
   }
 }
+
+/* ── Fiche entreprise (refonte du 13/10/2026) ────────────────────────────────
+   En-tête avec tuiles chiffrées, puces d'information, sections en lecture avec « Modifier »,
+   carte « Courrier » (bloc adresse façon enveloppe), pastilles d'initiales. */
+.ecg-fiche-tete {
+  position: relative;
+  overflow: hidden;
+  background: var(--ecg-surface);
+  border: 1px solid var(--ecg-trait);
+  border-radius: 18px;
+  padding: 22px 24px 20px 28px;
+  box-shadow: 0 1px 2px rgb(34 34 34 / 0.04), 0 8px 24px -16px rgb(34 34 34 / 0.18);
+}
+.ecg-fiche-tete::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--app);
+}
+.ecg-fiche-tete h1 {
+  font-family: var(--font-condensed), "Arial Narrow", sans-serif;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+.ecg-puces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ecg-puce {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 3px 11px;
+  border: 1px solid var(--ecg-trait);
+  border-radius: 999px;
+  background: var(--ecg-surface);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ecg-texte);
+}
+a.ecg-puce:hover {
+  border-color: var(--app);
+}
+.ecg-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.ecg-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--app-pale);
+  color: var(--ecg-texte);
+  text-decoration: none;
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.ecg-stat:hover,
+.ecg-stat:focus-visible {
+  background: color-mix(in srgb, var(--app) 16%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app) 55%, transparent);
+}
+.ecg-stat-ico {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--ecg-surface);
+  color: var(--ecg-texte);
+}
+.ecg-stat b {
+  display: block;
+  font-family: var(--font-condensed), "Arial Narrow", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ecg-stat span {
+  font-size: 13px;
+  color: var(--ecg-texte-doux);
+}
+.ecg-section {
+  scroll-margin-top: 24px;
+}
+.ecg-lettre {
+  position: relative;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--ecg-trait);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(135deg, var(--app) 0 10px, transparent 10px 20px, var(--ecg-bordeaux) 20px 30px, transparent 30px 40px)
+      top / 100% 4px no-repeat,
+    var(--ecg-surface);
+  font-size: 15.5px;
+  line-height: 1.55;
+}
+.ecg-lettre address {
+  font-style: normal;
+}
+.ecg-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--app-pale);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app) 35%, transparent);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ecg-texte);
+}
+.ecg-carte-site {
+  border: 1px solid var(--ecg-trait);
+  border-radius: 14px;
+  background: var(--ecg-surface);
+  padding: 16px 18px;
+}
+.ecg-carte-site.ecg-carte-principale {
+  border-color: color-mix(in srgb, var(--app) 45%, var(--ecg-trait));
+}
