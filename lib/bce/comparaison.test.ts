@@ -6,7 +6,7 @@ import { aucunChangement, choixParDefaut, comparerBce, majEntrepriseDepuisBce, m
 const E: Entreprise = {
   id: "e1", company_id: null, nom: "X", numero_bce: "0850076920", denomination_bce: "ANCIEN NOM",
   siege_rue: "Rue Fonteny Maroy", siege_numero: "13", siege_boite: null, siege_code_postal: "6800", siege_localite: "Libramont-Chevigny",
-  ref_nom: null, ref_fonction: null, ref_email: null, ref_telephone: null, bce_importe_le: null, notes: null,
+  ref_nom: null, ref_fonction: null, ref_email: null, ref_telephone: null, bce_importe_le: null, notes: null, autres_company_ids: [],
 };
 const ub = (n: string, extra: Partial<UniteBce> = {}): UniteBce => ({
   numero_ue: n, statut: "actif", date_debut: "2022-01-01", denomination: "D",

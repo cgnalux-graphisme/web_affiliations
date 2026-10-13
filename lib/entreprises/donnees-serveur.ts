@@ -15,6 +15,14 @@ import {
 export const COLONNES_COMPANY = "id, name, sector, onss, onss2, onss2_label, onss3, onss3_label, onss4, onss4_label";
 export type Affilies = { total: number; parContrat: { type: string; nombre: number }[] };
 
+/** Affiliés de plusieurs entreprises CG Link regroupées dans une fiche (ex. TRIXXO + XLG HOME). */
+function additionnerAffilies(ids: string[], m: Map<string, Affilies>): Affilies {
+  const parType = new Map<string, number>();
+  for (const id of ids) for (const p of m.get(id)?.parContrat ?? []) parType.set(p.type, (parType.get(p.type) ?? 0) + p.nombre);
+  const parContrat = [...parType].map(([type, nombre]) => ({ type, nombre })).sort((a, b) => b.nombre - a.nombre);
+  return { total: parContrat.reduce((n, p) => n + p.nombre, 0), parContrat };
+}
+
 export function estTableAbsente(code: string | undefined): boolean {
   return code === "42P01" || code === "PGRST205";
 }
@@ -124,8 +132,12 @@ export async function chargerFiche(cle: string) {
   // Entreprises CG Link déjà reliées à une fiche : exclues du choix « Relier à CG Link ».
   let companiesLibres: { id: string; name: string }[] = [];
   if (fiche && !fiche.company_id) {
-    const { data: reliees } = await db.from("site_entreprises").select("company_id").not("company_id", "is", null);
-    const prises = new Set(((reliees ?? []) as { company_id: string }[]).map((r) => r.company_id));
+    const { data: reliees } = await db.from("site_entreprises").select("company_id, autres_company_ids");
+    const prises = new Set(
+      ((reliees ?? []) as { company_id: string | null; autres_company_ids: string[] | null }[])
+        .flatMap((r) => [r.company_id, ...(r.autres_company_ids ?? [])])
+        .filter((x): x is string => Boolean(x))
+    );
     companiesLibres = ((libres.data ?? []) as { id: string; name: string }[]).filter((x) => !prises.has(x.id));
   }
 
@@ -138,7 +150,7 @@ export async function chargerFiche(cle: string) {
       onss: (onss.data ?? []) as Onss[],
       onssIgnores: ((ignores.data ?? []) as { valeur: string }[]).map((i) => i.valeur),
       delegues: listeDelegues,
-      affilies: company ? affilies.get(company.id) ?? { total: 0, parContrat: [] } : null,
+      affilies: company ? additionnerAffilies([company.id, ...(fiche?.autres_company_ids ?? [])], affilies) : null,
       companiesLibres,
     } satisfies Fiche,
   };

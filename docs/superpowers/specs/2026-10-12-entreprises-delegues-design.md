@@ -296,6 +296,10 @@ type. Liste : un seul appel groupé pour toutes les entreprises (comptage côté
 
 ### 7.1 Import initial (B1)
 
+**Ajout du 13/10/2026** : les délégués d'une entreprise regroupée dans une autre fiche
+(`site_entreprises.autres_company_ids`, ex. XLG HOME → TRIXXO) sont importés dans **cette** fiche.
+HEIDELBERG et HEIDELBERG MATERIALS BENELUX sont deux fiches distinctes : chacune garde ses délégués.
+
 Bouton « Importer les délégués de CG Link » (`/espace/delegues/import`), relançable : un délégué déjà
 importé (`cglink_user_id`) n'est pas recréé, il apparaît en écart si CG Link a changé.
 

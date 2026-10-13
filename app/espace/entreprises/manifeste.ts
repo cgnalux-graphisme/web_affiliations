@@ -9,15 +9,12 @@ export const manifeste: ManifesteApp = {
     { chemin: "nouvelle", libelle: "Nouvelle entreprise", icone: "plus" },
     { chemin: "bce", libelle: "Import BCE", icone: "upload" },
   ],
-  // Fiches CG Link sans n° BCE : entreprises CG Link moins celles dont la fiche porte un numéro.
+  // Fiches sans n° BCE (toutes les entreprises ont leur fiche depuis la migration du 13/10/2026).
   badge: async () => {
     const db = getSupabaseService();
     if (!db) return null;
-    const [{ count: total }, { count: avecBce }] = await Promise.all([
-      db.from("companies").select("id", { count: "exact", head: true }),
-      db.from("site_entreprises").select("id", { count: "exact", head: true }).not("company_id", "is", null).not("numero_bce", "is", null),
-    ]);
-    const n = (total ?? 0) - (avecBce ?? 0);
-    return n > 0 ? `${n} à compléter` : null;
+    const { count, error } = await db.from("site_entreprises").select("id", { count: "exact", head: true }).is("numero_bce", null);
+    if (error || !count) return null;
+    return `${count} à compléter`;
   },
 };

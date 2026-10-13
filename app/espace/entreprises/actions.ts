@@ -71,7 +71,7 @@ function nettoyer(champs: Champs, permis: readonly string[]): { ok: true; valeur
 }
 
 function messageErreur(code: string | undefined): string {
-  if (code === "23505") return "Ce numéro existe déjà sur une autre fiche.";
+  if (code === "23505") return "Ce numéro figure déjà sur la fiche.";
   if (code === "23514") return "Une donnée ne respecte pas le format attendu. Vérifiez les champs.";
   if (code === "P0001") return "Le site principal ne peut pas être supprimé.";
   return ECHEC;
@@ -351,7 +351,7 @@ export async function appliquerBce(cle: string, choix: ChoixBce): Promise<Result
     return {
       ok: false,
       erreur: error.code === "23505"
-        ? "Une unité de la BCE figure déjà sur une autre fiche. Rien n'a été enregistré."
+        ? "Une unité de la BCE figure déjà sur la fiche. Rechargez la page et réessayez. Rien n'a été enregistré."
         : `${ECHEC} Rien n'a été enregistré.`,
     };
   }

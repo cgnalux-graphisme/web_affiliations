@@ -22,7 +22,9 @@ create table if not exists public.site_entreprises (
   id uuid primary key default gen_random_uuid(),
   company_id uuid unique references public.companies(id) on delete set null,
   nom text,
-  numero_bce text unique,
+  -- Pas unique : deux entreprises d'un même employeur (ex. HEIDELBERG carrières et construction) partagent
+  -- le même n° d'entreprise et le même ONSS (décision de Fred, 13/10/2026).
+  numero_bce text,
   denomination_bce text,
   siege_rue text,
   siege_numero text,
@@ -35,6 +37,9 @@ create table if not exists public.site_entreprises (
   ref_telephone text,
   bce_importe_le timestamptz,
   notes text,
+  -- Autres entreprises CG Link regroupées dans cette fiche (ex. XLG HOME rachetée par TRIXXO) : leurs
+  -- affiliés s'additionnent, leurs délégués sont repris dans cette fiche (lot B).
+  autres_company_ids uuid[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   -- Pas de contrainte « nom obligatoire hors CG Link » : si CG Link supprime l'entreprise, company_id passe
@@ -70,7 +75,7 @@ create table if not exists public.site_entreprise_unites (
   id uuid primary key default gen_random_uuid(),
   entreprise_id uuid not null references public.site_entreprises(id) on delete cascade,
   site_id uuid references public.site_entreprise_sites(id) on delete set null,
-  numero_ue text unique,
+  numero_ue text,
   denomination text,
   rue text,
   numero text,
@@ -84,7 +89,9 @@ create table if not exists public.site_entreprise_unites (
     constraint site_entreprise_unites_origine_check check (origine in ('bce', 'manuel')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint site_entreprise_unites_numero_check check (numero_ue is null or numero_ue ~ '^[2-8][0-9]{9}$')
+  constraint site_entreprise_unites_numero_check check (numero_ue is null or numero_ue ~ '^[2-8][0-9]{9}$'),
+  -- Unique par fiche : deux fiches d'un même n° d'entreprise peuvent reprendre les mêmes unités.
+  constraint site_entreprise_unites_numero_unique unique (entreprise_id, numero_ue)
 );
 comment on table public.site_entreprise_unites is 'Unités d''établissement (BCE ou encodées à la main).';
 create index if not exists site_entreprise_unites_entreprise_idx on public.site_entreprise_unites (entreprise_id);
@@ -327,17 +334,132 @@ insert into public.site_app_roles (app_code, role)
 select 'entreprises', r from unnest(array['ADMIN_OP', 'PERMANENT']) as r
 where not exists (select 1 from public.site_app_roles where app_code = 'entreprises' and role = r);
 
--- ── Remplissage initial (demandé par Fred le 12/10/2026) : une fiche, un site principal et les ONSS de
---    CG Link (chiffres seuls, libellés onss2..4) pour chaque entreprise de CG Link. Rejouable sans doublon.
---    Les entreprises ajoutées plus tard dans CG Link reçoivent leur fiche à la première modification.
-insert into public.site_entreprises (company_id)
-select c.id from public.companies c
+-- ── Remplissage initial (Fred, 12 et 13/10/2026). Source : supabase/donnees/entreprises-2026-10-12.csv
+--    (tableau de Fred : 91 entreprises, n° BCE, ONSS et libellés, commentaire → notes), plus :
+--    - HEIDELBERG MATERIALS BENELUX : entreprise distincte de HEIDELBERG (construction / carrières), même
+--      n° d'entreprise et même ONSS ;
+--    - IL&C LUXEMBOURG : fiche ajoutée, n° BCE à compléter ;
+--    - XLG HOME (rachetée par TRIXXO) : pas de fiche, regroupée dans TRIXXO (affiliés additionnés) ;
+--    - les ONSS présents dans CG Link mais absents du tableau sont repris aussi (libellés de CG Link).
+--    Rapprochement par le nom exact de CG Link (vérifié le 13/10/2026 : 91/91). Rejouable sans doublon.
+drop table if exists pg_temp.site_import_entreprises;
+create temporary table site_import_entreprises (nom_cglink text, numero_bce text, notes text, onss jsonb);
+insert into site_import_entreprises (nom_cglink, numero_bce, notes, onss) values
+  ('AGC', '0413638187', null, '[{"n": "039055109", "l": null}]'::jsonb),
+  ('AIR PRODUCTS', '0402052330', null, '[{"n": "191766671", "l": null}]'::jsonb),
+  ('ALE CINEY', '0455495766', null, '[{"n": "130928659", "l": null}]'::jsonb),
+  ('ALE NAMUR', '0456342438', null, '[{"n": "128411703", "l": null}]'::jsonb),
+  ('AMPACET', '0428477704', null, '[{"n": "111392762", "l": null}]'::jsonb),
+  ('ARTES TW', '0449710707', null, '[{"n": "119077296", "l": null}]'::jsonb),
+  ('ATELIER 85', '0402582662', null, '[{"n": "029176144", "l": null}]'::jsonb),
+  ('ATELIER ST VINCENT', '0414231471', null, '[{"n": "039255026", "l": null}]'::jsonb),
+  ('AUTAJON', '0402682929', null, '[{"n": "011517294", "l": null}]'::jsonb),
+  ('AVIENT', '0401430738', null, '[{"n": "030717571", "l": null}]'::jsonb),
+  ('AZAE', '0892989918', null, '[{"n": "133046654", "l": null}]'::jsonb),
+  ('BAJART', '0415486929', null, '[{"n": "040142673", "l": null}]'::jsonb),
+  ('BELAIR', '0473806396', null, '[{"n": "126582671", "l": null}]'::jsonb),
+  ('BELDICO', '0432680178', null, '[{"n": "113154185", "l": null}]'::jsonb),
+  ('BPMN', '0425351235', null, '[{"n": "110468546", "l": null}]'::jsonb),
+  ('BURGO', '0451821842', null, '[{"n": "119802371", "l": null}]'::jsonb),
+  ('CARMEUSE', '0431473519', null, '[{"n": "112643480", "l": null}]'::jsonb),
+  ('CARP', '0407844715', null, '[{"n": "032756026", "l": null}]'::jsonb),
+  ('CHASSIS NORMA', '0408411372', null, '[{"n": "035714720", "l": null}]'::jsonb),
+  ('CHIMSCO', '0477199121', null, '[{"n": "127716892", "l": null}]'::jsonb),
+  ('DA HOME', '0400523292', null, '[{"n": "028704142", "l": null}]'::jsonb),
+  ('DE GRAEVE', '0402528323', null, '[{"n": "031233029", "l": null}]'::jsonb),
+  ('DUCHENE', '0405619851', null, '[{"n": "010575230", "l": null}]'::jsonb),
+  ('EEG', '0442891013', null, '[{"n": "159055943", "l": null}]'::jsonb),
+  ('EKLOZIO', '1008333410', null, '[{"n": "148972793", "l": null}]'::jsonb),
+  ('ENROBES DU GERNY', '0428849074', null, '[{"n": "111427197", "l": null}]'::jsonb),
+  ('ENTRANAM', '0407273801', null, '[{"n": "032184502", "l": null}]'::jsonb),
+  ('ERDA', '0874244271', null, '[{"n": "130756484", "l": null}]'::jsonb),
+  ('ETA BEAURAING', '0407845903', null, '[{"n": "034547616", "l": null}]'::jsonb),
+  ('FOURNIPAC', '0457234739', null, '[{"n": "121617920", "l": null}]'::jsonb),
+  ('FRUITIER', '0428884411', null, '[{"n": "111551357", "l": null}]'::jsonb),
+  ('G4S', '0411519431', null, '[{"n": "035908817", "l": null}]'::jsonb),
+  ('GROUPE FRANCOIS', '0464376018', null, '[{"n": "124405603", "l": null}]'::jsonb),
+  ('HALIN & FILS', '0421413332', null, '[{"n": "047464136", "l": null}]'::jsonb),
+  ('HEIDELBERG', '0400465290', 'Inclus SAGREX', '[{"n": "017066373", "l": null}]'::jsonb),
+  ('HOLZINDUSTRIE PAULS', '0438004488', null, '[{"n": "115885123", "l": null}]'::jsonb),
+  ('HOME CLEAN', '0865284243', null, '[{"n": "129698020", "l": null}]'::jsonb),
+  ('HOUYOUX', '0404358950', null, '[{"n": "030350523", "l": null}]'::jsonb),
+  ('IBV', '0466169132', null, '[{"n": "125886017", "l": null}]'::jsonb),
+  ('ICM', '0428583414', null, '[{"n": "111103023", "l": null}]'::jsonb),
+  ('ICTS', '0434170614', null, '[{"n": "163605049", "l": null}]'::jsonb),
+  ('IL&C NAMUR', '0878765659', null, '[{"n": "131412010", "l": null}]'::jsonb),
+  ('INEOS INOVYN', '0403147638', 'Inclus Solvay', '[{"n": "022072349", "l": null}, {"n": "116605736", "l": "Solvay Chimie - Bruxelles"}]'::jsonb),
+  ('ISS', '0403313330', null, '[{"n": "174020036", "l": null}]'::jsonb),
+  ('JINDAL', '0554887213', null, '[{"n": "139647989", "l": null}]'::jsonb),
+  ('KRINKELS', '0821547933', null, '[{"n": "184853481", "l": null}]'::jsonb),
+  ('L ATELIER', '0407884307', null, '[{"n": "030349456", "l": null}]'::jsonb),
+  ('LA LORRAINE', '0412131719', null, '[{"n": "036354144", "l": null}]'::jsonb),
+  ('LAURENTY', '0402349862', null, '[{"n": "034649757", "l": null}]'::jsonb),
+  ('LES DAUPHINS', '0429051883', null, '[{"n": "111069752", "l": null}]'::jsonb),
+  ('LES HAUTES ARDENNES', '0407574994', null, '[{"n": "032214863", "l": null}]'::jsonb),
+  ('LHOIST DOLOMIES MLD', '0425225234', '=Groupe LHOIST', '[{"n": "112290206", "l": null}]'::jsonb),
+  ('LHOIST DW', '0403948679', null, '[{"n": "012144593", "l": null}]'::jsonb),
+  ('LHOIST JEMELLE', '0402321950', null, '[{"n": "119953497", "l": null}]'::jsonb),
+  ('LOREAL', '0468475455', null, '[{"n": "125977294", "l": null}]'::jsonb),
+  ('MARLUX', '0439579056', null, '[{"n": "157643332", "l": null}]'::jsonb),
+  ('MB ECO CONSTRUCTIONS', '0864085205', null, '[{"n": "129521092", "l": null}]'::jsonb),
+  ('MOBIX', '0430013470', null, '[{"n": "112100377", "l": null}]'::jsonb),
+  ('NONET', '0417072581', null, '[{"n": "041538891", "l": null}]'::jsonb),
+  ('NUTONS', '0422918317', null, '[{"n": "048506304", "l": null}]'::jsonb),
+  ('PEPINIERES LA GAUME', '0417548673', null, '[{"n": "042222353", "l": null}]'::jsonb),
+  ('PIERRET EXTRUSION', '0469623817', null, '[{"n": "126199424", "l": null}]'::jsonb),
+  ('PIERRET PROJECT', '0831341270', null, '[{"n": "136325351", "l": null}]'::jsonb),
+  ('POLE DES SERVICES', '0837414856', null, '[{"n": "136998046", "l": null}]'::jsonb),
+  ('PROTECTION UNIT', '0457632142', null, '[{"n": "124461863", "l": null}]'::jsonb),
+  ('PROXI SERVICES', '0872774227', null, '[{"n": "130596046", "l": null}]'::jsonb),
+  ('REMACLE', '0402569893', null, '[{"n": "015166531", "l": null}]'::jsonb),
+  ('REMONDIS', '0838611322', null, '[{"n": "137053724", "l": null}]'::jsonb),
+  ('RONVEAUX', '0439480076', null, '[{"n": "012783629", "l": null}]'::jsonb),
+  ('SAUPONT', '0407713665', null, '[{"n": "034547034", "l": null}]'::jsonb),
+  ('SERIS', '0404770607', null, '[{"n": "050177226", "l": null}]'::jsonb),
+  ('SERVIPLAST', '0416287970', null, '[{"n": "040602453", "l": null}]'::jsonb),
+  ('SIGNAROUTE', '0474519050', null, '[{"n": "137007649", "l": null}]'::jsonb),
+  ('SIGNODE', '0461026449', null, '[{"n": "123152460", "l": null}]'::jsonb),
+  ('SMB', '0431842812', null, '[{"n": "112548129", "l": null}]'::jsonb),
+  ('SOBEMO', '0437848991', null, '[{"n": "115169069", "l": null}]'::jsonb),
+  ('SOCOGETRA', '0442280903', null, '[{"n": "117028462", "l": null}]'::jsonb),
+  ('ST GOBAIN BASTOGNE', '0400865465', 'AUTOVER', '[{"n": "066377390", "l": null}]'::jsonb),
+  ('STALLBOIS', '0407149877', null, '[{"n": "033112889", "l": null}]'::jsonb),
+  ('T&D', '0830397501', 'TUTELA NOVITAS', '[{"n": "186695123", "l": null}]'::jsonb),
+  ('TEMPO TEAM', '0467127056', null, '[{"n": "172103704", "l": null}]'::jsonb),
+  ('TEMPS LIBRE', '0890485338', null, '[{"n": "132943640", "l": null}]'::jsonb),
+  ('THYMOLUX', '0889156042', null, '[{"n": "133562694", "l": null}]'::jsonb),
+  ('TP BAT', '0848805725', null, '[{"n": "138503389", "l": null}]'::jsonb),
+  ('TP HOME', '0415776939', null, '[{"n": "041300077", "l": null}]'::jsonb),
+  ('TRIXXO', '0808674647', null, '[{"n": "184044404", "l": null}, {"n": "173916731", "l": "TRIXXO I - Bilzen"}, {"n": "100418764", "l": "TRIXXO IX - Bilzen"}, {"n": "131624343", "l": "XLG HOME"}]'::jsonb),
+  ('UNILIN', '0405414072', null, '[{"n": "065672491", "l": null}]'::jsonb),
+  ('V3 MANUPAL', '0407763749', null, '[{"n": "032921702", "l": null}]'::jsonb),
+  ('VIGICORE', '0479108833', null, '[{"n": "129254439", "l": null}]'::jsonb),
+  ('WIAME NET', '0479444175', null, '[{"n": "128571559", "l": null}]'::jsonb),
+  ('WUST', '0402443595', null, '[{"n": "033349375", "l": null}]'::jsonb),
+  ('HEIDELBERG MATERIALS BENELUX', '0400465290', null, '[]'::jsonb),
+  ('IL&C LUXEMBOURG', null, null, '[]'::jsonb);
+
+insert into public.site_entreprises (company_id, numero_bce, notes)
+select c.id, i.numero_bce, i.notes
+from site_import_entreprises i
+join public.companies c on c.name = i.nom_cglink
 where not exists (select 1 from public.site_entreprises e where e.company_id = c.id);
 
 insert into public.site_entreprise_sites (entreprise_id, nom, principal)
 select e.id, 'Site principal', true from public.site_entreprises e
 where not exists (select 1 from public.site_entreprise_sites s where s.entreprise_id = e.id and s.principal);
 
+-- ONSS du tableau (avec leurs libellés)
+insert into public.site_entreprise_onss (entreprise_id, numero, libelle)
+select distinct on (e.id, o ->> 'n') e.id, o ->> 'n', o ->> 'l'
+from site_import_entreprises i
+join public.companies c on c.name = i.nom_cglink
+join public.site_entreprises e on e.company_id = c.id
+cross join lateral jsonb_array_elements(i.onss) as o
+order by e.id, o ->> 'n'
+on conflict (entreprise_id, numero) do nothing;
+
+-- ONSS de CG Link absents du tableau (TRIXXO, WUST, HEIDELBERG MATERIALS BENELUX, IL&C LUXEMBOURG)
 insert into public.site_entreprise_onss (entreprise_id, numero, libelle)
 select distinct on (e.id, x.numero) e.id, x.numero, x.libelle
 from public.site_entreprises e
@@ -351,3 +473,12 @@ cross join lateral (values
 where x.numero <> ''
 order by e.id, x.numero, x.rang
 on conflict (entreprise_id, numero) do nothing;
+
+-- XLG HOME regroupée dans TRIXXO
+update public.site_entreprises e
+set autres_company_ids = array_append(e.autres_company_ids, x.id)
+from public.companies t, public.companies x
+where e.company_id = t.id and t.name = 'TRIXXO' and x.name = 'XLG HOME'
+  and not (x.id = any (e.autres_company_ids));
+
+drop table if exists pg_temp.site_import_entreprises;

@@ -9,6 +9,7 @@ const E: Entreprise = {
   id: "e1", company_id: "c1", nom: null, numero_bce: "0850076920", denomination_bce: "ACME SA",
   siege_rue: "Rue Dewez", siege_numero: "40", siege_boite: "2", siege_code_postal: "5000", siege_localite: "Namur",
   ref_nom: null, ref_fonction: null, ref_email: null, ref_telephone: null, bce_importe_le: null, notes: null,
+  autres_company_ids: [],
 };
 const S: Site = { id: "s2", entreprise_id: "e1", nom: "Usine", principal: false, unite_postale_id: "u1",
   ref_nom: "Mme Martin", ref_fonction: "DRH", ref_email: null, ref_telephone: null, ordre: 1 };
@@ -123,5 +124,22 @@ describe("nomManquant", () => {
   });
   it("n'exige rien pour une fiche reliée à CG Link", () => {
     expect(nomManquant("c1", null)).toBe(false);
+  });
+});
+
+describe("construireListe, entreprises regroupées", () => {
+  const XLG: CompanyCgLink = { ...C, id: "x1", name: "XLG HOME", onss: "131624343", onss2: null };
+  const liste = construireListe({
+    companies: [C, XLG],
+    fiches: [{ ...E, autres_company_ids: ["x1"] }],
+    sites: [], unites: [], onss: [], ignores: [],
+    affilies: new Map([["c1", 40], ["x1", 562]]),
+    delegues: new Map(),
+  });
+  it("n'affiche pas l'entreprise regroupée dans une autre fiche", () => {
+    expect(liste.map((l) => l.nom)).toEqual(["Acme"]);
+  });
+  it("additionne les affiliés des entreprises regroupées", () => {
+    expect(liste[0].affilies).toBe(602);
   });
 });

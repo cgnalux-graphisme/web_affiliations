@@ -129,9 +129,9 @@ Entreprises et délégués (migration `supabase/migrations/20261012120000_site_e
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_entreprises` | Fiche : `company_id` (lien CG Link, unique, null = hors CG Link), `nom` (obligatoire hors CG Link), `numero_bce` (10 chiffres, unique), `denomination_bce`, `siege_*`, `ref_*` (personne de référence), `bce_importe_le`, `notes` | App `entreprises` (session) |
+| `site_entreprises` | Fiche : `company_id` (lien CG Link, unique, null = hors CG Link), `nom` (obligatoire hors CG Link), `numero_bce` (10 chiffres, **non unique** : HEIDELBERG / HEIDELBERG MATERIALS), `denomination_bce`, `siege_*`, `ref_*` (personne de référence), `bce_importe_le`, `notes`, `autres_company_ids` (entreprises CG Link regroupées, ex. XLG HOME dans TRIXXO) | App `entreprises` (session) |
 | `site_entreprise_sites` | Sites = UTE : `nom`, `principal` (un seul par entreprise), `unite_postale_id`, `ref_*`, `ordre` | App `entreprises` |
-| `site_entreprise_unites` | Unités d'établissement : `numero_ue` (unique), adresse, `statut` (`actif` / `arrete`), `date_debut`, `site_id`, `origine` (`bce` / `manuel`) | App `entreprises` |
+| `site_entreprise_unites` | Unités d'établissement : `numero_ue` (unique par fiche), adresse, `statut` (`actif` / `arrete`), `date_debut`, `site_id`, `origine` (`bce` / `manuel`) | App `entreprises` |
 | `site_entreprise_onss` | ONSS : `numero` (chiffres, unique par entreprise), `libelle`, `site_id` | App `entreprises` |
 | `site_delegues` | Délégués (lot B) : `entreprise_id`, `cglink_user_id` (unique), `prenom`, `nom`, `email`, `telephone`, `notes`, `a_verifier` | Lecture : apps `entreprises` ou `delegues` ; écriture : service_role seulement |
 | `site_delegue_mandats` | Mandats : `organe` (`ds`, `ce`, `cppt`, `cee`, `instances_cg`, `autre`), `qualite` (`effectif` / `suppleant`, obligatoire pour DS / CE / CPPT), `libelle`, `fonction`, `site_id`, `debut`, `fin`, `a_verifier` | Idem |

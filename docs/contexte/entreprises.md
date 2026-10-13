@@ -37,8 +37,18 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
 - **Repris de CG Link à la création de la fiche** : numéros ONSS (`onss`, `onss2..4` et leurs libellés),
   puis écarts signalés (« Reprendre » / « Ignorer », valeurs ignorées dans `site_ecarts_ignores`).
 - **Propre à l'Espace** : tout le reste (tables ci-dessous).
-- **Remplissage initial par la migration** (demandé par Fred le 12/10/2026) : une fiche, un site principal
-  et les ONSS (chiffres seuls, libellés `onss2..4`) pour chacune des 94 entreprises de CG Link (99 ONSS).
+- **Remplissage initial par la migration** (Fred, 12 et 13/10/2026), à partir de son tableau
+  `supabase/donnees/entreprises-2026-10-12.csv` (91 entreprises : n° BCE, ONSS et libellés, commentaire →
+  notes ; noms identiques à CG Link) : **93 fiches**, chacune avec son site principal et ses ONSS (ceux du
+  tableau, puis ceux de CG Link absents du tableau). Cas particuliers décidés par Fred :
+  - **HEIDELBERG** (carrières) et **HEIDELBERG MATERIALS BENELUX** (construction) : même maison mère, même
+    n° d'entreprise et même ONSS, mais deux entreprises (secteur, délégués et permanent différents) → deux
+    fiches. D'où : `numero_bce` non unique, `numero_ue` unique **par fiche** ;
+  - **XLG HOME**, rachetée par TRIXXO : pas de fiche ; regroupée dans TRIXXO (`autres_company_ids`) : ses
+    562 affiliés s'additionnent à ceux de TRIXXO, ses délégués iront chez TRIXXO (lot B) ;
+  - **IL&C LUXEMBOURG** (absente du tableau) : fiche ajoutée, n° BCE à compléter.
+- Le tableau comporte aussi le **permanent** de chaque entreprise : non repris (déjà dans CG Link,
+  `companies.permanent_name`).
 - **Fiche créée à la première modification** d'une entreprise ajoutée ensuite dans CG Link (`ficheDeCle()` dans
   `app/espace/entreprises/actions.ts`) : fiche, site « Site principal », ONSS. Idempotent (`company_id`
   unique, `upsert … ignoreDuplicates`).

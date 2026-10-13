@@ -12,7 +12,7 @@ import ChampsEdition from "./ChampsEdition";
 const VIDE: Entreprise = {
   id: "", company_id: null, nom: null, numero_bce: null, denomination_bce: null, siege_rue: null, siege_numero: null,
   siege_boite: null, siege_code_postal: null, siege_localite: null, ref_nom: null, ref_fonction: null, ref_email: null,
-  ref_telephone: null, bce_importe_le: null, notes: null,
+  ref_telephone: null, bce_importe_le: null, notes: null, autres_company_ids: [],
 };
 
 export function ApercuBloc({ lignes, incomplet }: { lignes: string[]; incomplet: boolean }) {

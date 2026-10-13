@@ -106,6 +106,10 @@ export function construireListe(entrees: {
   delegues: Map<string, number>;
 }): LigneListe[] {
   const ficheDeCompany = new Map(entrees.fiches.filter((f) => f.company_id).map((f) => [f.company_id as string, f]));
+  // Entreprises CG Link regroupées dans une autre fiche (ex. XLG HOME dans TRIXXO) : pas de ligne à elles.
+  const regroupees = new Set(entrees.fiches.flatMap((f) => f.autres_company_ids ?? []));
+  const affiliesDe = (f: Entreprise | undefined, c: CompanyCgLink | undefined) =>
+    [c?.id, ...(f?.autres_company_ids ?? [])].reduce((n, id) => n + (id ? entrees.affilies.get(id) ?? 0 : 0), 0);
   const compte = <T,>(l: T[], cle: (x: T) => string) => l.reduce((m, x) => m.set(cle(x), (m.get(cle(x)) ?? 0) + 1), new Map<string, number>());
   const nbSites = compte(entrees.sites, (s) => s.entreprise_id);
 
@@ -125,7 +129,7 @@ export function construireListe(entrees: {
       numeroBce: f?.numero_bce ?? null,
       localites,
       onss: f ? onssIci.map((o) => o.numero) : onssCg.map((o) => o.numero),
-      affilies: c ? entrees.affilies.get(c.id) ?? 0 : 0,
+      affilies: affiliesDe(f, c),
       sites: f ? nbSites.get(f.id) ?? 0 : 0,
       delegues: f ? entrees.delegues.get(f.id) ?? 0 : 0,
       horsCgLink: !c,
@@ -135,7 +139,7 @@ export function construireListe(entrees: {
   }
 
   const lignes = [
-    ...entrees.companies.map((c) => ligne(ficheDeCompany.get(c.id), c)),
+    ...entrees.companies.filter((c) => !regroupees.has(c.id)).map((c) => ligne(ficheDeCompany.get(c.id), c)),
     ...entrees.fiches.filter((f) => !f.company_id).map((f) => ligne(f, undefined)),
   ];
   return lignes.sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" }));
