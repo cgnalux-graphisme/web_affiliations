@@ -4,6 +4,24 @@
 
 Le plus récent en haut. L'état **actuel** est dans CLAUDE.md (racine), section « État actuel ».
 
+## État au 13/10/2026 (après-midi)
+- **Une seule branche de travail : `suivi-actions`** (`entreprises` fusionnée puis supprimée le 13/10/2026).
+  Rien n'est poussé.
+- **App Entreprises** en place et vérifiée par Fred (migration `20261012120000` exécutée : 93 fiches, 99 ONSS).
+  Ajout du 13/10/2026 : unités d'établissement **suivies** (nos provinces), les autres gardées pour info.
+- **App Gestion délégués CG Link (plan 2a)** construite : import CG Link, liste, carte d'identité avec unité
+  de rattachement, mandats, à vérifier, journal ; SUPER_ADMIN uniquement ; aucune écriture vers CG Link.
+  Contexte : [docs/contexte/delegues.md](docs/contexte/delegues.md).
+- **À faire par Fred** : 1. exécuter `20261013090000_site_unites_suivies.sql` puis
+  `20261013100000_site_delegues_unite.sql` (SQL Editor) ; 2. lancer l'import des délégués et traiter
+  « À vérifier » ; 3. corriger `workers` / `profiles.company_id` côté CG Link (prompt Cursor du 12/10/2026),
+  ✔ fait (vérifié le 13/10/2026 : `workers` refusé à la clé publique).
+- **Plan 2b construit (13/10/2026)** : comptes CG Link (inviter, bloquer, annuler), synchronisation automatique
+  de la carte vers CG Link (jamais l'e-mail), changement d'entreprise, écarts. À tester par Fred avec un
+  délégué de test sur une adresse secondaire.
+- Les points ouverts des états précédents (Redirect URLs, tests des comptes) : voir
+  [docs/contexte/journal.md](docs/contexte/journal.md).
+
 ## État au 12/10/2026 (après-midi)
 - **App Entreprises (lot A) construite sur la branche `entreprises`** (créée depuis `suivi-actions`, **non
   poussée**) : liste, fiche, sites (UTE), unités d'établissement, ONSS, personne de référence et bloc adresse,
