@@ -98,6 +98,6 @@ Suppression d'un site : le trigger `site_entreprise_sites_avant_suppression` ref
 même transaction. Pas de contrainte « nom obligatoire » en base (elle bloquerait la suppression d'une
 entreprise dans CG Link) : l'app l'exige (`nomManquant()`).
 
-**État de la migration au 12/10/2026 : écrite et commitée, pas encore appliquée** (Fred a refusé
-l'application par l'outil Supabase depuis Claude Code ; à exécuter dans Supabase › SQL Editor). Tant
-qu'elle n'est pas passée, l'app affiche « Les tables de l'app ne sont pas encore créées ».
+**Migration exécutée par Fred le 13/10/2026** (SQL Editor ; le remplissage tient dans un seul bloc `do`,
+car l'éditeur peut changer de connexion entre deux requêtes). Vérifié : 93 fiches, 93 sites principaux,
+99 ONSS (6 avec libellé), XLG HOME sans fiche, clé publique refusée.

@@ -141,13 +141,13 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
   affiliés, import BCE (une fiche ou toutes). Vérifié en local : types, 676 tests, build de production,
   redirection vers `/login` sans session, lecture réelle de la BCE. Contexte :
   [docs/contexte/entreprises.md](docs/contexte/entreprises.md). Spec et plans dans `docs/superpowers/`.
-- **Migration `20261012120000_site_entreprises_delegues.sql` écrite, pas encore appliquée** : à exécuter par
-  Fred dans Supabase › SQL Editor (8 tables `site_*`, fonction `site_compter_affilies()`, apps `entreprises`
-  et `delegues` (inactive) au catalogue).
+- **Migration `20261012120000_site_entreprises_delegues.sql` exécutée par Fred le 13/10/2026** et vérifiée
+  (lecture seule) : 93 fiches (tableau de Fred + HEIDELBERG MATERIALS BENELUX + IL&C LUXEMBOURG ; XLG HOME
+  regroupée dans TRIXXO), 93 sites principaux, 99 ONSS ; clé publique refusée partout.
 - **Faille signalée à Fred le 12/10/2026** : la table CG Link `workers` (NISS, noms, 10 684 lignes) est
   lisible avec la clé publique. Prompt de correction remis à Fred pour sa session Cursor de CG Link (RLS de
   `workers` + verrou sur `profiles.company_id`). À faire avant le lot B3 (écritures vers CG Link).
-- **À faire par Fred** : 1. exécuter la migration ; 2. parcourir l'app Entreprises connecté (liste de
+- **À faire par Fred** : 1. compléter le n° BCE d'IL&C LUXEMBOURG ; 2. parcourir l'app Entreprises connecté (liste de
   vérification dans le message de fin du 12/10/2026) ; 3. valider couleurs et icônes (`#E69F00` bâtiment,
   `#CC79A7` carte d'identité) ; 4. corriger `workers` côté CG Link. Ensuite : plan du lot B (app « Gestion
   délégués CG Link », SUPER_ADMIN uniquement).
