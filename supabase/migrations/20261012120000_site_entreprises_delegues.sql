@@ -47,7 +47,11 @@ create table if not exists public.site_entreprises (
   constraint site_entreprises_bce_check
     check (numero_bce is null or numero_bce ~ '^[01][0-9]{9}$')
 );
+-- Mise à niveau des tables créées par une version précédente de ce fichier (create table if not exists ne
+-- modifie pas une table existante) :
 alter table public.site_entreprises drop constraint if exists site_entreprises_nom_check;
+alter table public.site_entreprises drop constraint if exists site_entreprises_numero_bce_key;
+alter table public.site_entreprises add column if not exists autres_company_ids uuid[] not null default '{}';
 comment on table public.site_entreprises is
   'Fiches entreprises de l''Espace CG (app entreprises). company_id = lien CG Link (null = hors CG Link).';
 
@@ -95,6 +99,15 @@ create table if not exists public.site_entreprise_unites (
 );
 comment on table public.site_entreprise_unites is 'Unités d''établissement (BCE ou encodées à la main).';
 create index if not exists site_entreprise_unites_entreprise_idx on public.site_entreprise_unites (entreprise_id);
+-- Mise à niveau : n° d'unité unique par fiche (et non plus dans toute la table).
+alter table public.site_entreprise_unites drop constraint if exists site_entreprise_unites_numero_ue_key;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'site_entreprise_unites_numero_unique') then
+    alter table public.site_entreprise_unites
+      add constraint site_entreprise_unites_numero_unique unique (entreprise_id, numero_ue);
+  end if;
+end $$;
 
 do $$
 begin
@@ -445,6 +458,20 @@ from site_import_entreprises i
 join public.companies c on c.name = i.nom_cglink
 where not exists (select 1 from public.site_entreprises e where e.company_id = c.id);
 
+-- Fiches déjà créées par une version précédente : n° BCE et notes complétés s'ils sont vides.
+update public.site_entreprises e
+set numero_bce = coalesce(e.numero_bce, i.numero_bce), notes = coalesce(e.notes, i.notes)
+from site_import_entreprises i
+join public.companies c on c.name = i.nom_cglink
+where e.company_id = c.id and (e.numero_bce is null or e.notes is null);
+
+-- XLG HOME n'a pas de fiche propre (regroupée dans TRIXXO) : fiche supprimée si une version précédente l'a créée
+-- et qu'aucun délégué n'y est encore rattaché.
+delete from public.site_entreprises e
+using public.companies x
+where e.company_id = x.id and x.name = 'XLG HOME'
+  and not exists (select 1 from public.site_delegues d where d.entreprise_id = e.id);
+
 insert into public.site_entreprise_sites (entreprise_id, nom, principal)
 select e.id, 'Site principal', true from public.site_entreprises e
 where not exists (select 1 from public.site_entreprise_sites s where s.entreprise_id = e.id and s.principal);
@@ -457,7 +484,8 @@ join public.companies c on c.name = i.nom_cglink
 join public.site_entreprises e on e.company_id = c.id
 cross join lateral jsonb_array_elements(i.onss) as o
 order by e.id, o ->> 'n'
-on conflict (entreprise_id, numero) do nothing;
+on conflict (entreprise_id, numero) do update
+  set libelle = coalesce(public.site_entreprise_onss.libelle, excluded.libelle);
 
 -- ONSS de CG Link absents du tableau (TRIXXO, WUST, HEIDELBERG MATERIALS BENELUX, IL&C LUXEMBOURG)
 insert into public.site_entreprise_onss (entreprise_id, numero, libelle)
