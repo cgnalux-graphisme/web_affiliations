@@ -355,6 +355,10 @@ where not exists (select 1 from public.site_app_roles where app_code = 'entrepri
 --    - XLG HOME (rachetée par TRIXXO) : pas de fiche, regroupée dans TRIXXO (affiliés additionnés) ;
 --    - les ONSS présents dans CG Link mais absents du tableau sont repris aussi (libellés de CG Link).
 --    Rapprochement par le nom exact de CG Link (vérifié le 13/10/2026 : 91/91). Rejouable sans doublon.
+-- Un seul bloc : le SQL Editor de Supabase peut exécuter chaque requête sur une connexion différente, et une
+-- table temporaire n'existe que sur la connexion qui l'a créée.
+do $remplissage$
+begin
 drop table if exists pg_temp.site_import_entreprises;
 create temporary table site_import_entreprises (nom_cglink text, numero_bce text, notes text, onss jsonb);
 insert into site_import_entreprises (nom_cglink, numero_bce, notes, onss) values
@@ -510,3 +514,5 @@ where e.company_id = t.id and t.name = 'TRIXXO' and x.name = 'XLG HOME'
   and not (x.id = any (e.autres_company_ids));
 
 drop table if exists pg_temp.site_import_entreprises;
+end
+$remplissage$;
