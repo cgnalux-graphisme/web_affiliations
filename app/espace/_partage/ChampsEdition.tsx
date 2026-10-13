@@ -23,7 +23,7 @@ const LARGEUR = { plein: "sm:col-span-6", demi: "sm:col-span-3", tiers: "sm:col-
 
 /** Formulaire de champs d'un panneau : enregistre via une action serveur puis rafraîchit la page. */
 export default function ChampsEdition({
-  id, champs, valeurs, enregistrer, libelleBouton = "Enregistrer", onSucces,
+  id, champs, valeurs, enregistrer, libelleBouton = "Enregistrer", onSucces, toujoursActif = false,
 }: {
   id: string;
   champs: DefChamp[];
@@ -31,6 +31,8 @@ export default function ChampsEdition({
   enregistrer: (valeurs: Record<string, string>) => Promise<Retour>;
   libelleBouton?: string;
   onSucces?: (donnees?: { cle?: string }) => void;
+  /** Bouton actif même sans modification (création avec des valeurs par défaut). */
+  toujoursActif?: boolean;
 }) {
   const router = useRouter();
   // Les valeurs peuvent venir d'une ligne complète (booléens, nombres) : seuls les champs listés sont repris, en texte.
@@ -97,7 +99,7 @@ export default function ChampsEdition({
         );
       })}
       <div className="flex flex-wrap items-center gap-3 sm:col-span-6">
-        <button type="submit" disabled={enCours || !modifie} className={BTN_PRINCIPAL}>
+        <button type="submit" disabled={enCours || (!modifie && !toujoursActif)} className={BTN_PRINCIPAL}>
           {enCours ? <IconeChargement size={15} /> : <Save size={15} aria-hidden />} {libelleBouton}
         </button>
         {retour && (
