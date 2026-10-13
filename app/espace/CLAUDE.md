@@ -48,7 +48,7 @@ des écrans du back-office »).
 Au 08/10/2026 : `actions`, `scan-news`, `parametres` → SUPER_ADMIN ; `demarches` → SUPER_ADMIN et ADMIN_OP.
 Au 12/10/2026 (migration `20261012120000`, à exécuter par Fred) : `entreprises` → SUPER_ADMIN, ADMIN_OP et
 PERMANENT (couleur #E69F00, icône `building`) ; `delegues` (« Gestion délégués CG Link », #CC79A7, `id-card`)
-activée le 13/10/2026 (migration `20261013100000`) ; depuis la migration `20261013120000` (à exécuter par Fred),
+activée le 13/10/2026 (migration `20261013100000`) ; depuis la migration `20261013120000` (exécutée le 13/10/2026),
 ouverte aussi aux PERMANENT, limitée à leurs entreprises et sans les paramètres de connexion. `permanents`
 (« Accès permanents », #A0522D, `key`, ordre 35) → PERMANENT (SUPER_ADMIN toujours). Détail :
 [docs/contexte/delegues.md](../../docs/contexte/delegues.md), [docs/contexte/entreprises.md](../../docs/contexte/entreprises.md),

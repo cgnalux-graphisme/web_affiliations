@@ -142,7 +142,7 @@ Entreprises et délégués (migration `supabase/migrations/20261012120000_site_e
 | `site_compter_affilies()` | Affiliés `Actif` de `workers` par `company_id` et `contract_type` ; renvoie 0 ligne sans l'app `entreprises` ou `delegues` | `authenticated` (security definer) ; pas `anon` |
 
 Fiches de suivi (migration `supabase/migrations/20261013120000_site_fiches_suivi.sql`, design validé par Fred le
-13/10/2026, **à exécuter par Fred**). Contexte : [permanents.md](permanents.md).
+13/10/2026, **exécutée par Fred le 13/10/2026 (vérifié : tables, bucket privé, 87 fiches sur 93 avec un secteur, clé publique refusée)**). Contexte : [permanents.md](permanents.md).
 
 | Objet | Rôle | Accès |
 |---|---|---|

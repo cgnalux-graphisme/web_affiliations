@@ -93,6 +93,6 @@ fiches.
 Panneau « Fiches de suivi » (si la personne a l'app `permanents`) : fiches de l'entreprise, puis fiches
 sectorielles de son secteur (repliées) ; bouton « Nouvelle fiche ».
 
-## Tables (migration `supabase/migrations/20261013120000_site_fiches_suivi.sql`, à exécuter par Fred)
+## Tables (migration `supabase/migrations/20261013120000_site_fiches_suivi.sql`, exécutée par Fred le 13/10/2026 (vérifié : tables, bucket privé, 87 fiches sur 93 avec un secteur, clé publique refusée))
 
 Détail : [base-de-donnees.md](base-de-donnees.md), section « Fiches de suivi ».

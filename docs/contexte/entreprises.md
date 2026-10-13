@@ -65,8 +65,8 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
   coché par défaut pour un PERMANENT (`?mes=1` / `?mes=0`).
 - **Historique** : panneau « Fiches de suivi » (fiches de l'entreprise, puis fiches sectorielles de son
   secteur, repliées), visible avec l'app `permanents`.
-- Avant la migration `20261013120000`, la colonne `secteur_id` manque : **l'app Entreprises ne s'ouvre plus**
-  (lecture en erreur). Exécuter la migration avant de déployer.
+- La colonne `secteur_id` vient de la migration `20261013120000` (exécutée le 13/10/2026) : sans elle, l'app
+  Entreprises ne s'ouvrirait plus (lecture en erreur). 6 fiches restent sans secteur (ALE, CP100, Verre, papier).
 
 ## Import BCE
 

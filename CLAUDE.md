@@ -138,8 +138,8 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 ---
 
 ## État actuel (13/10/2026, nuit)
-- **Une seule branche de travail : `suivi-actions`**. Poussée le 13/10/2026 (soir) pour les apps Entreprises et
-  Délégués ; le travail sur **Accès permanents** n'est **pas poussé**.
+- **Une seule branche de travail : `suivi-actions`**, **poussée le 13/10/2026 (nuit) à la demande de Fred**
+  (mise en production) avec l'app **Accès permanents**.
 - **App Accès permanents** (nouvelle, design validé par Fred le 13/10/2026) : tableau de bord du permanent,
   périmètre lu dans CG Link (`companies.permanent_email`), **fiches de suivi** (usine / sectoriel, date ou
   période, pièces avec leur nature, photos, 7 questions, rédaction par l'IA, PDF à la charte), historique sur
@@ -147,13 +147,13 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
   écran de sélection. Contexte : [docs/contexte/permanents.md](docs/contexte/permanents.md).
 - **App Délégués** ouverte aux permanents (leurs entreprises, sans les paramètres de connexion) ; **app
   Entreprises** : secteur (`site_secteurs`), permanent, filtre « Mes entreprises ».
+- **Migration `20261013120000_site_fiches_suivi.sql`** exécutée par Fred le 13/10/2026 (vérifié : tables, bucket privé, 87 fiches sur 93 avec un secteur, clé publique refusée).
 - **Vérifié** : 821 tests, build, rendu réel des PDF (fiche sur 2 pages, rapport). **Pas encore vérifié dans le
-  navigateur** : la migration n'est pas exécutée.
-- **À faire par Fred** : 1. exécuter `20261013120000_site_fiches_suivi.sql` (Supabase › SQL Editor) **avant tout
-  déploiement** : sans elle, l'app Entreprises ne s'ouvre plus (colonne `secteur_id`) ; 2. tester avec un compte
-  permanent (périmètre, délégués sans compte CG Link, une fiche complète avec photos, IA et PDF), puis le rapport
-  de congrès ; 3. choisir le secteur des entreprises ALE, CP100, Verre et papier ; 4. points ouverts du
-  13/10/2026 (soir) : voir [docs/contexte/journal.md](docs/contexte/journal.md).
+  navigateur** avec un vrai compte permanent.
+- **À faire par Fred** : 1. tester avec un compte permanent (périmètre, délégués sans compte CG Link, une fiche
+  complète avec photos, IA et PDF), puis le rapport de congrès ; 2. choisir le secteur des 6 entreprises restées
+  sans secteur (ALE, CP100, Verre, papier) ; 3. points ouverts du 13/10/2026 (soir) : voir
+  [docs/contexte/journal.md](docs/contexte/journal.md).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 
