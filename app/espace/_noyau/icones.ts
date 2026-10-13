@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  ClipboardList,
   Building2,
   CircleHelp,
   FileText,
@@ -63,6 +64,7 @@ export const ICONES: Record<string, LucideIcon> = {
   building: Building2,
   "id-card": IdCard,
   "map-pin": MapPin,
+  clipboard: ClipboardList,
 };
 
 export function icone(nom: string | null | undefined): LucideIcon {

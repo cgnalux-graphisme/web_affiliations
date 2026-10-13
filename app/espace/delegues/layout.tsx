@@ -1,9 +1,9 @@
 import GardeApp from "../_noyau/GardeApp";
-import SansAcces from "../_noyau/SansAcces";
-import { estSuperAdmin } from "../../../lib/espace/acces";
 
-/** Réservée au SUPER_ADMIN par le rôle : donner l'app à un autre compte n'ouvre rien. */
+/**
+ * SUPER_ADMIN : tous les délégués. Toute autre personne qui a l'app (les permanents, par site_app_roles) : les
+ * délégués de ses entreprises seulement, sans les paramètres de connexion (vérifié par chaque page et action).
+ */
 export default async function Layout({ children }: { children: React.ReactNode }) {
-  if (!(await estSuperAdmin())) return <SansAcces nomApp="Gestion délégués CG Link" />;
   return <GardeApp code="delegues">{children}</GardeApp>;
 }

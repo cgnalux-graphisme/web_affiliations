@@ -1,13 +1,14 @@
 import { cache } from "react";
 import { getSupabaseServer } from "../../../lib/supabase-server";
 import { getSupabaseService } from "../../../lib/supabase-service";
-import { mesApps } from "../../../lib/espace/acces";
+import { mesApps, monProfil } from "../../../lib/espace/acces";
 import { routeSection, type AppNav, type ManifesteApp } from "./types";
 import { manifeste as actions } from "../actions/manifeste";
 import { manifeste as scanNews } from "../scan-news/manifeste";
 import { manifeste as demarches } from "../demarches/manifeste";
 import { manifeste as entreprises } from "../entreprises/manifeste";
 import { manifeste as delegues } from "../delegues/manifeste";
+import { manifeste as permanents } from "../permanents/manifeste";
 import { manifeste as parametres } from "../parametres/manifeste";
 
 /**
@@ -15,12 +16,11 @@ import { manifeste as parametres } from "../parametres/manifeste";
  * Ajouter une app : créer app/espace/<code>/ (manifeste, layout, page, sections), l'ajouter ici,
  * puis insérer sa ligne dans site_apps (+ ses rôles par défaut dans site_app_roles). Voir CLAUDE.md.
  */
-export const MANIFESTES: ManifesteApp[] = [actions, scanNews, demarches, entreprises, delegues, parametres];
+export const MANIFESTES: ManifesteApp[] = [actions, scanNews, demarches, permanents, entreprises, delegues, parametres];
 
 /** Apps prévues mais pas encore construites : tuiles « Bientôt », non cliquables, sans aucun droit associé. */
 export const PROCHAINES_APPS = [
   { nom: "Mémoire CG", description: "CCT, accords sectoriels et précédents", icone: "book" },
-  { nom: "Accès permanent", description: "Les outils du quotidien des permanents", icone: "key" },
 ];
 
 type LigneApp = {
@@ -52,14 +52,14 @@ const catalogue = cache(async (): Promise<LigneApp[]> => {
   return (data ?? []) as LigneApp[];
 });
 
-function versNav(ligne: LigneApp, m: ManifesteApp): AppNav {
+function versNav(ligne: LigneApp, m: ManifesteApp, superAdmin = true): AppNav {
   return {
     code: ligne.code,
     nom: ligne.nom,
     description: ligne.description ?? "",
     icone: ligne.icone ?? "grid",
     couleur: ligne.couleur && HEX.test(ligne.couleur) ? ligne.couleur : COULEUR_DEFAUT,
-    sections: m.sections.map((s) => ({
+    sections: m.sections.filter((s) => superAdmin || !s.superAdmin).map((s) => ({
       route: routeSection(m.code, s.chemin),
       libelle: s.libelle,
       icone: s.icone,
@@ -70,11 +70,12 @@ function versNav(ligne: LigneApp, m: ManifesteApp): AppNav {
 
 /** Les apps de la personne connectée : catalogue actif ∩ site_mes_apps() ∩ apps construites. */
 export const appsDeLaPersonne = cache(async (): Promise<AppNav[]> => {
-  const [lignes, codes] = await Promise.all([catalogue(), mesApps()]);
+  const [lignes, codes, profil] = await Promise.all([catalogue(), mesApps(), monProfil()]);
   const permis = new Set(codes);
+  const superAdmin = profil?.role === "SUPER_ADMIN";
   return lignes.flatMap((l) => {
     const m = MANIFESTES.find((x) => x.code === l.code);
-    return m && permis.has(l.code) ? [versNav(l, m)] : [];
+    return m && permis.has(l.code) ? [versNav(l, m, superAdmin)] : [];
   });
 });
 

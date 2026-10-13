@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Users } from "lucide-react";
-import { exigerApp, monProfil } from "../../../../lib/espace/acces";
+import { aApp, exigerApp, monProfil } from "../../../../lib/espace/acces";
+import { emailsEgaux } from "../../../../lib/permanents/perimetre";
+import { lignesFiches } from "../../../../lib/fiches-suivi/donnees-serveur";
 import { chargerFiche, type Affilies } from "../../../../lib/entreprises/donnees-serveur";
 import { nomAffiche } from "../../../../lib/entreprises/regles";
 import { Alerte, Panneau } from "../../_partage/ui";
@@ -11,6 +13,8 @@ import PanneauIdentite from "./PanneauIdentite";
 import PanneauSites from "./PanneauSites";
 import PanneauUnites from "./PanneauUnites";
 import PanneauOnss from "./PanneauOnss";
+import PanneauPermanent from "./PanneauPermanent";
+import PanneauFichesSuivi from "./PanneauFichesSuivi";
 
 /** La lecture de la BCE peut prendre jusqu'à 45 s (deux lectures pour un enregistrement). */
 export const maxDuration = 120;
@@ -45,7 +49,7 @@ function CarteAffilies({ affilies }: { affilies: Affilies }) {
 export default async function FichePage({ params }: { params: Promise<{ cle: string }> }) {
   await exigerApp("entreprises");
   const { cle } = await params;
-  const [r, profil] = await Promise.all([chargerFiche(cle), monProfil()]);
+  const [r, profil, accesFiches] = await Promise.all([chargerFiche(cle), monProfil(), aApp("permanents")]);
   if (!r.ok && r.raison === "introuvable") notFound();
   if (!r.ok) {
     return (
@@ -61,18 +65,32 @@ export default async function FichePage({ params }: { params: Promise<{ cle: str
   if (cle.startsWith("c-") && f.fiche) redirect(`/espace/entreprises/${f.fiche.id}`);
   const nom = nomAffiche(f.fiche, f.company);
   const superAdmin = profil?.role === "SUPER_ADMIN";
+  // Historique : fiches de l'entreprise, puis fiches sectorielles de son secteur (app « Accès permanents »).
+  const ficheId = f.fiche?.id ?? null;
+  const secteurId = f.fiche?.secteur_id ?? null;
+  const [usine, sectorielles] = accesFiches
+    ? await Promise.all([
+        ficheId ? lignesFiches({ entrepriseId: ficheId }) : Promise.resolve(null),
+        secteurId ? lignesFiches({ secteurId, type: "sectoriel" }) : Promise.resolve(null),
+      ])
+    : [null, null];
 
   return (
     <div className="ecg-ecran">
       <EnTeteFiche fiche={f} nom={nom} cle={cle} />
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid min-w-0 gap-6">
+          {accesFiches && (
+            <PanneauFichesSuivi ficheId={ficheId} nomSecteur={f.secteur}
+              usine={usine?.ok ? usine.lignes : []} secteur={sectorielles?.ok ? sectorielles.lignes : []} />
+          )}
           <PanneauSites fiche={f} superAdmin={superAdmin} />
           <PanneauUnites fiche={f} />
           <PanneauOnss fiche={f} />
           <PanneauIdentite fiche={f} />
         </div>
-        <aside className="grid gap-6 lg:sticky lg:top-6" aria-label="Courrier et affiliés">
+        <aside className="grid gap-6 lg:sticky lg:top-6" aria-label="Permanent, courrier et affiliés">
+          <PanneauPermanent fiche={f} estMoi={emailsEgaux(f.company?.permanent_email, profil?.email)} />
           <PanneauCourrier fiche={f} />
           {f.affilies && <CarteAffilies affilies={f.affilies} />}
         </aside>

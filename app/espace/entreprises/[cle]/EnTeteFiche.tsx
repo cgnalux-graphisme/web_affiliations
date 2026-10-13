@@ -36,7 +36,9 @@ export default function EnTeteFiche({ fiche, nom, cle }: { fiche: Fiche; nom: st
             ) : (
               <span className="ecg-puce"><Hash size={14} aria-hidden /> N° BCE à compléter</span>
             )}
-            {fiche.company?.sector && <span className="ecg-puce"><Tag size={14} aria-hidden /> {fiche.company.sector}</span>}
+            {(fiche.secteur || fiche.company?.sector) && (
+              <span className="ecg-puce"><Tag size={14} aria-hidden /> {fiche.secteur ?? `${fiche.company?.sector} (CG Link)`}</span>
+            )}
             {fiche.company ? (
               <span className="ecg-puce"><Link2 size={14} aria-hidden /> Relié à CG Link</span>
             ) : (

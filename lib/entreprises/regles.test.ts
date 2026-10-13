@@ -97,6 +97,7 @@ describe("construireListe", () => {
     ignores: [],
     affilies: new Map([["c1", 42]]),
     delegues: new Map([["e1", 3]]),
+    secteurs: new Map([["s1", "Construction"]]),
   });
   it("fusionne CG Link et les fiches, triées par nom", () => {
     expect(liste.map((l) => l.nom)).toEqual(["Acme", "Beta", "Gamma"]);
@@ -106,6 +107,16 @@ describe("construireListe", () => {
     expect(acme).toMatchObject({ cle: "e1", affilies: 42, sites: 2, delegues: 3, localites: ["Arlon"], horsCgLink: false, bceManquant: false, ecartsOnss: true });
     expect(liste[1]).toMatchObject({ cle: "c-c2", sites: 0, bceManquant: true, ecartsOnss: false });
     expect(liste[2]).toMatchObject({ cle: "e2", horsCgLink: true, bceManquant: true });
+  });
+  it("secteur de la fiche, libellé CG Link à part, permanent", () => {
+    const avecSecteur = construireListe({
+      companies: [{ ...C, permanent_name: "Magali HOUBA", permanent_email: "magali.houba@accg.be" }],
+      fiches: [{ ...E, secteur_id: "s1" }], sites: [], unites: [], onss: [], ignores: [], affilies: new Map(), delegues: new Map(),
+      secteurs: new Map([["s1", "Construction"]]),
+    });
+    expect(avecSecteur[0]).toMatchObject({ secteur: "Construction", secteurId: "s1", secteurCgLink: "Construction", permanent: "Magali HOUBA", permanentEmail: "magali.houba@accg.be" });
+    expect(liste[0]).toMatchObject({ secteur: null, secteurCgLink: "Construction", permanent: null });
+    expect(correspond(avecSecteur[0], "houba")).toBe(true);
   });
   it("recherche par nom, n° BCE (avec ou sans points), ONSS et localité", () => {
     expect(correspond(liste[0], "acm")).toBe(true);

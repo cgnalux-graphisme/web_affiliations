@@ -4,6 +4,30 @@
 
 Le plus récent en haut. L'état **actuel** est dans CLAUDE.md (racine), section « État actuel ».
 
+## État au 13/10/2026 (soir)
+- **Une seule branche de travail : `suivi-actions`**, **poussée le 13/10/2026 à la demande de Fred** (mise en
+  production) : apps Entreprises et Gestion délégués CG Link, refonte de la fiche entreprise.
+- **App Entreprises** : 93 fiches (tableau de Fred + HEIDELBERG MATERIALS BENELUX + IL&C LUXEMBOURG ; XLG HOME
+  regroupée dans TRIXXO), 99 ONSS, unités **suivies** (nos provinces), fiche refondue (en-tête à chiffres clés,
+  lecture d'abord, carte Courrier). Import BCE : pages « Une unité » lues, captcha anti-robot de la BCE
+  reconnu (pause 30 s, relance des fiches en erreur), « Enregistrer tous les changements ». Contexte :
+  [docs/contexte/entreprises.md](docs/contexte/entreprises.md).
+- **App Gestion délégués CG Link** (SUPER_ADMIN par le rôle) : import CG Link, cartes (unité de rattachement,
+  adresse avec autocomplétion Photon, téléphone `+32 (0) …`), mandats, à vérifier, journal ; **plan 2b** :
+  comptes CG Link (inviter, renvoyer, annuler, bloquer, rétablir), synchronisation automatique de la carte
+  (jamais l'e-mail : adresse de connexion CG Link), changement d'entreprise, écarts (Reprendre / Ignorer /
+  Envoyer). Contexte : [docs/contexte/delegues.md](docs/contexte/delegues.md).
+- **Migrations exécutées par Fred** : `20261012120000`, `20261013090000`, `20261013100000`,
+  `20261013110000` (adresse des délégués : à confirmer par Fred si pas encore fait).
+- **Sécurité CG Link** : `workers` n'est plus lisible avec la clé publique (vérifié le 13/10/2026).
+- **À faire par Fred** : 1. tester le plan 2b avec un délégué de test sur une adresse secondaire (inviter,
+  synchro, bloquer, écart, changement d'entreprise, annulation) ; 2. faire corriger dans CG Link (Cursor)
+  l'écriture de `companies.delegates` sans relecture ni garde `updated_at` (prompt du 13/10/2026) ; 3. vérifier
+  avec Cursor qu'un délégué ne peut pas changer son propre `profiles.company_id` ; 4. choisir la suite
+  (proposition : publipostage, puis Open Data BCE, annuaire des délégués).
+- Les points ouverts des états précédents (Redirect URLs, tests des comptes) : voir
+  [docs/contexte/journal.md](docs/contexte/journal.md).
+
 ## État au 13/10/2026 (après-midi)
 - **Une seule branche de travail : `suivi-actions`** (`entreprises` fusionnée puis supprimée le 13/10/2026).
   Rien n'est poussé.

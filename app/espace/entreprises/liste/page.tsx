@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, Upload } from "lucide-react";
-import { exigerApp } from "../../../../lib/espace/acces";
+import { exigerApp, monProfil } from "../../../../lib/espace/acces";
+import { monPerimetre } from "../../../../lib/permanents/perimetre-serveur";
 import { chargerListe } from "../../../../lib/entreprises/donnees-serveur";
 import { Alerte, BTN, BTN_PRINCIPAL, EnteteEcran } from "../../_partage/ui";
 import ListeEntreprises from "./ListeEntreprises";
 
 export const metadata: Metadata = { title: "Entreprises — Espace CG", robots: { index: false, follow: false } };
 
-export default async function ListePage() {
+export default async function ListePage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   await exigerApp("entreprises");
-  const r = await chargerListe();
+  const [r, perimetre, profil, { mes }] = await Promise.all([chargerListe(), monPerimetre(), monProfil(), searchParams]);
+  // « Mes entreprises » : celles dont je suis le permanent dans CG Link (fiche, ou entreprise CG Link sans fiche).
+  const mesCles = r.ok
+    ? r.lignes.filter((l) => perimetre.ficheIds.has(l.cle) || (l.cle.startsWith("c-") && perimetre.companyIds.has(l.cle.slice(2)))).map((l) => l.cle)
+    : [];
+  const mesParDefaut = mes === "1" || (mes !== "0" && profil?.role === "PERMANENT" && mesCles.length > 0);
 
   return (
     <div className="ecg-ecran">
@@ -30,7 +36,7 @@ export default async function ListePage() {
         }
       />
       {r.ok ? (
-        <ListeEntreprises lignes={r.lignes} secteurs={r.secteurs} />
+        <ListeEntreprises lignes={r.lignes} secteurs={r.secteurs} mesCles={mesCles} mesParDefaut={mesParDefaut} />
       ) : (
         <Alerte ton="erreur" titre="Liste indisponible">
           {r.tablesAbsentes

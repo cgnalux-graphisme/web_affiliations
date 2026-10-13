@@ -53,6 +53,21 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
   `app/espace/entreprises/actions.ts`) : fiche, site « Site principal », ONSS. Idempotent (`company_id`
   unique, `upsert … ignoreDuplicates`).
 
+## Secteur, permanent et historique (13/10/2026, app Accès permanents)
+
+- **Secteur** : `site_entreprises.secteur_id` (liste `site_secteurs`, celle des actions et des fiches de suivi),
+  rempli par la migration `20261013120000` à partir de `companies.sector`, modifiable dans « Identité » ; le
+  libellé de CG Link reste affiché à part (« CG Link : … »). Filtre « Secteur » de la liste sur cette liste
+  (+ « Secteur à choisir »).
+- **Permanent** : lu en direct dans CG Link (`permanent_name`, `permanent_email`, `permanent_whatsapp`), en
+  lecture seule (il se change dans CG Link) : colonne de la liste, carte « Permanent » de la fiche (lien
+  WhatsApp). Filtre **« Mes entreprises »** (périmètre du permanent : voir [permanents.md](permanents.md)),
+  coché par défaut pour un PERMANENT (`?mes=1` / `?mes=0`).
+- **Historique** : panneau « Fiches de suivi » (fiches de l'entreprise, puis fiches sectorielles de son
+  secteur, repliées), visible avec l'app `permanents`.
+- Avant la migration `20261013120000`, la colonne `secteur_id` manque : **l'app Entreprises ne s'ouvre plus**
+  (lecture en erreur). Exécuter la migration avant de déployer.
+
 ## Import BCE
 
 - Pages publiques kbopub, en français : entité

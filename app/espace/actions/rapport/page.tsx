@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { exigerApp } from "../../../../lib/espace/acces";
+import { entreprisesChoix, secteursListe } from "../../../../lib/fiches-suivi/donnees-serveur";
+import { listePermanents } from "../../../../lib/permanents/perimetre-serveur";
 import GenerateurRapport from "./GenerateurRapport";
 
 export const metadata: Metadata = {
@@ -9,5 +11,12 @@ export const metadata: Metadata = {
 
 export default async function RapportPage() {
   await exigerApp("actions");
-  return <GenerateurRapport />;
+  const [entreprises, secteurs, permanents] = await Promise.all([entreprisesChoix(), secteursListe(), listePermanents()]);
+  return (
+    <GenerateurRapport
+      entreprises={entreprises.map((e) => ({ id: e.id, nom: e.nom }))}
+      secteurs={secteurs}
+      permanents={permanents.map((p) => ({ id: p.id, nom: p.nom }))}
+    />
+  );
 }

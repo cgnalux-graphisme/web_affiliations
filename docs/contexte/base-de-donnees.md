@@ -129,7 +129,7 @@ Entreprises et délégués (migration `supabase/migrations/20261012120000_site_e
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_entreprises` | Fiche : `company_id` (lien CG Link, unique, null = hors CG Link), `nom` (obligatoire hors CG Link), `numero_bce` (10 chiffres, **non unique** : HEIDELBERG / HEIDELBERG MATERIALS), `denomination_bce`, `siege_*`, `ref_*` (personne de référence), `bce_importe_le`, `notes`, `autres_company_ids` (entreprises CG Link regroupées, ex. XLG HOME dans TRIXXO) | App `entreprises` (session) |
+| `site_entreprises` | Fiche : `company_id` (lien CG Link, unique, null = hors CG Link), `nom` (obligatoire hors CG Link), `numero_bce` (10 chiffres, **non unique** : HEIDELBERG / HEIDELBERG MATERIALS), `denomination_bce`, `siege_*`, `ref_*` (personne de référence), `bce_importe_le`, `notes`, `autres_company_ids` (entreprises CG Link regroupées, ex. XLG HOME dans TRIXXO), `secteur_id` (→ `site_secteurs`, 13/10/2026, migration `20261013120000`) | App `entreprises` (session) |
 | `site_entreprise_sites` | Sites = UTE : `nom`, `principal` (un seul par entreprise), `unite_postale_id`, `ref_*`, `ordre` | App `entreprises` |
 | `site_entreprise_unites` | Unités d'établissement : `numero_ue` (unique par fiche), adresse, `statut` (`actif` / `arrete`), `date_debut`, `site_id`, `origine` (`bce` / `manuel`), `suivie` (unité suivie par la CG, 13/10/2026) | App `entreprises` |
 | `site_entreprise_onss` | ONSS : `numero` (chiffres, unique par entreprise), `libelle`, `site_id` | App `entreprises` |
@@ -140,6 +140,20 @@ Entreprises et délégués (migration `supabase/migrations/20261012120000_site_e
 | `site_appliquer_bce()` | Import BCE en une transaction (unités créées / modifiées, dénomination, siège, `bce_importe_le`) | `authenticated` (security invoker, vérifie l'app) |
 | Trigger `site_entreprise_sites_avant_suppression` | Site principal non supprimable ; unités, ONSS, mandats d'un site supprimé → site principal | — |
 | `site_compter_affilies()` | Affiliés `Actif` de `workers` par `company_id` et `contract_type` ; renvoie 0 ligne sans l'app `entreprises` ou `delegues` | `authenticated` (security definer) ; pas `anon` |
+
+Fiches de suivi (migration `supabase/migrations/20261013120000_site_fiches_suivi.sql`, design validé par Fred le
+13/10/2026, **à exécuter par Fred**). Contexte : [permanents.md](permanents.md).
+
+| Objet | Rôle | Accès |
+|---|---|---|
+| `site_fiches_suivi` | Une fiche : `type` (`usine` / `sectoriel`), `titre`, `date_debut`, `date_fin` (null = date unique, ≥ début), `entreprise_id`, `site_id`, `secteur_id`, réponses `origine`, `duree`, `echanges_direction`, `courriers`, `evenements`, `resolution`, `resultat`, `texte`, `texte_genere_le`, `statut` (`brouillon` / `terminee`), `auteur_id` (défaut `auth.uid()`), `created_at`, `updated_at` (trigger) | Lecture : app `permanents` ; insertion : app + auteur = soi ; modification / suppression : `site_fiche_modifiable(auteur_id)` (app + auteur ou SUPER_ADMIN) |
+| `site_fiches_suivi_fichiers` | Documents et photos : `fiche_id` (cascade), `genre` (`document` / `photo`), `chemin` (unique), `nom_origine`, `taille`, `type_mime`, `nature` (`courrier_envoye`, `courrier_recu`, `pv`, `preavis`, `accord`, `tract`, `presse`, `autre`), `nature_autre`, `legende`, `ordre` | Lecture : app `permanents` ; écriture : selon la fiche |
+| `site_fiche_modifiable(uuid)` | Vrai si app `permanents` et (auteur = soi ou SUPER_ADMIN) | `authenticated` (security definer) |
+| Bucket `fiches-suivi` | **Privé**, 25 Mo par fichier, **aucune politique** : envois et lectures uniquement par liens signés créés côté serveur (service_role) après vérification | — |
+
+La migration ajoute aussi l'app `permanents` à `site_apps` et les rôles par défaut (`permanents` et `delegues`
+pour PERMANENT), et remplit `site_entreprises.secteur_id` à partir de `companies.sector` (Construction, Bois,
+Chimie, ETA, Nettoyage, Gardiennage, Titres-Services, Carrière ; ALE, CP100, Verre et papier restent à choisir).
 
 ### Colonnes de `site_articles`
 `titre`, `slug` (adresse `/blog/<slug>` ou `/on-vous-explique/<slug>` selon

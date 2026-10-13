@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { estSuperAdmin, utilisateurConnecte } from "../../../lib/espace/acces";
+import { utilisateurConnecte } from "../../../lib/espace/acces";
+import { accesDelegues, dansAcces, type AccesDelegues } from "../../../lib/permanents/perimetre-serveur";
 import { getSupabaseService } from "../../../lib/supabase-service";
 import { dateFrToIso } from "../../../lib/dates";
 import { uniteAutorisee, uniteModifiable, validerDelegue } from "../../../lib/delegues/delegue";
@@ -14,13 +15,15 @@ import { executerImport, type RapportImport } from "../../../lib/delegues/import
 import { COLONNES_DELEGUE, COLONNES_MANDAT, type Delegue, type DelegueCgLink, type Mandat } from "../../../lib/delegues/types";
 
 /**
- * Écritures de l'app Gestion délégués CG Link : rôle SUPER_ADMIN revérifié à chaque action, puis service_role
- * (les tables délégués n'ont aucune politique d'écriture). Chaque modification écrit une ligne de journal.
- * Rien n'est écrit dans CG Link (plan 2b).
+ * Écritures de l'app Gestion délégués CG Link : droit revérifié à chaque action, puis service_role (les tables
+ * délégués n'ont aucune politique d'écriture). Chaque modification écrit une ligne de journal.
+ * - SUPER_ADMIN : tous les délégués, comptes CG Link compris ;
+ * - permanent (app « delegues ») : seulement les délégués des fiches de son périmètre ; jamais les paramètres de
+ *   connexion (inviter, renvoyer, annuler, bloquer, rétablir, retirer le lien, écart d'e-mail) ni l'import.
  */
 
 export type Resultat<T = undefined> = { ok: true; donnees?: T; message?: string } | { ok: false; erreur: string };
-type Ctx = { db: SupabaseClient; auteur: string };
+type Ctx = { db: SupabaseClient; auteur: string; acces: AccesDelegues };
 
 const REFUS = "Accès refusé. Reconnectez-vous.";
 const ECHEC = "Enregistrement impossible. Rechargez la page puis réessayez.";
@@ -28,7 +31,14 @@ const ECHEC = "Enregistrement impossible. Rechargez la page puis réessayez.";
 async function ctx(): Promise<Ctx | null> {
   const user = await utilisateurConnecte();
   const db = getSupabaseService();
-  return user && db && (await estSuperAdmin()) ? { db, auteur: user.id } : null;
+  const acces = user ? await accesDelegues() : null;
+  return user && db && acces ? { db, auteur: user.id, acces } : null;
+}
+
+/** Paramètres de connexion (comptes CG Link) et import : SUPER_ADMIN uniquement. */
+async function ctxSuperAdmin(): Promise<Ctx | null> {
+  const c = await ctx();
+  return c?.acces.tout ? c : null;
 }
 
 function rafraichir(delegueId?: string) {
@@ -45,9 +55,11 @@ async function journal(c: Ctx, action: string, delegue: Pick<Delegue, "id" | "en
   if (error) console.error("[delegues] journal :", error.code);
 }
 
+/** Un délégué hors du périmètre de la personne est traité comme introuvable. */
 async function lireDelegue(c: Ctx, id: string): Promise<Delegue | null> {
   const { data } = await c.db.from("site_delegues").select(COLONNES_DELEGUE).eq("id", id).maybeSingle();
-  return (data as Delegue | null) ?? null;
+  const d = (data as Delegue | null) ?? null;
+  return d && dansAcces(c.acces, d.entreprise_id) ? d : null;
 }
 
 async function unitesDe(c: Ctx, entrepriseId: string) {
@@ -78,7 +90,7 @@ async function apresModification(c: Ctx, delegueId: string, message: string): Pr
 }
 
 export async function lancerImport(): Promise<Resultat<RapportImport>> {
-  const c = await ctx();
+  const c = await ctxSuperAdmin();
   if (!c) return { ok: false, erreur: REFUS };
   const r = await executerImport(c.auteur);
   if (!r) return { ok: false, erreur: "L'import n'a pas pu lire CG Link. Réessayez dans un instant." };
@@ -92,6 +104,7 @@ export async function creerDelegue(champs: Record<string, string>): Promise<Resu
   const v = validerDelegue({ nom: "", ...champs });
   if (!v.ok) return v;
   const entrepriseId = (champs.entreprise_id ?? "").trim();
+  if (!dansAcces(c.acces, entrepriseId)) return { ok: false, erreur: "Choisissez une de vos entreprises." };
   const { data: fiche } = await c.db.from("site_entreprises").select("id").eq("id", entrepriseId).maybeSingle();
   if (!fiche) return { ok: false, erreur: "Choisissez l'entreprise du délégué." };
   if (!uniteAutorisee(v.valeurs.unite_id ?? null, entrepriseId, await unitesDe(c, entrepriseId))) {
@@ -244,7 +257,7 @@ export async function confirmerMandat(mandatId: string): Promise<Resultat> {
 const REDIRECTION_CGLINK = "https://cglink-app.vercel.app/";
 
 export async function inviterDelegue(id: string): Promise<Resultat> {
-  const c = await ctx();
+  const c = await ctxSuperAdmin();
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d) return { ok: false, erreur: ECHEC };
@@ -264,7 +277,7 @@ export async function inviterDelegue(id: string): Promise<Resultat> {
 }
 
 export async function renvoyerInvitation(id: string): Promise<Resultat> {
-  const c = await ctx();
+  const c = await ctxSuperAdmin();
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id || !d.email) return { ok: false, erreur: ECHEC };
@@ -279,7 +292,7 @@ export async function renvoyerInvitation(id: string): Promise<Resultat> {
 }
 
 export async function annulerInvitation(id: string): Promise<Resultat> {
-  const c = await ctx();
+  const c = await ctxSuperAdmin();
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id) return { ok: false, erreur: ECHEC };
@@ -294,7 +307,7 @@ export async function annulerInvitation(id: string): Promise<Resultat> {
 }
 
 export async function changerAcces(id: string, actif: boolean): Promise<Resultat> {
-  const c = await ctx();
+  const c = await ctxSuperAdmin();
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id) return { ok: false, erreur: ECHEC };
@@ -308,7 +321,7 @@ export async function changerAcces(id: string, actif: boolean): Promise<Resultat
 }
 
 export async function retirerLienCgLink(id: string): Promise<Resultat> {
-  const c = await ctx();
+  const c = await ctxSuperAdmin();
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id) return { ok: false, erreur: ECHEC };
@@ -336,6 +349,7 @@ export async function changerEntreprise(id: string, entrepriseId: string): Promi
   if (!c) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d || d.entreprise_id === entrepriseId) return { ok: false, erreur: ECHEC };
+  if (!dansAcces(c.acces, entrepriseId)) return { ok: false, erreur: "Choisissez une de vos entreprises." };
   const { data: fiche } = await c.db.from("site_entreprises").select("id, company_id").eq("id", entrepriseId).maybeSingle();
   if (!fiche) return { ok: false, erreur: "Choisissez une entreprise." };
   if (d.cglink_user_id) {
@@ -378,7 +392,7 @@ export async function changerEntreprise(id: string, entrepriseId: string): Promi
 
 export async function reprendreEcart(id: string, champ: ChampEcart): Promise<Resultat> {
   const c = await ctx();
-  if (!c) return { ok: false, erreur: REFUS };
+  if (!c || (champ === "email" && !c.acces.tout)) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d?.cglink_user_id) return { ok: false, erreur: ECHEC };
   const lieu = await lieuCgLink(c, d.cglink_user_id);
@@ -408,7 +422,7 @@ export async function reprendreEcart(id: string, champ: ChampEcart): Promise<Res
 
 export async function ignorerEcart(id: string, champ: string, valeur: string): Promise<Resultat> {
   const c = await ctx();
-  if (!c) return { ok: false, erreur: REFUS };
+  if (!c || (champ === "email" && !c.acces.tout)) return { ok: false, erreur: REFUS };
   const d = await lireDelegue(c, id);
   if (!d) return { ok: false, erreur: ECHEC };
   const { error } = await c.db.from("site_ecarts_ignores").upsert(

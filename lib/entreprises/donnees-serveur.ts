@@ -1,6 +1,7 @@
 import { getSupabaseServer } from "../supabase-server";
 import { getSupabaseService } from "../supabase-service";
 import { construireListe, lireCle, type LigneListe } from "./regles";
+import { secteursListe } from "../fiches-suivi/donnees-serveur";
 import {
   COLONNES_ENTREPRISE, COLONNES_ONSS, COLONNES_SITE, COLONNES_UNITE,
   type CompanyCgLink, type DelegueAffiche, type Entreprise, type Onss, type Site, type Unite,
@@ -12,7 +13,8 @@ import {
  * les affiliés passent par la fonction site_compter_affilies() avec la session (elle vérifie l'app).
  */
 
-export const COLONNES_COMPANY = "id, name, sector, onss, onss2, onss2_label, onss3, onss3_label, onss4, onss4_label";
+export const COLONNES_COMPANY =
+  "id, name, sector, onss, onss2, onss2_label, onss3, onss3_label, onss4, onss4_label, permanent_name, permanent_email, permanent_whatsapp";
 export type Affilies = { total: number; parContrat: { type: string; nombre: number }[] };
 
 /** Affiliés de plusieurs entreprises CG Link regroupées dans une fiche (ex. TRIXXO + XLG HOME). */
@@ -48,7 +50,7 @@ export async function affiliesParCompany(): Promise<Map<string, Affilies>> {
 export async function chargerListe() {
   const db = getSupabaseService();
   if (!db) return { ok: false as const, tablesAbsentes: false };
-  const [companies, fiches, sites, unites, onss, ignores, delegues, affilies] = await Promise.all([
+  const [companies, fiches, sites, unites, onss, ignores, delegues, affilies, secteurs] = await Promise.all([
     db.from("companies").select(COLONNES_COMPANY),
     db.from("site_entreprises").select(COLONNES_ENTREPRISE),
     db.from("site_entreprise_sites").select("entreprise_id"),
@@ -57,6 +59,7 @@ export async function chargerListe() {
     db.from("site_ecarts_ignores").select("cible_id, valeur").eq("cible", "entreprise").eq("champ", "onss"),
     db.from("site_delegues").select("entreprise_id"),
     affiliesParCompany(),
+    secteursListe(),
   ]);
   const erreur = [companies, fiches, sites, unites, onss, ignores, delegues].find((r) => r.error)?.error;
   if (erreur) {
@@ -74,8 +77,8 @@ export async function chargerListe() {
     ignores: (ignores.data ?? []) as { cible_id: string; valeur: string }[],
     affilies: new Map([...affilies].map(([k, v]) => [k, v.total])),
     delegues: nbDelegues,
+    secteurs: new Map(secteurs.map((s) => [s.id, s.nom])),
   });
-  const secteurs = [...new Set(lignes.map((l) => l.secteur).filter((s): s is string => Boolean(s)))].sort((a, b) => a.localeCompare(b, "fr"));
   return { ok: true as const, lignes, secteurs };
 }
 
@@ -90,6 +93,9 @@ export type Fiche = {
   delegues: DelegueAffiche[];
   affilies: Affilies | null;
   companiesLibres: { id: string; name: string }[];
+  /** Secteurs au choix (site_secteurs) et nom du secteur de la fiche. */
+  secteurs: { id: string; nom: string }[];
+  secteur: string | null;
 };
 
 export async function chargerFiche(cle: string) {
@@ -110,7 +116,7 @@ export async function chargerFiche(cle: string) {
   if (c.type === "company" && !company) return { ok: false as const, raison: "introuvable" as const };
 
   const id = fiche?.id ?? "00000000-0000-0000-0000-000000000000";
-  const [sites, unites, onss, ignores, delegues, mandats, libres, affilies] = await Promise.all([
+  const [sites, unites, onss, ignores, delegues, mandats, libres, affilies, secteurs] = await Promise.all([
     db.from("site_entreprise_sites").select(COLONNES_SITE).eq("entreprise_id", id).order("principal", { ascending: false }).order("ordre").order("nom"),
     db.from("site_entreprise_unites").select(COLONNES_UNITE).eq("entreprise_id", id).order("statut").order("localite"),
     db.from("site_entreprise_onss").select(COLONNES_ONSS).eq("entreprise_id", id).order("numero"),
@@ -119,6 +125,7 @@ export async function chargerFiche(cle: string) {
     db.from("site_delegue_mandats").select("delegue_id, organe, qualite, libelle, fonction, site_id, fin"),
     fiche && !fiche.company_id ? db.from("companies").select("id, name").order("name") : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     company ? affiliesParCompany() : Promise.resolve(new Map<string, Affilies>()),
+    secteursListe(),
   ]);
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
@@ -152,6 +159,8 @@ export async function chargerFiche(cle: string) {
       delegues: listeDelegues,
       affilies: company ? additionnerAffilies([company.id, ...(fiche?.autres_company_ids ?? [])], affilies) : null,
       companiesLibres,
+      secteurs,
+      secteur: (fiche?.secteur_id && secteurs.find((s) => s.id === fiche.secteur_id)?.nom) || null,
     } satisfies Fiche,
   };
 }

@@ -15,6 +15,8 @@ export type SectionApp = {
   icone: string;
   /** Autres adresses (expressions régulières) où cette section reste active dans le menu. */
   aussi?: string[];
+  /** Section réservée au SUPER_ADMIN (masquée du menu des autres ; la page revérifie le rôle). */
+  superAdmin?: boolean;
 };
 
 export type ManifesteApp = {

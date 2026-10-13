@@ -48,7 +48,13 @@ des écrans du back-office »).
 Au 08/10/2026 : `actions`, `scan-news`, `parametres` → SUPER_ADMIN ; `demarches` → SUPER_ADMIN et ADMIN_OP.
 Au 12/10/2026 (migration `20261012120000`, à exécuter par Fred) : `entreprises` → SUPER_ADMIN, ADMIN_OP et
 PERMANENT (couleur #E69F00, icône `building`) ; `delegues` (« Gestion délégués CG Link », #CC79A7, `id-card`)
-activée le 13/10/2026 (migration `20261013100000`), réservée au SUPER_ADMIN **par le rôle** (layout, pages, actions). Détail : [docs/contexte/delegues.md](../../docs/contexte/delegues.md). Détail : [docs/contexte/entreprises.md](../../docs/contexte/entreprises.md).
+activée le 13/10/2026 (migration `20261013100000`) ; depuis la migration `20261013120000` (à exécuter par Fred),
+ouverte aussi aux PERMANENT, limitée à leurs entreprises et sans les paramètres de connexion. `permanents`
+(« Accès permanents », #A0522D, `key`, ordre 35) → PERMANENT (SUPER_ADMIN toujours). Détail :
+[docs/contexte/delegues.md](../../docs/contexte/delegues.md), [docs/contexte/entreprises.md](../../docs/contexte/entreprises.md),
+[docs/contexte/permanents.md](../../docs/contexte/permanents.md).
+Une section de manifeste peut porter `superAdmin: true` : elle est masquée du menu des autres (la page
+revérifie le rôle).
 
 **Protection côté serveur, à trois niveaux** (`lib/espace/acces.ts`) :
 1. `/espace…` exige une connexion (`proxy.ts`, puis `app/espace/layout.tsx`). L'équipe (`ROLES_EQUIPE` :
@@ -157,7 +163,7 @@ Une app présente en base mais sans dossier n'apparaît pas ; les apps « Bient�
 
 | Route | Accès | Rôle |
 |---|---|---|
-| `/espace` | connecté (équipe) | **Espace CG** (08/10/2026) : « Bonjour <prénom> », la date, une tuile par app de la personne (badge : « N à trier », « N nouvelles »…), tuiles « Bientôt » (Mémoire CG, Accès permanent). Aucune app = écran « demandez un accès ». L'ancien tableau de bord `/suivi-actions` est supprimé (redirigé) |
+| `/espace` | connecté (équipe) | **Espace CG** (08/10/2026) : « Bonjour <prénom> », la date, une tuile par app de la personne (badge : « N à trier », « N nouvelles »…), tuile « Bientôt » (Mémoire CG). Aucune app = écran « demandez un accès ». L'ancien tableau de bord `/suivi-actions` est supprimé (redirigé) |
 | `/espace/compte` | connecté (équipe) | Mon compte : profil en lecture seule, changement du mot de passe (le même que CG Link), déconnexion |
 | `/espace/sans-acces` | connecté | « Vous n'avez pas accès à cette app » (une page d'app y renvoie quand le droit manque) |
 | `/espace/<code>` | app `<code>` | Ouvre la première section de l'app |
@@ -168,7 +174,9 @@ Une app présente en base mais sans dossier n'apparaît pas ; les apps « Bient�
 | `/espace/actions/liste` | app `actions` | Liste de toutes les actions (publiées ou non) |
 | `/espace/actions/nouvelle` | app `actions` | Encoder une action |
 | `/espace/actions/<id>/modifier` | app `actions` | Modifier / supprimer une action |
-| `/espace/actions/rapport` | app `actions` | Rapport d'activité PDF (congrès) |
+| `/espace/actions/rapport` | app `actions` | Rapport de congrès PDF : composer (période, entreprise, secteur, permanent, actions et / ou fiches de suivi), cocher les éléments, générer |
+| `/espace/permanents/accueil` · `/fiches` · `/fiches/nouvelle` · `/fiches/<id>` · `/fiches/<id>/modifier` | app `permanents` | **Accès permanents** (13/10/2026) : tableau de bord, fiches de suivi (lecture : tous ; modification : auteur ou SUPER_ADMIN), éditeur en 5 étapes, PDF. Détail : [docs/contexte/permanents.md](../../docs/contexte/permanents.md) |
+| `/api/permanents/redaction` | app `permanents` (auteur ou SUPER_ADMIN) | Texte d'une fiche de suivi rédigé par Claude Sonnet 5 (POST `{ ficheId }`), rien n'est enregistré |
 | `/espace/demarches/demandes` | app `demarches` | Back-office des demandes : historique des formulaires par type (onglets), recherche, dates, tri, pagination |
 | `/espace/demarches/demandes/<type>/<id>` | app `demarches` | Une demande : toutes ses informations, signature, « Régénérer le PDF » + « Télécharger » |
 | `/espace/scan-news/articles` | app `scan-news` | Liste des articles (brouillons et publiés) : modifier, publier / dépublier, supprimer |
@@ -189,8 +197,8 @@ Une app présente en base mais sans dossier n'apparaît pas ; les apps « Bient�
 | `/espace/entreprises/nouvelle` | app `entreprises` | Fiche d'une entreprise absente de CG Link |
 | `/espace/entreprises/<cle>` · `/bce` | app `entreprises` | Fiche (`<cle>` = id de fiche ou `c-<companies.id>`) : identité, siège, personne de référence, bloc adresse, sites (UTE), unités, ONSS, affiliés ; import BCE avec comparaison |
 | `/espace/entreprises/bce` | app `entreprises` | Import BCE de toutes les fiches qui ont un n° d'entreprise |
-| `/espace/delegues/liste` · `/nouveau` · `/<id>` | **SUPER_ADMIN (rôle)** + app `delegues` | **Gestion délégués CG Link** (13/10/2026) : liste filtrable, création, carte d'identité (unité de rattachement, mandats, compte CG Link en lecture seule, historique) |
-| `/espace/delegues/a-verifier` · `/import` · `/journal` | **SUPER_ADMIN (rôle)** + app `delegues` | Éléments marqués par l'import ; import depuis CG Link (relançable) ; journal des opérations |
+| `/espace/delegues/liste` · `/nouveau` · `/<id>` | app `delegues` (SUPER_ADMIN : tous ; permanent : ses entreprises, sans compte CG Link) | **Gestion délégués CG Link** (13/10/2026) : liste filtrable, création, carte d'identité (unité de rattachement, mandats, compte CG Link en lecture seule, historique) |
+| `/espace/delegues/a-verifier` · `/import` · `/journal` | app `delegues` (à vérifier : périmètre ; import et journal : SUPER_ADMIN par le rôle) | Éléments marqués par l'import ; import depuis CG Link (relançable) ; journal des opérations |
 | `/espace/parametres/envois` | app `parametres` | Paramètres : adresses internes qui reçoivent chaque envoi automatique des formulaires (ajouter, activer / désactiver, supprimer) |
 | `/api/admin/demandes` | app `demarches` | Liste d'un type de demande (GET `?type=&q=&du=&au=&tri=&page=`) — clé service_role |
 | `/api/admin/demandes/<type>/<id>` · `/pdf` · `/liees` · `/envois` | app `demarches` | Détail complet d'une demande ; PDF C1 / C3.2 rempli côté serveur ; demandes de la même personne ; historique des e-mails |

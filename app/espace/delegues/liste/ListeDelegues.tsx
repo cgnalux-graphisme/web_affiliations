@@ -13,7 +13,8 @@ const ICONE_COMPTE = { actif: CircleCheck, invite: Clock, bloque: CircleSlash, s
 const TON_COMPTE = { actif: "ok", invite: "attente", bloque: "erreur", sans_compte: undefined, introuvable: "erreur" } as const;
 const sansAccents = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export default function ListeDelegues({ lignes, entreprises }: { lignes: LigneDelegue[]; entreprises: EntrepriseChoix[] }) {
+/** superAdmin = false (permanent) : ni filtre ni colonne « Compte CG Link » (paramètres de connexion). */
+export default function ListeDelegues({ lignes, entreprises, superAdmin }: { lignes: LigneDelegue[]; entreprises: EntrepriseChoix[]; superAdmin: boolean }) {
   const [q, setQ] = useState("");
   const [entreprise, setEntreprise] = useState("");
   const [organe, setOrgane] = useState("");
@@ -54,13 +55,13 @@ export default function ListeDelegues({ lignes, entreprises }: { lignes: LigneDe
             {ORGANES.map((o) => <option key={o} value={o}>{LIBELLES_ORGANES[o]}</option>)}
           </select>
         </div>
-        <div>
+        {superAdmin && <div>
           <label htmlFor="compte" className={LIBELLE}>Compte CG Link</label>
           <select id="compte" value={compte} onChange={(e) => setCompte(e.target.value)} className={CHAMP}>
             <option value="">Tous</option>
             {(Object.keys(LIBELLES_COMPTE) as EtatCompte[]).map((k) => <option key={k} value={k}>{LIBELLES_COMPTE[k]}</option>)}
           </select>
-        </div>
+        </div>}
         <label className="flex items-center gap-2 self-end pb-3">
           <input type="checkbox" className="h-5 w-5" checked={aVerifier} onChange={(e) => setAVerifier(e.target.checked)} />
           À vérifier seulement
@@ -72,11 +73,11 @@ export default function ListeDelegues({ lignes, entreprises }: { lignes: LigneDe
       </div>
       <p className="sr-only" aria-live="polite">{visibles.length} délégué(s) affiché(s)</p>
       {visibles.length === 0 ? (
-        <div className="p-5"><Vide icone="id-card" titre="Aucun délégué ne correspond.">Modifiez la recherche ou les filtres, ou lancez l'import CG Link.</Vide></div>
+        <div className="p-5"><Vide icone="id-card" titre="Aucun délégué ne correspond.">{superAdmin ? "Modifiez la recherche ou les filtres, ou lancez l'import CG Link." : "Modifiez la recherche ou les filtres."}</Vide></div>
       ) : (
         <div className="ecg-tableau-cadre mt-3">
           <table className="ecg-tableau">
-            <thead><tr><th scope="col">Délégué</th><th scope="col">Entreprise</th><th scope="col">Mandats en cours</th><th scope="col">Compte CG Link</th></tr></thead>
+            <thead><tr><th scope="col">Délégué</th><th scope="col">Entreprise</th><th scope="col">Mandats en cours</th>{superAdmin && <th scope="col">Compte CG Link</th>}</tr></thead>
             <tbody>
               {visibles.map((l) => {
                 const Icone = ICONE_COMPTE[l.compte];
@@ -93,7 +94,7 @@ export default function ListeDelegues({ lignes, entreprises }: { lignes: LigneDe
                     </td>
                     <td>{l.entrepriseNom}</td>
                     <td>{l.mandats.join(" · ")}</td>
-                    <td><Statut ton={TON_COMPTE[l.compte]} icone={Icone}>{LIBELLES_COMPTE[l.compte]}</Statut></td>
+                    {superAdmin && <td><Statut ton={TON_COMPTE[l.compte]} icone={Icone}>{LIBELLES_COMPTE[l.compte]}</Statut></td>}
                   </tr>
                 );
               })}

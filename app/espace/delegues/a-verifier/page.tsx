@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { exigerSuperAdmin } from "../../../../lib/espace/acces";
+import { exigerAccesDelegues } from "../../../../lib/permanents/perimetre-serveur";
 import { chargerAVerifier } from "../../../../lib/delegues/donnees-serveur";
 import { EnteteEcran, Panneau, Vide } from "../../_partage/ui";
 import BoutonConfirmer from "./BoutonConfirmer";
@@ -8,8 +8,7 @@ import BoutonConfirmer from "./BoutonConfirmer";
 export const metadata: Metadata = { title: "À vérifier — Espace CG", robots: { index: false, follow: false } };
 
 export default async function AVerifierPage() {
-  await exigerSuperAdmin();
-  const { delegues, mandats } = await chargerAVerifier();
+  const { delegues, mandats } = await chargerAVerifier(await exigerAccesDelegues());
   return (
     <div className="ecg-ecran">
       <EnteteEcran icone="flag" titre="À vérifier" description="Ce que l'import n'a pas pu trancher seul. Confirmez, ou corrigez sur la carte du délégué." />

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { formaterTelephone } from "../../../../lib/telephone";
-import { exigerSuperAdmin } from "../../../../lib/espace/acces";
+import { exigerAccesDelegues } from "../../../../lib/permanents/perimetre-serveur";
 import { chargerCarte } from "../../../../lib/delegues/donnees-serveur";
 import { isoToDateFr } from "../../../../lib/dates";
 import { Alerte, EnteteEcran, Panneau } from "../../_partage/ui";
@@ -16,9 +16,9 @@ export const metadata: Metadata = { title: "Délégué — Espace CG", robots: {
 const dateHeure = (iso: string) => `${isoToDateFr(iso.slice(0, 10))} ${new Date(iso).toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Brussels" })}`;
 
 export default async function CartePage({ params }: { params: Promise<{ id: string }> }) {
-  await exigerSuperAdmin();
+  const acces = await exigerAccesDelegues();
   const { id } = await params;
-  const carte = await chargerCarte(id);
+  const carte = await chargerCarte(id, acces);
   if (!carte) notFound();
   const { delegue: d } = carte;
   const nom = [d.prenom, d.nom].filter(Boolean).join(" ");
@@ -44,7 +44,8 @@ export default async function CartePage({ params }: { params: Promise<{ id: stri
       <PanneauIdentite carte={carte} />
       <PanneauMandats carte={carte} />
       <PanneauEcarts carte={carte} />
-      <PanneauCompte carte={carte} />
+      {/* Paramètres de connexion (compte CG Link) : SUPER_ADMIN uniquement, jamais affichés aux autres. */}
+      {acces.tout && <PanneauCompte carte={carte} />}
       {carte.journal.length > 0 && (
         <Panneau titre="Historique">
           <ul className="grid gap-1 text-sm">

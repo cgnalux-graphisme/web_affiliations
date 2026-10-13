@@ -12,11 +12,23 @@ mandats, unité de rattachement, « À vérifier », journal, **sans aucune écr
 
 ## Accès
 
-App `delegues` (couleur `#CC79A7`, icône `id-card`, ordre 50). **SUPER_ADMIN uniquement, vérifié par le
-rôle** (`estSuperAdmin()` / `exigerSuperAdmin()`, `lib/espace/acces.ts`) dans le layout, chaque page et
-chaque action : donner l'app à un autre compte dans « Comptes & accès » n'ouvre rien. Aucun rôle par défaut
-dans `site_app_roles`. L'app Entreprises affiche les délégués en lecture seule (lien « Gérer » pour les
-SUPER_ADMIN).
+App `delegues` (couleur `#CC79A7`, icône `id-card`, ordre 50).
+- **SUPER_ADMIN** : tous les délégués, tout compris.
+- **Permanents** (depuis le 13/10/2026, décision de Fred ; rôle par défaut PERMANENT, migration
+  `20261013120000`) : **accès complet aux délégués de leurs entreprises** (périmètre CG Link, voir
+  [permanents.md](permanents.md)) : liste, création, identité, adresse, unité, mandats, à vérifier, écarts,
+  changement d'entreprise vers une de leurs entreprises. **Sauf tout ce qui concerne la connexion**, ni
+  affiché ni permis : panneau « Compte CG Link » (inviter, renvoyer, annuler, bloquer, rétablir, retirer le
+  lien), colonne et filtre « Compte CG Link », écart d'e-mail ; ni l'import ni le journal (sections du menu
+  `superAdmin: true`, pages `exigerSuperAdmin()`).
+- Code : `accesDelegues()` / `exigerAccesDelegues()` / `dansAcces()` (`lib/permanents/perimetre-serveur.ts`) ;
+  chaque lecture (`chargerListeDelegues`, `chargerCarte`, `chargerAVerifier`, badge) et chaque action
+  (`lireDelegue()` traite un délégué hors périmètre comme introuvable ; `ctxSuperAdmin()` pour les comptes et
+  l'import) revérifie. Toute autre personne à qui l'app serait donnée a le même régime que le permanent
+  (périmètre vide si elle n'est permanent d'aucune entreprise).
+- La synchronisation automatique vers CG Link (nom, téléphone, mandats ; jamais l'e-mail) continue pour les
+  modifications d'un permanent. L'e-mail du délégué reste visible (contact).
+- L'app Entreprises affiche les délégués en lecture seule (lien « Gérer »).
 
 ## Routes
 

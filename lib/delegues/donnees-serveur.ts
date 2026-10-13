@@ -4,9 +4,13 @@ import { nomAffiche } from "../entreprises/regles";
 import { etatCompte, phraseJournal } from "./delegue";
 import { libelleMandat, mandatEnCours } from "./mandats";
 import { calculerEcarts, type Ecart } from "./ecarts";
+import { dansAcces, type AccesDelegues } from "../permanents/perimetre-serveur";
 import { COLONNES_DELEGUE, COLONNES_MANDAT, type Delegue, type DelegueCgLink, type EtatCompte, type Mandat, type Organe } from "./types";
 
-/** Lectures de l'app Gestion délégués CG Link. SERVEUR UNIQUEMENT, service_role, après exigerSuperAdmin(). */
+/**
+ * Lectures de l'app Gestion délégués CG Link. SERVEUR UNIQUEMENT, service_role, après exigerAccesDelegues() :
+ * chaque lecture est limitée à l'accès reçu (tous les délégués, ou ceux des fiches du permanent).
+ */
 
 export type LigneDelegue = { id: string; prenom: string | null; nom: string; entrepriseId: string; entrepriseNom: string;
   mandats: string[]; organes: Organe[]; compte: EtatCompte; aVerifier: boolean; ecarts: number };
@@ -51,7 +55,7 @@ async function connexions(): Promise<Map<string, string | null>> {
   }
 }
 
-export async function chargerListeDelegues() {
+export async function chargerListeDelegues(acces: AccesDelegues) {
   const db = getSupabaseService();
   if (!db) return { ok: false as const, erreur: "Configuration serveur incomplète." };
   const [{ data: delegues, error }, { data: mandats }, { noms, entrees }, cnx, ignores] = await Promise.all([
@@ -68,7 +72,7 @@ export async function chargerListeDelegues() {
   const jour = aujourdhui();
   const parDelegue = new Map<string, Mandat[]>();
   for (const m of (mandats ?? []) as Mandat[]) parDelegue.set(m.delegue_id, [...(parDelegue.get(m.delegue_id) ?? []), m]);
-  const lignes: LigneDelegue[] = ((delegues ?? []) as Delegue[]).map((d) => {
+  const lignes: LigneDelegue[] = ((delegues ?? []) as Delegue[]).filter((d) => dansAcces(acces, d.entreprise_id)).map((d) => {
     const ms = (parDelegue.get(d.id) ?? []).filter((m) => mandatEnCours(m, jour));
     return {
       id: d.id, prenom: d.prenom, nom: d.nom, entrepriseId: d.entreprise_id, entrepriseNom: noms.get(d.entreprise_id) ?? "",
@@ -76,11 +80,12 @@ export async function chargerListeDelegues() {
       compte: etatCompte(d.cglink_user_id, d.cglink_user_id ? entrees.get(d.cglink_user_id) : undefined, d.cglink_user_id ? cnx.get(d.cglink_user_id) : null),
       aVerifier: Boolean(d.a_verifier) || (parDelegue.get(d.id) ?? []).some((m) => m.a_verifier),
       ecarts: d.cglink_user_id && entrees.get(d.cglink_user_id)
-        ? calculerEcarts(d, parDelegue.get(d.id) ?? [], entrees.get(d.cglink_user_id)!, ignores.get(d.id) ?? [], jour).length
+        ? calculerEcarts(d, parDelegue.get(d.id) ?? [], entrees.get(d.cglink_user_id)!, ignores.get(d.id) ?? [], jour)
+            .filter((e) => acces.tout || e.champ !== "email").length
         : 0,
     };
   });
-  const entreprises = [...noms].map(([id, nom]) => ({ id, nom })).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  const entreprises = [...noms].filter(([id]) => dansAcces(acces, id)).map(([id, nom]) => ({ id, nom })).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
   return { ok: true as const, lignes, entreprises };
 }
 
@@ -96,11 +101,11 @@ export type CarteDelegue = {
   ficheLiee: boolean;
 };
 
-export async function chargerCarte(id: string): Promise<CarteDelegue | null> {
+export async function chargerCarte(id: string, acces: AccesDelegues): Promise<CarteDelegue | null> {
   const db = getSupabaseService();
   if (!db || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   const { data: d } = await db.from("site_delegues").select(COLONNES_DELEGUE).eq("id", id).maybeSingle();
-  if (!d) return null;
+  if (!d || !dansAcces(acces, (d as Delegue).entreprise_id)) return null;
   const delegue = d as Delegue;
   const [{ data: mandats }, { data: sites }, { data: unites }, { data: journal }, { noms, entrees, liees }, cnx, ignores] = await Promise.all([
     db.from("site_delegue_mandats").select(COLONNES_MANDAT).eq("delegue_id", id).order("fin", { nullsFirst: true }).order("organe"),
@@ -133,24 +138,29 @@ export async function chargerCarte(id: string): Promise<CarteDelegue | null> {
     compte: { etat: etatCompte(delegue.cglink_user_id, entree, derniereConnexion), invitedAt: entree?.invitedAt ?? null, derniereConnexion },
     journal: ((journal ?? []) as { id: string; created_at: string; action: string; details: Record<string, unknown> }[])
       .map((j) => ({ id: j.id, created_at: j.created_at, phrase: phraseJournal(j.action, j.details ?? {}) })),
-    ecarts: entree ? calculerEcarts(delegue, (mandats ?? []) as Mandat[], entree, ignores.get(id) ?? [], aujourdhui()) : [],
-    entreprises: [...noms].map(([eid, nom]) => ({ id: eid, nom })).sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
+    // L'e-mail est l'adresse de connexion CG Link : son écart n'est montré qu'au SUPER_ADMIN.
+    ecarts: entree
+      ? calculerEcarts(delegue, (mandats ?? []) as Mandat[], entree, ignores.get(id) ?? [], aujourdhui()).filter((e) => acces.tout || e.champ !== "email")
+      : [],
+    entreprises: [...noms].filter(([eid]) => dansAcces(acces, eid)).map(([eid, nom]) => ({ id: eid, nom })).sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
     ficheLiee: liees.has(delegue.entreprise_id),
   };
 }
 
-export async function chargerAVerifier() {
+export async function chargerAVerifier(acces: AccesDelegues) {
   const db = getSupabaseService()!;
   const [{ data: ds }, { data: ms }, { noms }] = await Promise.all([
     db.from("site_delegues").select("id, prenom, nom, entreprise_id, a_verifier").not("a_verifier", "is", null).order("nom"),
-    db.from("site_delegue_mandats").select(`${COLONNES_MANDAT}, delegue:site_delegues(prenom, nom)`).not("a_verifier", "is", null),
+    db.from("site_delegue_mandats").select(`${COLONNES_MANDAT}, delegue:site_delegues(prenom, nom, entreprise_id)`).not("a_verifier", "is", null),
     nomsEntreprises(),
   ]);
   const nomDe = (x: { prenom: string | null; nom: string } | null) => (x ? [x.prenom, x.nom].filter(Boolean).join(" ") : "");
   return {
     delegues: ((ds ?? []) as (Pick<Delegue, "id" | "prenom" | "nom" | "entreprise_id" | "a_verifier">)[])
+      .filter((d) => dansAcces(acces, d.entreprise_id))
       .map((d) => ({ id: d.id, nom: nomDe(d), entreprise: noms.get(d.entreprise_id) ?? "", raison: d.a_verifier ?? "" })),
-    mandats: ((ms ?? []) as unknown as (Mandat & { delegue: { prenom: string | null; nom: string } | null })[])
+    mandats: ((ms ?? []) as unknown as (Mandat & { delegue: { prenom: string | null; nom: string; entreprise_id: string } | null })[])
+      .filter((m) => dansAcces(acces, m.delegue?.entreprise_id))
       .map((m) => ({ id: m.id, delegueId: m.delegue_id, delegue: nomDe(m.delegue), mandat: libelleMandat(m), raison: m.a_verifier ?? "" })),
   };
 }

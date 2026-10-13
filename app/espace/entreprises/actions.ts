@@ -28,7 +28,7 @@ const REFUS = "Accès refusé. Reconnectez-vous.";
 const ECHEC = "Enregistrement impossible. Votre session a peut-être expiré : reconnectez-vous puis réessayez.";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const CHAMPS_ENTREPRISE = ["nom", "numero_bce", "notes", "siege_rue", "siege_numero", "siege_boite", "siege_code_postal",
+const CHAMPS_ENTREPRISE = ["nom", "numero_bce", "notes", "secteur_id", "siege_rue", "siege_numero", "siege_boite", "siege_code_postal",
   "siege_localite", "ref_nom", "ref_fonction", "ref_email", "ref_telephone"] as const;
 const CHAMPS_SITE = ["nom", "unite_postale_id", "ref_nom", "ref_fonction", "ref_email", "ref_telephone"] as const;
 const CHAMPS_UNITE = ["denomination", "rue", "numero", "boite", "code_postal", "localite", "date_debut", "site_id", "statut", "suivie"] as const;
@@ -65,6 +65,7 @@ function nettoyer(champs: Champs, permis: readonly string[]): { ok: true; valeur
       v = iso;
     }
     if (k === "statut" && v && v !== "actif" && v !== "arrete") return { ok: false, erreur: "Statut inconnu." };
+    if (k === "secteur_id" && v && !/^[0-9a-f-]{36}$/i.test(v)) return { ok: false, erreur: "Secteur inconnu. Rechargez la page." };
     if (k === "suivie") {
       valeurs[k] = v === "true";
       continue;

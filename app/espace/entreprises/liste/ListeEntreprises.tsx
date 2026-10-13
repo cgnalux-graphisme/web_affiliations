@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CircleAlert, Link2Off, Search, TriangleAlert } from "lucide-react";
+import { CircleAlert, Link2Off, Search, TriangleAlert, UserRound } from "lucide-react";
 import { formaterNumeroBce } from "../../../../lib/bce/numero";
 import { correspond, type LigneListe } from "../../../../lib/entreprises/regles";
 import { CHAMP, LIBELLE, ONGLET, Panneau, Statut, Vide } from "../../_partage/ui";
@@ -15,15 +15,30 @@ const FILTRES: { code: Filtre; libelle: string; garde: (l: LigneListe) => boolea
   { code: "ecarts", libelle: "Écarts CG Link", garde: (l) => l.ecartsOnss },
 ];
 
-export default function ListeEntreprises({ lignes, secteurs }: { lignes: LigneListe[]; secteurs: string[] }) {
+const SANS_SECTEUR = "aucun";
+
+export default function ListeEntreprises({ lignes, secteurs, mesCles, mesParDefaut }: {
+  lignes: LigneListe[];
+  secteurs: { id: string; nom: string }[];
+  /** Entreprises dont la personne est le permanent (CG Link). */
+  mesCles: string[];
+  mesParDefaut: boolean;
+}) {
   const [recherche, setRecherche] = useState("");
   const [secteur, setSecteur] = useState("");
   const [filtre, setFiltre] = useState<Filtre>("toutes");
+  const [seulementMes, setSeulementMes] = useState(mesParDefaut);
+  const mes = useMemo(() => new Set(mesCles), [mesCles]);
 
   const visibles = useMemo(() => {
     const garde = FILTRES.find((f) => f.code === filtre)!.garde;
-    return lignes.filter((l) => garde(l) && (!secteur || l.secteur === secteur) && correspond(l, recherche));
-  }, [lignes, filtre, secteur, recherche]);
+    return lignes.filter((l) =>
+      garde(l) &&
+      (!seulementMes || mes.has(l.cle)) &&
+      (!secteur || (secteur === SANS_SECTEUR ? !l.secteurId : l.secteurId === secteur)) &&
+      correspond(l, recherche)
+    );
+  }, [lignes, filtre, secteur, recherche, seulementMes, mes]);
 
   return (
     <Panneau corps={false}>
@@ -40,9 +55,16 @@ export default function ListeEntreprises({ lignes, secteurs }: { lignes: LigneLi
           <label htmlFor="secteur" className={LIBELLE}>Secteur</label>
           <select id="secteur" value={secteur} onChange={(e) => setSecteur(e.target.value)} className={CHAMP}>
             <option value="">Tous les secteurs</option>
-            {secteurs.map((s) => <option key={s} value={s}>{s}</option>)}
+            {secteurs.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
+            <option value={SANS_SECTEUR}>Secteur à choisir</option>
           </select>
         </div>
+        {mes.size > 0 && (
+          <label className="flex min-h-11 items-center gap-2 self-end pb-1">
+            <input type="checkbox" className="h-5 w-5" checked={seulementMes} onChange={(e) => setSeulementMes(e.target.checked)} />
+            Mes entreprises ({mes.size})
+          </label>
+        )}
       </div>
       <div className="flex flex-wrap gap-2 px-5 py-3" role="group" aria-label="Filtrer">
         {FILTRES.map((f) => (
@@ -62,6 +84,7 @@ export default function ListeEntreprises({ lignes, secteurs }: { lignes: LigneLi
               <tr>
                 <th scope="col">Entreprise</th>
                 <th scope="col">Secteur</th>
+                <th scope="col">Permanent</th>
                 <th scope="col" className="text-right">Affiliés</th>
                 <th scope="col" className="text-right">Sites</th>
                 <th scope="col" className="text-right">Délégués</th>
@@ -79,7 +102,17 @@ export default function ListeEntreprises({ lignes, secteurs }: { lignes: LigneLi
                       </div>
                     )}
                   </td>
-                  <td>{l.secteur ?? ""}</td>
+                  <td>
+                    {l.secteur ?? (l.secteurCgLink ? <span className="ecg-texte-doux">{l.secteurCgLink} (CG Link)</span> : "")}
+                  </td>
+                  <td>
+                    {l.permanent && (
+                      <span className="inline-flex items-center gap-1">
+                        <UserRound size={14} aria-hidden /> {l.permanent}
+                        {mes.has(l.cle) && <span className="sr-only">(vous)</span>}
+                      </span>
+                    )}
+                  </td>
                   <td className="text-right tabular-nums">{l.horsCgLink ? "" : l.affilies}</td>
                   <td className="text-right tabular-nums">{l.sites || ""}</td>
                   <td className="text-right tabular-nums">{l.delegues || ""}</td>

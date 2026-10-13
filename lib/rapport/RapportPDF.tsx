@@ -3,6 +3,7 @@ import { Circle, Document, Image, Page, Path, StyleSheet, Svg, Text, View } from
 import { enregistrerPolicesPdf } from "../pdf/charte";
 import { isoToDateFr } from "../dates";
 import { partsCamembert, type ActionRapport, type Bilan } from "./bilan";
+import { BlocFicheRapport, type FichePdf } from "../fiches-suivi/FichePDF";
 
 // ── Palette stricte et typographie ────────────────────────────────────────────
 const C = {
@@ -99,10 +100,13 @@ export type ParametresRapport = {
 export default function RapportPDF({
   actions,
   bilan,
+  fiches = [],
   p,
 }: {
   actions: ActionRapport[];
   bilan: Bilan;
+  /** Fiches de suivi des permanents retenues (partie « en entreprise et en secteur »). */
+  fiches?: FichePdf[];
   p: ParametresRapport;
 }) {
   const periode = `du ${isoToDateFr(p.debut)} au ${isoToDateFr(p.fin)}`;
@@ -159,7 +163,8 @@ export default function RapportPDF({
         </View>
       </Page>
 
-      {/* ── Bilan en chiffres ── */}
+      {/* ── Bilan en chiffres (seulement s'il y a des actions) ── */}
+      {actions.length > 0 && (<>
       <Page size="A4" style={s.page}>
         {cadre}
         <Text style={s.h1}>Bilan en chiffres</Text>
@@ -244,8 +249,41 @@ export default function RapportPDF({
           </View>
         ))}
       </Page>
+      </>)}
+
+      {/* ── Fiches de suivi des permanents, par secteur ── */}
+      {fiches.length > 0 && (
+        <Page size="A4" style={s.page}>
+          {cadre}
+          <Text style={s.h1}>Actions syndicales en entreprise et en secteur</Text>
+          <View style={s.filetTitre} />
+          <Text style={[s.petit, { marginBottom: 14 }]}>
+            {fiches.length} fiche{fiches.length > 1 ? "s" : ""} de suivi rédigée{fiches.length > 1 ? "s" : ""} par les permanents, classée{fiches.length > 1 ? "s" : ""} par secteur puis par date.
+          </Text>
+          {[...parSecteur(fiches)].map(([secteur, liste], i) => (
+            <View key={secteur} break={i > 0}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, marginBottom: 12 }} minPresenceAhead={160}>
+                <Text style={{ fontFamily: "Barlow Condensed", fontWeight: 800, fontSize: 24, color: C.rouge, lineHeight: 1 }}>{secteur}</Text>
+                <View style={{ flexGrow: 1, height: 2, backgroundColor: C.charbon, marginBottom: 5 }} />
+                <Text style={{ fontFamily: "Barlow Condensed", fontWeight: 600, fontSize: 13, marginBottom: 1 }}>
+                  {liste.length} fiche{liste.length > 1 ? "s" : ""}
+                </Text>
+              </View>
+              {liste.map((f, k) => <BlocFicheRapport key={k} f={f} />)}
+            </View>
+          ))}
+        </Page>
+      )}
     </Document>
   );
+}
+
+/** Fiches groupées par secteur (ordre alphabétique, « Sans secteur précisé » en dernier), dans l'ordre reçu. */
+function parSecteur(fiches: FichePdf[]): Map<string, FichePdf[]> {
+  const SANS = "Sans secteur précisé";
+  const m = new Map<string, FichePdf[]>();
+  for (const f of fiches) m.set(f.secteur ?? SANS, [...(m.get(f.secteur ?? SANS) ?? []), f]);
+  return new Map([...m].sort(([a], [b]) => (a === SANS ? 1 : b === SANS ? -1 : a.localeCompare(b, "fr"))));
 }
 
 // ── Composants ───────────────────────────────────────────────────────────────

@@ -98,7 +98,11 @@ export function planSuppressionSite(site: Site, principal: Site | undefined) {
 }
 
 export type LigneListe = {
-  cle: string; nom: string; denomination: string | null; secteur: string | null; numeroBce: string | null;
+  cle: string; nom: string; denomination: string | null; numeroBce: string | null;
+  /** Secteur de la fiche (site_secteurs) ; à défaut, le libellé de CG Link est gardé à part (secteurCgLink). */
+  secteur: string | null; secteurId: string | null; secteurCgLink: string | null;
+  /** Permanent (CG Link) : nom et e-mail. */
+  permanent: string | null; permanentEmail: string | null;
   localites: string[]; onss: string[]; affilies: number; sites: number; delegues: number;
   horsCgLink: boolean; bceManquant: boolean; ecartsOnss: boolean;
 };
@@ -112,6 +116,8 @@ export function construireListe(entrees: {
   ignores: { cible_id: string; valeur: string }[];
   affilies: Map<string, number>;
   delegues: Map<string, number>;
+  /** Noms des secteurs (site_secteurs) par identifiant. */
+  secteurs?: Map<string, string>;
 }): LigneListe[] {
   const ficheDeCompany = new Map(entrees.fiches.filter((f) => f.company_id).map((f) => [f.company_id as string, f]));
   // Entreprises CG Link regroupées dans une autre fiche (ex. XLG HOME dans TRIXXO) : pas de ligne à elles.
@@ -133,7 +139,11 @@ export function construireListe(entrees: {
       cle: cleDe(f?.id ?? null, c?.id ?? null),
       nom: nomAffiche(f ?? null, c ?? null),
       denomination: f?.denomination_bce ?? null,
-      secteur: c?.sector ?? null,
+      secteur: (f?.secteur_id && entrees.secteurs?.get(f.secteur_id)) || null,
+      secteurId: f?.secteur_id ?? null,
+      secteurCgLink: c?.sector ?? null,
+      permanent: c?.permanent_name?.trim() || null,
+      permanentEmail: c?.permanent_email?.trim() || null,
       numeroBce: f?.numero_bce ?? null,
       localites,
       onss: f ? onssIci.map((o) => o.numero) : onssCg.map((o) => o.numero),
@@ -161,7 +171,7 @@ export function correspond(l: LigneListe, recherche: string): boolean {
   const q = sansAccents(recherche.trim());
   if (!q) return true;
   const qChiffres = chiffres(q);
-  const textes = [l.nom, l.denomination ?? "", l.secteur ?? "", ...l.localites].map(sansAccents);
+  const textes = [l.nom, l.denomination ?? "", l.secteur ?? "", l.secteurCgLink ?? "", l.permanent ?? "", ...l.localites].map(sansAccents);
   if (textes.some((t) => t.includes(q))) return true;
   return qChiffres.length >= 3 && [l.numeroBce ?? "", ...l.onss].some((n) => n.includes(qChiffres));
 }

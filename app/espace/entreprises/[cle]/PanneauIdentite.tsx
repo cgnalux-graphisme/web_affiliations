@@ -40,7 +40,15 @@ export default function PanneauIdentite({ fiche }: { fiche: Fiche }) {
             <div><dt>Nom usuel</dt><dd>{e?.nom ?? (fiche.company ? <>{fiche.company.name} <span className="ecg-texte-doux font-normal">(CG Link)</span></> : vide)}</dd></div>
             <div><dt>Dénomination BCE</dt><dd>{e?.denomination_bce ?? vide}</dd></div>
             <div><dt>N° d'entreprise</dt><dd>{e?.numero_bce ? formaterNumeroBce(e.numero_bce) : vide}</dd></div>
-            <div><dt>Secteur</dt><dd>{fiche.company?.sector ?? vide}</dd></div>
+            <div>
+              <dt>Secteur</dt>
+              <dd>
+                {fiche.secteur ?? <span className="ecg-texte-doux font-normal">À choisir</span>}
+                {fiche.company?.sector && fiche.company.sector !== fiche.secteur && (
+                  <span className="ecg-texte-doux block text-sm font-normal">CG Link : {fiche.company.sector}</span>
+                )}
+              </dd>
+            </div>
           </dl>
           {e?.notes && (
             <div>
@@ -68,10 +76,13 @@ export default function PanneauIdentite({ fiche }: { fiche: Fiche }) {
       edition={(fermer) => (
         <ChampsEdition
           id="identite"
-          valeurs={{ nom: e?.nom ?? null, numero_bce: e?.numero_bce ? formaterNumeroBce(e.numero_bce) : null, notes: e?.notes ?? null }}
+          valeurs={{ nom: e?.nom ?? null, numero_bce: e?.numero_bce ? formaterNumeroBce(e.numero_bce) : null, secteur_id: e?.secteur_id ?? "", notes: e?.notes ?? null }}
           champs={[
             { nom: "nom", libelle: fiche.company ? `Nom usuel (sinon « ${fiche.company.name} »)` : "Nom de l'entreprise", largeur: "demi" },
             { nom: "numero_bce", libelle: "N° d'entreprise BCE", exemple: "0850.076.920", largeur: "demi" },
+            { nom: "secteur_id", libelle: "Secteur", type: "choix", largeur: "demi",
+              aide: fiche.company?.sector ? `Dans CG Link : ${fiche.company.sector}.` : undefined,
+              options: [{ valeur: "", libelle: "À choisir" }, ...fiche.secteurs.map((s) => ({ valeur: s.id, libelle: s.nom }))] },
             { nom: "notes", libelle: "Notes internes", type: "zone" },
           ]}
           enregistrer={(v) => enregistrerEntreprise(fiche.cle, v)}

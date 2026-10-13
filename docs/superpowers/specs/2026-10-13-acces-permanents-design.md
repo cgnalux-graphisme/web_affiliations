@@ -28,7 +28,7 @@ Tout reste interne : rien n'est publié sur le site public.
 
 ## 3. Droits et périmètre
 
-- **App `permanents`** (« Accès permanents », icône `key`, couleur `#D55E00`, ordre 35) : rôles PERMANENT
+- **App `permanents`** (« Accès permanents », icône `key`, couleur `#A0522D`, ordre 35) : rôles PERMANENT
   (par défaut) et SUPER_ADMIN (toujours). La tuile « Bientôt » disparaît.
 - **« Mes entreprises »** : entreprises CG Link dont `permanent_email` correspond (sans casse ni espaces) à
   l'e-mail de la personne connectée, plus les fiches qui les regroupent (`autres_company_ids`). Fonction
