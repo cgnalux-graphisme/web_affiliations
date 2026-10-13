@@ -13,6 +13,7 @@ import {
 } from "../../../lib/bce/comparaison";
 import { dansNosProvinces, lireCle, nomManquant, onssACreer, onssDeCompany, planSuppressionSite } from "../../../lib/entreprises/regles";
 import { COLONNES_COMPANY } from "../../../lib/entreprises/donnees-serveur";
+import { secteurDepuisCgLink } from "../../../lib/permanents/perimetre";
 import { COLONNES_ENTREPRISE, COLONNES_SITE, COLONNES_UNITE, type CompanyCgLink, type Entreprise, type Site, type Unite } from "../../../lib/entreprises/types";
 
 /**
@@ -96,10 +97,13 @@ async function ficheDeCle(db: SupabaseClient, cle: string): Promise<{ id: string
   const { data: company } = await service.from("companies").select(COLONNES_COMPANY).eq("id", c.id).maybeSingle();
   if (!company) return null;
 
+  // Secteur repris du libellé CG Link (liste site_secteurs), modifiable ensuite dans « Identité ».
+  const { data: secteurs } = await service.from("site_secteurs").select("id, nom");
+  const secteurId = secteurDepuisCgLink((company as CompanyCgLink).sector, (secteurs ?? []) as { id: string; nom: string }[]);
   // ignoreDuplicates + select : une ligne seulement si CETTE requête a créé la fiche.
   const { data: creee } = await db
     .from("site_entreprises")
-    .upsert({ company_id: c.id }, { onConflict: "company_id", ignoreDuplicates: true })
+    .upsert({ company_id: c.id, secteur_id: secteurId }, { onConflict: "company_id", ignoreDuplicates: true })
     .select("id");
   const { data: fiche } = await db.from("site_entreprises").select("id").eq("company_id", c.id).maybeSingle();
   if (!fiche) return null;

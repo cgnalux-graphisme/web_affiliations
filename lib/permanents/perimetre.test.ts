@@ -45,6 +45,8 @@ describe("secteurDepuisCgLink", () => {
     { id: "s3", nom: "Entreprises de travail adapté (ETA)" },
     { id: "s4", nom: "Carrières & matériaux" },
     { id: "s5", nom: "Titres-services" },
+    { id: "s6", nom: "Transformation du papier" },
+    { id: "s7", nom: "CP 100 (auxiliaire ouvriers)" },
   ];
   it("traduit les libellés de CG Link", () => {
     expect(secteurDepuisCgLink("Construction", secteurs)).toBe("s1");
@@ -53,8 +55,13 @@ describe("secteurDepuisCgLink", () => {
     expect(secteurDepuisCgLink("Carrière", secteurs)).toBe("s4");
     expect(secteurDepuisCgLink("Titres-Services", secteurs)).toBe("s5");
   });
+  it("secteurs ajoutés le 13/10/2026", () => {
+    expect(secteurDepuisCgLink("Transformation papier", secteurs)).toBe("s6");
+    expect(secteurDepuisCgLink("CP100", secteurs)).toBe("s7");
+  });
   it("rien pour un libellé sans équivalent", () => {
-    expect(secteurDepuisCgLink("CP100", secteurs)).toBeNull();
+    expect(secteurDepuisCgLink("Verre", secteurs)).toBeNull(); // secteur absent de la liste fournie
+    expect(secteurDepuisCgLink("Inconnu", secteurs)).toBeNull();
     expect(secteurDepuisCgLink(null, secteurs)).toBeNull();
   });
 });

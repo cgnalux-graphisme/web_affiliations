@@ -147,12 +147,13 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
   écran de sélection. Contexte : [docs/contexte/permanents.md](docs/contexte/permanents.md).
 - **App Délégués** ouverte aux permanents (leurs entreprises, sans les paramètres de connexion) ; **app
   Entreprises** : secteur (`site_secteurs`), permanent, filtre « Mes entreprises ».
+- **Secteurs** : 5 secteurs ajoutés le 13/10/2026 (Verre, Production du papier, Transformation du papier, ALE,
+  CP 100) ; les 93 entreprises ont un secteur.
 - **Migration `20261013120000_site_fiches_suivi.sql`** exécutée par Fred le 13/10/2026 (vérifié : tables, bucket privé, 87 fiches sur 93 avec un secteur, clé publique refusée).
 - **Vérifié** : 821 tests, build, rendu réel des PDF (fiche sur 2 pages, rapport). **Pas encore vérifié dans le
   navigateur** avec un vrai compte permanent.
 - **À faire par Fred** : 1. tester avec un compte permanent (périmètre, délégués sans compte CG Link, une fiche
-  complète avec photos, IA et PDF), puis le rapport de congrès ; 2. choisir le secteur des 6 entreprises restées
-  sans secteur (ALE, CP100, Verre, papier) ; 3. points ouverts du 13/10/2026 (soir) : voir
+  complète avec photos, IA et PDF), puis le rapport de congrès ; 2. points ouverts du 13/10/2026 (soir) : voir
   [docs/contexte/journal.md](docs/contexte/journal.md).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).

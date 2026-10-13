@@ -66,7 +66,12 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
 - **Historique** : panneau « Fiches de suivi » (fiches de l'entreprise, puis fiches sectorielles de son
   secteur, repliées), visible avec l'app `permanents`.
 - La colonne `secteur_id` vient de la migration `20261013120000` (exécutée le 13/10/2026) : sans elle, l'app
-  Entreprises ne s'ouvrirait plus (lecture en erreur). 6 fiches restent sans secteur (ALE, CP100, Verre, papier).
+  Entreprises ne s'ouvrirait plus (lecture en erreur).
+- **Secteurs ajoutés le 13/10/2026** (demande de Fred, directement dans `site_secteurs`) : « Verre » (AGC),
+  « Production du papier » (BURGO), « Transformation du papier » (AUTAJON), « Agences locales pour l'emploi
+  (ALE) » (ALE CINEY, ALE NAMUR), « CP 100 (auxiliaire ouvriers) » (ST GOBAIN BASTOGNE). Les 93 fiches ont un
+  secteur. Une fiche créée ensuite (`ficheDeCle()`) reçoit le secteur correspondant à `companies.sector`
+  (`secteurDepuisCgLink()`, `lib/permanents/perimetre.ts`).
 
 ## Import BCE
 

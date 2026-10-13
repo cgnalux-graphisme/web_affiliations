@@ -27,7 +27,10 @@ export function fichesDuPerimetre(
   );
 }
 
-/** Libellés de companies.sector (CG Link) → nom dans site_secteurs. Même table que la migration 20261013120000. */
+/**
+ * Libellés de companies.sector (CG Link) → nom dans site_secteurs. Même table que la migration 20261013120000,
+ * plus les secteurs créés le 13/10/2026 à la demande de Fred (Verre, papier, ALE, CP 100).
+ */
 const CORRESPONDANCE: Record<string, string> = {
   construction: "Construction",
   bois: "Bois / ameublement",
@@ -38,6 +41,13 @@ const CORRESPONDANCE: Record<string, string> = {
   "titres-services": "Titres-services",
   carrière: "Carrières & matériaux",
   carrières: "Carrières & matériaux",
+  verre: "Verre",
+  "production du papier": "Production du papier",
+  "transformation papier": "Transformation du papier",
+  "transformation du papier": "Transformation du papier",
+  ale: "Agences locales pour l'emploi (ALE)",
+  cp100: "CP 100 (auxiliaire ouvriers)",
+  "cp 100": "CP 100 (auxiliaire ouvriers)",
 };
 
 export function secteurDepuisCgLink(libelle: string | null | undefined, secteurs: { id: string; nom: string }[]): string | null {
