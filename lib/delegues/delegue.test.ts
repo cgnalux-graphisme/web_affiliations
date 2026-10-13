@@ -72,3 +72,20 @@ describe("validerDelegue : téléphone et adresse", () => {
     expect(validerDelegue({ nom: "Dupont", adresse_code_postal: "50000", adresse_pays: "Belgique" })).toEqual({ ok: false, erreur: "Code postal belge : 4 chiffres. Exemple : 5000" });
   });
 });
+
+describe("phraseJournal : comptes CG Link", () => {
+  it.each([
+    ["invitation", "Invitation CG Link envoyée."],
+    ["invitation_renvoyee", "Invitation CG Link renvoyée."],
+    ["invitation_annulee", "Invitation CG Link annulée (compte supprimé)."],
+    ["blocage", "Accès CG Link bloqué."],
+    ["deblocage", "Accès CG Link rétabli."],
+    ["lien_retire", "Lien avec CG Link retiré."],
+    ["envoi_cglink", "Carte envoyée à CG Link."],
+    ["changement_entreprise", "Entreprise changée."],
+    ["ecart_repris", "Écart repris de CG Link (téléphone)."],
+    ["ecart_ignore", "Écart avec CG Link ignoré (téléphone)."],
+  ])("%s", (action, phrase) => {
+    expect(phraseJournal(action, { champ: "telephone" })).toBe(phrase);
+  });
+});

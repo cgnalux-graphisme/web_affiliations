@@ -51,6 +51,10 @@ export function etatCompte(cglinkId: string | null, entree: DelegueCgLink | unde
   return derniereConnexion ? "actif" : "invite";
 }
 
+const CHAMPS_ECART: Record<string, string> = {
+  nom: "nom", email: "e-mail", telephone: "téléphone", ds: "mandat DS", ce: "mandat CE", cppt: "mandat CPPT", autre: "autres mandats",
+};
+
 const pluriel = (n: number, s: string, p = `${s}s`) => `${n} ${n > 1 ? p : s}`;
 
 export function phraseJournal(action: string, d: Record<string, unknown>): string {
@@ -66,6 +70,16 @@ export function phraseJournal(action: string, d: Record<string, unknown>): strin
     case "mandat_modification": return `Mandat modifié : ${d.mandat ?? ""}`;
     case "mandat_fin": return `Mandat terminé : ${d.mandat ?? ""}`;
     case "mandat_suppression": return `Mandat supprimé : ${d.mandat ?? ""}`;
+    case "invitation": return "Invitation CG Link envoyée.";
+    case "invitation_renvoyee": return "Invitation CG Link renvoyée.";
+    case "invitation_annulee": return "Invitation CG Link annulée (compte supprimé).";
+    case "blocage": return "Accès CG Link bloqué.";
+    case "deblocage": return "Accès CG Link rétabli.";
+    case "lien_retire": return "Lien avec CG Link retiré.";
+    case "envoi_cglink": return "Carte envoyée à CG Link.";
+    case "changement_entreprise": return "Entreprise changée.";
+    case "ecart_repris": return `Écart repris de CG Link (${CHAMPS_ECART[String(d.champ)] ?? d.champ}).`;
+    case "ecart_ignore": return `Écart avec CG Link ignoré (${CHAMPS_ECART[String(d.champ)] ?? d.champ}).`;
     default: return action;
   }
 }
