@@ -327,6 +327,21 @@ Pour chaque entreprise CG Link et chaque entrée de `delegates` :
 **Rapport** : délégués créés / déjà présents, mandats créés, éléments à vérifier, textes non importés (avec
 l'entreprise), lien vers « À vérifier ».
 
+### 7.1 bis Ajouts du 13/10/2026 (demandes de Fred)
+
+- **Unité d'établissement de rattachement** : chaque délégué peut être rattaché à **une** unité
+  d'établissement de sa fiche, choisie parmi les unités **suivies** et actives (`site_delegues.unite_id`,
+  null = non précisée). Un nouveau mandat prend par défaut le site (UTE) de cette unité, sinon le site
+  principal.
+- **Découpage prénom / nom** : 167 noms sur 176 sont « Prénom Nom » (deux mots) → pas de marque
+  « à vérifier » pour ce cas (ni pour « Prénom NOM » / « NOM Prénom », où le mot en majuscules est le
+  nom) ; marque seulement pour un seul mot ou 3 mots et plus.
+- **Délégué présent dans deux entreprises CG Link** (1 cas : MARLUX + REMACLE) : importé dans l'entreprise
+  de son profil CG Link (`profiles.company_id`), marqué « à vérifier » avec le nom de l'autre entreprise.
+- **Découpage du lot B** : plan 2a = B1 + B2 (import, liste, carte, mandats, unité, à vérifier, journal ;
+  aucune écriture vers CG Link, l'état du compte CG Link est affiché en lecture seule) ; plan 2b = B3
+  (écritures vers CG Link, écarts), après le correctif de sécurité `workers` / `profiles` côté CG Link.
+
 ### 7.2 Écrans (B2)
 
 | Route | Contenu |
