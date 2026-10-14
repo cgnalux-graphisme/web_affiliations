@@ -1,12 +1,13 @@
 import { formaterTelephone } from "../telephone";
 import { nissValide } from "../modification";
+import { ibanValide, nettoyerIban } from "../iban";
 import type { Delegue, DelegueCgLink, EtatCompte } from "./types";
 
 /** Règles du délégué : validation, unité de rattachement, état du compte CG Link, phrases du journal. Pur. */
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CHAMPS = ["prenom", "nom", "email", "telephone", "notes", "unite_id", "adresse_rue", "adresse_numero", "adresse_boite",
-  "adresse_code_postal", "adresse_localite", "adresse_pays", "registre_national", "genre"] as const;
+  "adresse_code_postal", "adresse_localite", "adresse_pays", "registre_national", "genre", "iban"] as const;
 
 export function validerDelegue(champs: Record<string, string>):
   | { ok: true; valeurs: Partial<Pick<Delegue, (typeof CHAMPS)[number]>> }
@@ -25,6 +26,10 @@ export function validerDelegue(champs: Record<string, string>):
       v = v.replace(/\D/g, "");
     }
     if (k === "genre" && v && v !== "M" && v !== "F") return { ok: false, erreur: "Choisissez « Délégué » ou « Déléguée »." };
+    if (k === "iban" && v) {
+      if (!ibanValide(v)) return { ok: false, erreur: "N° de compte invalide : vérifiez l'IBAN. Exemple : BE68 5390 0754 7034" };
+      v = nettoyerIban(v);
+    }
     valeurs[k] = v;
   }
   if ("nom" in valeurs && !valeurs.nom) return { ok: false, erreur: "Indiquez le nom du délégué." };

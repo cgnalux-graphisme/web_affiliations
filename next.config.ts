@@ -27,6 +27,13 @@ const ANCIEN_ADMIN: [string, string][] = [
 ];
 
 const nextConfig: NextConfig = {
+  // PDF des libérations fabriqués côté serveur (pièces jointes des e-mails) : polices et logo lus sur le disque.
+  outputFileTracingIncludes: {
+    "/api/liberations/**/*": ["./public/fonts/*.woff", "./public/logo-cg-rouge.png"],
+    "/espace/liberations/**/*": ["./public/fonts/*.woff", "./public/logo-cg-rouge.png"],
+  },
+  // Photos des tickets de train (page publique du QR code, Libérations) : réduites dans le téléphone, 3,5 Mo au plus.
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   images: {
     // Photos des actions (bucket "action-photos") et images du blog (bucket "blog-images").
     remotePatterns: supabaseHost

@@ -58,7 +58,7 @@ export default function AssistantCG() {
   const fil = useRef<HTMLDivElement>(null);
   const prochainId = useRef(1);
 
-  const masque = chemin.startsWith("/espace") || chemin.startsWith("/login");
+  const masque = chemin.startsWith("/espace") || chemin.startsWith("/login") || chemin.startsWith("/presence");
   const nbMessages = messages.filter((m) => m.auteur === "personne").length;
   const limiteAtteinte = nbMessages >= MESSAGES_MAX;
   // La barre fixe « Je m'inscris » des pages campagne et le pop-up cookies occupent le bas de l'écran mobile.

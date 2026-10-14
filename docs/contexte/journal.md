@@ -4,6 +4,43 @@
 
 Le plus récent en haut. L'état **actuel** est dans CLAUDE.md (racine), section « État actuel ».
 
+## État au 14/10/2026 (Libérations lots 2 et 3)
+- **Une seule branche de travail : `suivi-actions`** (dernière mise en production : 13/10/2026, lot 1 des
+  Libérations). Les lots 2 et 3 **ne sont pas encore commités ni poussés**.
+- **App Libérations** (4 lots) : [docs/contexte/liberations.md](liberations.md). Lot 1 en
+  production. **Lot 2 (courriers)** écrit, migration exécutée ; **textes proposés = brouillons à relire par Fred**.
+  **Lot 3 (jour J)** écrit : QR code par dossier (08h00-18h00 les jours de la réunion), page publique
+  `/presence/<jeton>` sans compte (nom, n° de registre national vérifié, signature au doigt, trajet, domicile et
+  genre s'ils manquent, photos des tickets), km calculés par Google Maps, frais (taux du jour), panneau « Jour J »
+  de la fiche, étapes « Jour J » (automatique) et « Passer aux frais ».
+- **Migration `20261014120000_site_liberations_jour_j.sql`** exécutée par Fred le 14/10/2026 (vérifié : 4 tables,
+  colonnes du QR, clé publique refusée).
+- **Clé Google Maps** (`GOOGLE_MAPS_API_KEY`) : dans `.env.local` et Vercel, **fonctionne** (essai réel du 14/10/2026).
+- **Vérifié** : 898 tests, types, build. **Pas encore vérifié dans le navigateur**, ni avec un téléphone, ni avec
+  un vrai envoi d'e-mail.
+- **À faire par Fred** : 1. (fait) migration du lot 3 ; 2. (fait) Google Maps ; conseillé : plafond journalier de la Routes API et alerte de budget ; 3. lot 2 : Paramètres › Équipe,
+  relire les Modèles, lettre de test à sa propre adresse ; 4. lot 3 : dossier de test daté d'aujourd'hui,
+  scanner le QR avec un téléphone entre 08h00 et 18h00 ; 5. points ouverts : voir
+  [docs/contexte/journal.md](journal.md).
+
+## État au 14/10/2026 (Libérations lot 2)
+- Lot 2 des Libérations écrit (courriers : lettre, convocation, attestations, fiche de paiement, PDF côté serveur,
+  e-mail Resend ou impression, modèles modifiables, équipe). Pas encore commité.
+- Migration `20261014090000_site_liberations_courriers.sql` exécutée par Fred le 14/10/2026 (vérifié).
+- Vérifié : 884 tests, types, build, rendu des 5 PDF. Pas encore dans le navigateur.
+
+## État au 13/10/2026 (Libérations lot 1)
+- **Branche `suivi-actions` poussée le 13/10/2026 à la demande de Fred** (mise en production) avec le lot 1 des
+  Libérations (commit `5a7d5ec`).
+- **App Libérations, lot 1** : demande (formulaire, dates, lieu, prise en charge, participants = délégués, pièces
+  jointes), liste par statut, fiche du dossier (ce qui manque, « Compléter »), parcours brouillon → demande → en
+  traitement → annulé / archivé, Paramètres (lieux, taux kilométrique daté). Contexte :
+  [liberations.md](liberations.md).
+- **App Délégués** : registre national et genre sur la carte.
+- **Migration `20261013130000_site_liberations.sql`** exécutée par Fred le 13/10/2026 (vérifié).
+- **Vérifié** : 857 tests, types, build ; pas encore dans le navigateur.
+- **À faire par Fred** : tester le lot 1 (permanent, ADMIN_OP), ajouter le taux kilométrique réel.
+
 ## État au 13/10/2026 (nuit)
 - **Une seule branche de travail : `suivi-actions`**, **poussée le 13/10/2026 (nuit) à la demande de Fred**
   (mise en production) avec l'app **Accès permanents**.

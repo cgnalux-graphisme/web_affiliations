@@ -88,6 +88,11 @@ site principal (`siteParDefaut()`).
 - Colonnes ajoutées par la migration `20261013130000_site_liberations.sql` (exécutée le 13/10/2026 ;
   sans elles, l'app Délégués ne pourrait plus lire les cartes).
 
+- **N° de compte** (`iban`, 14/10/2026, lot 2 des Libérations) : pour la fiche de paiement ; clé IBAN vérifiée
+  (`ibanValide()`, `lib/iban.ts`), enregistré sans espaces, affiché par groupes de 4. Migration
+  `20261014090000_site_liberations_courriers.sql` (exécutée le 14/10/2026 ; sans la colonne, l'app
+  Délégués ne pourrait plus lire les cartes). Pas envoyé à CG Link.
+
 ## Écritures vers CG Link (plan 2b, 13/10/2026)
 
 Plan : [docs/superpowers/plans/2026-10-13-delegues-lot-b-2b.md](../superpowers/plans/2026-10-13-delegues-lot-b-2b.md).

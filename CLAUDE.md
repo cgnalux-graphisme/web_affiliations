@@ -28,7 +28,7 @@ et les petits `CLAUDE.md` de renvoi des apps quand il travaille dans ces dossier
 | [docs/contexte/entreprises.md](docs/contexte/entreprises.md) | App **Entreprises** : fiches, import BCE, sites (UTE), unités d'établissement, ONSS, bloc adresse, affiliés |
 | [docs/contexte/delegues.md](docs/contexte/delegues.md) | App **Gestion délégués CG Link** (SUPER_ADMIN ; permanents limités à leurs entreprises, sans les comptes CG Link) : import CG Link, cartes d'identité, mandats, unité de rattachement, à vérifier, journal |
 | [docs/contexte/permanents.md](docs/contexte/permanents.md) | App **Accès permanents** : périmètre du permanent (CG Link), tableau de bord, fiches de suivi (IA, PDF), rapport de congrès, historique des entreprises |
-| [docs/contexte/liberations.md](docs/contexte/liberations.md) | App **Libérations** : cahier des charges des 4 lots (demande, courriers, QR code du jour J, frais, archive), décisions de Fred, lot 1 (droits, parcours, routes, tables) |
+| [docs/contexte/liberations.md](docs/contexte/liberations.md) | App **Libérations** : cahier des charges des 4 lots (demande, courriers, QR code du jour J, frais, archive), décisions de Fred, lot 1 (droits, parcours, routes, tables), lot 2 (courriers, PDF serveur, modèles, paiement), lot 3 (QR code, page publique, trajets, km Google Maps), lot 4 (clôture, PDF complet, archive) |
 | [docs/contexte/journal.md](docs/contexte/journal.md) | Anciens « État au… » (historique, du plus récent au plus ancien) |
 
 Renvois chargés automatiquement par Claude Code (quelques lignes chacun, ils pointent vers le bon document) :
@@ -138,25 +138,23 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 
 ---
 
-## État actuel (13/10/2026, Libérations lot 1)
-- **Une seule branche de travail : `suivi-actions`**, **poussée le 13/10/2026 à la demande de Fred** (mise en
-  production) avec le lot 1 des Libérations.
-- **Nouvelle app Libérations** (code `liberations`, découpée en 4 lots) : cahier des charges complet et
-  décisions de Fred dans [docs/contexte/liberations.md](docs/contexte/liberations.md). **Lot 1 écrit** : demande
-  (formulaire, dates, lieu, prise en charge, participants = délégués, pièces jointes), liste par statut, fiche
-  du dossier (ce qui manque avant les courriers, « Compléter » la carte d'un délégué), parcours brouillon →
-  demande → en traitement → annulé / archivé, Paramètres (lieux, taux kilométrique daté).
-- **App Délégués** : registre national et genre ajoutés à la carte (saisis à la main).
-- **Migration `20261013130000_site_liberations.sql`** exécutée par Fred le 13/10/2026 (vérifié : 8 tables,
-  5 lieux, app et rôles PERMANENT / ADMIN_OP, colonnes `registre_national` et `genre`, bucket privé, clé
-  publique refusée sur les 8 tables).
-- **Vérifié** : 857 tests, types, build. **Pas encore vérifié dans le navigateur.**
-- **À faire par Fred** : 1. tester le lot 1 avec un compte permanent et un compte ADMIN_OP ; 2. ajouter le
-  taux kilométrique réel dans Paramètres ; 3. préparer le **lot 2 (courriers)** : textes de la lettre à
-  l'employeur pour chacun des 4 types, phrase quand la CG fédérale paie la perte de salaire, modèles actuels de
-  l'attestation de perte de salaire et de la fiche de paiement, fonction de chaque permanent et téléphone des
-  admins, adresse d'expédition des e-mails aux employeurs ; 4. points ouverts des états précédents : voir
-  [docs/contexte/journal.md](docs/contexte/journal.md).
+## État actuel (14/10/2026, Libérations : les 4 lots écrits)
+- **Une seule branche de travail : `suivi-actions`**, **poussée le 14/10/2026 à la demande de Fred** (mise en
+  production) avec les lots 2, 3 et 4 des Libérations.
+- **App Libérations** : [docs/contexte/liberations.md](docs/contexte/liberations.md). Les 4 lots sont écrits :
+  1. la demande (en production) ; 2. les courriers (PDF côté serveur, e-mail Resend ou impression, modèles
+  modifiables : **textes proposés = brouillons à relire par Fred**) ; 3. le jour J (QR code 08h00-18h00, page publique
+  `/presence/<jeton>` sans compte, signature au doigt, trajets, km par Google Maps, frais) ; 4. clôture (avec la
+  liste de ce qui manque), PDF complet du dossier (synthèse, signatures, documents, pièces jointes, tickets),
+  archive, désarchivage, recherche dans les archives (participants, entreprises, année).
+- **Migrations** des lots 1 à 3 exécutées et vérifiées ; le lot 4 n'en demande pas.
+- **Google Maps** (`GOOGLE_MAPS_API_KEY`) : dans `.env.local` et Vercel, fonctionne (essai réel du 14/10/2026).
+- **Vérifié** : 902 tests, types, build, rendu réel des PDF (courriers, attestations, fiche de paiement, dossier
+  complet). **Pas encore vérifié dans le navigateur**, ni avec un téléphone, ni avec un vrai envoi d'e-mail.
+- **À faire par Fred** : 1. tester un dossier de bout en bout (voir « À préparer pour la suite » dans
+  [docs/contexte/liberations.md](docs/contexte/liberations.md)) ; 2. Paramètres › Équipe et relire les Modèles ;
+  3. conseillé : plafond journalier de la Routes API et alerte de budget dans Google Cloud ; 4. points ouverts :
+  voir [docs/contexte/journal.md](docs/contexte/journal.md).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 
@@ -189,7 +187,12 @@ Historique des états précédents : [docs/contexte/journal.md](docs/contexte/jo
   préfixée `NEXT_PUBLIC_`, jamais importée dans un composant client). Configurée
   et fonctionnelle : appels réels réussis le 28/09/2026 depuis `.env.local`.
 - `SITE_URL` (facultative, serveur) : adresse publique du site pour le lien des
-  posts réseaux (ex. `https://accg-nalux.com`). **Pas encore définie.**
+  posts réseaux et du QR code des libérations (ex. `https://accg-nalux.com`). **Pas encore définie.**
+- `GOOGLE_MAPS_API_KEY` (serveur, jamais `NEXT_PUBLIC_`) : calcul des kilomètres des libérations (Google Maps,
+  **Routes API**). Dans `.env.local` et dans Vercel depuis le 14/10/2026.
+  Fonctionne depuis le 14/10/2026 (essai réel : Namur → Libramont = 85,0 km). Facturation Google activée par
+  Fred ; gratuit jusqu'à environ 10 000 calculs par mois (grille 2025, à surveiller) : plafond journalier et
+  alerte de budget conseillés. Sans calcul, les km se saisissent à la main.
 
 ## Rappels techniques
 - Stack : Next.js 16 (App Router, Node 24), Supabase, Vercel, Resend (envoi
@@ -216,7 +219,10 @@ Historique des états précédents : [docs/contexte/journal.md](docs/contexte/jo
   la page → les placer avec `top` (A4 = 842 pt de haut) ; un élément `absolute`
   **sans** `fixed` placé avec `top` sur un document de plusieurs pages fait tourner
   la génération sans fin → toujours `fixed` pour un pied de page ; les emojis et
-  symboles (⚠…) sont retirés (absents des polices).
+  symboles (⚠…) sont retirés (absents des polices). **Exception** : les PDF des Libérations sont fabriqués
+  **côté serveur** (pièces jointes des e-mails, `lib/liberations/pdf/`) ; leurs polices et le logo sont lus dans
+  `public/` et embarqués par `outputFileTracingIncludes` (`next.config.ts`) : à étendre si un autre PDF serveur
+  est ajouté.
 - **Images** : photos du bucket servies via `next/image` (domaine Supabase
   autorisé dans `next.config.ts`). Pages publiques revalidées toutes les 60 s.
 - **Pièges rencontrés (blog, veille, IA)** :

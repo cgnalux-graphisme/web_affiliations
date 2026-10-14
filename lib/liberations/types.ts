@@ -51,19 +51,23 @@ export type Dossier = {
   regime_paiement: string | null; lunch: boolean | null;
   secteur_id: string | null; commission_paritaire: string | null; entreprise_specifique: boolean; entreprise_id: string | null;
   statut: StatutLiberation; demandeur_id: string; traite_par: string | null;
+  /** « Conseil » de la fiche de paiement (lot 2). */
+  conseil: string | null;
   soumis_le: string | null; archive_le: string | null; created_at: string; updated_at: string;
 };
 
 export const COLONNES_DOSSIER =
-  "id, numero, type, objet, lieu_id, lieu_autre, lieu_nom, lieu_complement, lieu_rue, lieu_numero, lieu_boite, lieu_code_postal, lieu_localite, salle, ordre_du_jour, perte_salaire, perte_salaire_charge, introduire_cg_federale, regime_paiement, lunch, secteur_id, commission_paritaire, entreprise_specifique, entreprise_id, statut, demandeur_id, traite_par, soumis_le, archive_le, created_at, updated_at";
+  "id, numero, type, objet, lieu_id, lieu_autre, lieu_nom, lieu_complement, lieu_rue, lieu_numero, lieu_boite, lieu_code_postal, lieu_localite, salle, ordre_du_jour, perte_salaire, perte_salaire_charge, introduire_cg_federale, regime_paiement, lunch, secteur_id, commission_paritaire, entreprise_specifique, entreprise_id, statut, demandeur_id, traite_par, conseil, soumis_le, archive_le, created_at, updated_at";
 
 export type DateDossier = { id?: string; jour: string; duree: Duree; heure_debut: string | null };
 export const COLONNES_DATE = "id, liberation_id, jour, duree, heure_debut";
 
 export type Participant = {
   id: string; liberation_id: string; delegue_id: string | null; prenom: string | null; nom: string; entreprise_id: string | null; created_at: string;
+  /** Attestation de perte de salaire reçue (lot 2) ; remarques de la fiche de paiement. */
+  attestation_recue_le: string | null; remarques_paiement: string | null;
 };
-export const COLONNES_PARTICIPANT = "id, liberation_id, delegue_id, prenom, nom, entreprise_id, created_at";
+export const COLONNES_PARTICIPANT = "id, liberation_id, delegue_id, prenom, nom, entreprise_id, created_at, attestation_recue_le, remarques_paiement";
 
 export type FichierDossier = {
   id: string; liberation_id: string; chemin: string; nom_origine: string; taille: number | null; type_mime: string | null; created_at: string;
@@ -85,11 +89,12 @@ export const TYPES_FICHIER = ["application/pdf", "image/jpeg", "image/png", "ima
 export const MESSAGE_FICHIER_REFUSE = "PDF ou image (JPEG, PNG, WebP, HEIC), 25 Mo maximum";
 
 /** Ce qui manque pour un participant ou son employeur (affiché sur le dossier avant l'envoi). */
-export type Manque = "domicile" | "genre" | "registre_national" | "adresse_employeur" | "email_employeur";
+export type Manque = "domicile" | "genre" | "registre_national" | "iban" | "adresse_employeur" | "email_employeur";
 export const LIBELLES_MANQUE: Record<Manque, { un: string; plusieurs: string }> = {
   domicile: { un: "délégué sans domicile", plusieurs: "délégués sans domicile" },
   genre: { un: "délégué sans genre", plusieurs: "délégués sans genre" },
   registre_national: { un: "délégué sans registre national", plusieurs: "délégués sans registre national" },
+  iban: { un: "délégué sans n° de compte", plusieurs: "délégués sans n° de compte" },
   adresse_employeur: { un: "employeur sans adresse complète", plusieurs: "employeurs sans adresse complète" },
   email_employeur: { un: "employeur sans e-mail", plusieurs: "employeurs sans e-mail" },
 };

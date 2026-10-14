@@ -166,6 +166,10 @@ Libérations (migration `supabase/migrations/20261013130000_site_liberations.sql
 | `site_equipe_profils` | Fonction et téléphone de l'équipe (courriers, lot 2) | Lecture : équipe ; écriture : service_role |
 | `site_delegues.registre_national`, `site_delegues.genre` | Registre national (11 chiffres) et genre (`M` / `F`) | Comme `site_delegues` |
 | Bucket `liberations` | **Privé**, 25 Mo, aucune politique : liens signés côté serveur | — |
+| `site_liberations_modeles`, `site_liberation_courriers`, `site_liberation_montants` (lot 2, migration `20261014090000`, exécutée le 14/10/2026) | Textes modifiés des courriers ; courriers par participant (texte retouché, envoi) ; montants de la fiche de paiement | Modèles : lecture avec l'app ; courriers et montants : `site_liberation_lisible()` ; écriture : service_role |
+| `site_delegues.iban`, `site_liberations.conseil`, `site_liberation_participants.attestation_recue_le` / `.remarques_paiement` (lot 2) | N° de compte, « Conseil », attestation reçue, remarques | Comme leur table |
+| `site_liberation_presences`, `site_liberation_trajets`, `site_liberation_tickets`, `site_liberations.qr_jeton` (lot 3, migration `20261014120000`, exécutée le 14/10/2026) | Signatures du jour J, trajets et km, photos des tickets, jeton du QR | Lecture : `site_liberation_lisible()` ; écriture : service_role (page publique par actions serveur) |
+| `site_liberation_tentatives` (lot 3) | Essais de la page publique du QR (empreinte d'IP, réussi) | Aucune lecture ni écriture hors service_role |
 | `site_liberations_admin()`, `site_liberation_lisible(uuid)` | Admin = ADMIN_OP ou SUPER_ADMIN avec l'app ; dossier lisible | `authenticated` (security definer) |
 
 ### Colonnes de `site_articles`

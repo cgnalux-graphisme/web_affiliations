@@ -104,3 +104,10 @@ describe("validerDelegue : registre national et genre", () => {
     expect(validerDelegue({ nom: "Dupont", genre: "X" }).ok).toBe(false);
   });
 });
+
+describe("validerDelegue : n° de compte", () => {
+  it("garde l'IBAN sans espaces et refuse une clé fausse", () => {
+    expect(validerDelegue({ nom: "Dupont", iban: "be68 5390 0754 7034" })).toEqual({ ok: true, valeurs: { nom: "Dupont", iban: "BE68539007547034" } });
+    expect(validerDelegue({ nom: "Dupont", iban: "BE69 5390 0754 7034" }).ok).toBe(false);
+  });
+});

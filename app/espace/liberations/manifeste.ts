@@ -11,6 +11,7 @@ export const manifeste: ManifesteApp = {
     { chemin: "dossiers", libelle: "Dossiers", icone: "calendar-check", aussi: ["^/espace/liberations/[0-9a-f-]{36}"] },
     { chemin: "nouvelle", libelle: "Nouvelle demande", icone: "plus" },
     { chemin: "parametres", libelle: "Paramètres", icone: "sliders", roles: ROLES_ADMIN },
+    { chemin: "parametres/modeles", libelle: "Modèles de courriers", icone: "mail", roles: ROLES_ADMIN },
   ],
   badge: badgeLiberations,
 };

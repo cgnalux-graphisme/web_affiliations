@@ -5,6 +5,7 @@ const LIBELLES: Record<Manque, string> = {
   domicile: "sans domicile",
   genre: "genre à préciser",
   registre_national: "sans registre national",
+  iban: "sans n° de compte",
   adresse_employeur: "adresse de l'employeur incomplète",
   email_employeur: "employeur sans e-mail",
 };

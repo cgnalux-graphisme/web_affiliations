@@ -6,6 +6,7 @@ import { aApp, exigerApp, monProfil, utilisateurConnecte } from "../espace/acces
 import { monPerimetre } from "../permanents/perimetre-serveur";
 import { blocAdresse, nomAffiche } from "../entreprises/regles";
 import { libelleCommission } from "../commissions-paritaires";
+import { formaterNumeroBce } from "../bce/numero";
 import { COLONNES_ENTREPRISE, COLONNES_SITE, COLONNES_UNITE, type Entreprise, type Site, type Unite } from "../entreprises/types";
 import { manquesDelegue, resumeManques } from "./regles";
 import { actionsPossibles, peutModifier, peutSupprimer, type CodeAction } from "./statuts";
@@ -141,6 +142,8 @@ export async function deleguesChoix(c: ContexteLiberations): Promise<DelegueChoi
 export type LigneDossier = {
   id: string; numero: number; type: string; objet: string | null; statut: StatutLiberation; premiereDate: string | null;
   nbDates: number; nbParticipants: number; demandeur: string; demandeurId: string; secteurId: string | null; updated_at: string;
+  /** Noms des participants et de leurs entreprises (recherche, archives comprises). */
+  recherche: string;
 };
 
 export async function lignesDossiers(c: ContexteLiberations): Promise<{ ok: true; lignes: LigneDossier[] } | { ok: false; tablesAbsentes: boolean }> {
@@ -157,9 +160,14 @@ export async function lignesDossiers(c: ContexteLiberations): Promise<{ ok: true
   const ids = dossiers.map((d) => d.id);
   const [{ data: dates }, { data: participants }, noms] = await Promise.all([
     ids.length ? db.from("site_liberation_dates").select("liberation_id, jour").in("liberation_id", ids) : Promise.resolve({ data: [] }),
-    ids.length ? db.from("site_liberation_participants").select("liberation_id").in("liberation_id", ids) : Promise.resolve({ data: [] }),
+    ids.length ? db.from("site_liberation_participants").select("liberation_id, prenom, nom, entreprise_id").in("liberation_id", ids) : Promise.resolve({ data: [] }),
     nomsPersonnes(dossiers.map((d) => d.demandeur_id)),
   ]);
+  const nomEntreprise = new Map((await entreprises()).map((e) => [e.id, e.nom]));
+  const recherche = new Map<string, string[]>();
+  for (const x of (participants ?? []) as { liberation_id: string; prenom: string | null; nom: string; entreprise_id: string | null }[]) {
+    recherche.set(x.liberation_id, [...(recherche.get(x.liberation_id) ?? []), x.prenom ?? "", x.nom, (x.entreprise_id && nomEntreprise.get(x.entreprise_id)) || ""]);
+  }
   const parDossier = new Map<string, string[]>();
   for (const x of (dates ?? []) as { liberation_id: string; jour: string }[]) parDossier.set(x.liberation_id, [...(parDossier.get(x.liberation_id) ?? []), x.jour]);
   const nbPart = new Map<string, number>();
@@ -171,7 +179,7 @@ export async function lignesDossiers(c: ContexteLiberations): Promise<{ ok: true
       return {
         id: d.id, numero: d.numero, type: d.type, objet: d.objet, statut: d.statut, premiereDate: jours[0] ?? null, nbDates: jours.length,
         nbParticipants: nbPart.get(d.id) ?? 0, demandeur: noms.get(d.demandeur_id) ?? "", demandeurId: d.demandeur_id,
-        secteurId: d.secteur_id, updated_at: d.updated_at,
+        secteurId: d.secteur_id, updated_at: d.updated_at, recherche: [...new Set(recherche.get(d.id) ?? [])].join(" "),
       };
     }),
   };
@@ -195,11 +203,17 @@ export async function badgeLiberations(): Promise<string | null> {
 export type FicheDelegue = {
   genre: string | null; registre_national: string | null; adresse_rue: string | null; adresse_numero: string | null;
   adresse_boite: string | null; adresse_code_postal: string | null; adresse_localite: string | null; adresse_pays: string | null;
+  /** N° de compte (fiche de paiement, lot 2). */
+  iban: string | null;
+  /** E-mail du délégué (convocation). */
+  email: string | null;
 };
-const COLONNES_FICHE_DELEGUE = "genre, registre_national, adresse_rue, adresse_numero, adresse_boite, adresse_code_postal, adresse_localite, adresse_pays";
+const COLONNES_FICHE_DELEGUE = "genre, registre_national, adresse_rue, adresse_numero, adresse_boite, adresse_code_postal, adresse_localite, adresse_pays, iban, email";
 
 export type ParticipantAffiche = Participant & {
   entreprise: string; manques: Manque[]; employeurCle: string | null; employeurEmail: string | null; employeurAdresse: string[];
+  /** Employeur pour les formulaires : dénomination, adresse seule (sans « À l'attention de »), n° d'entreprise. */
+  employeurNom: string | null; employeurAdresseSeule: string[]; employeurNumero: string | null;
   /** Entreprise du délégué (lien vers l'app Entreprises pour compléter l'adresse ou l'e-mail). */
   entrepriseId: string | null;
   fiche: FicheDelegue | null;
@@ -219,12 +233,18 @@ export type DroitsDossier = { modifiable: boolean; supprimable: boolean; actions
 
 /** Employeur d'un participant : site de son unité de rattachement, sinon le siège (règle du bloc adresse). */
 function employeur(e: Entreprise | undefined, nomCgLink: string | null, uniteId: string | null, sites: Site[], unites: Unite[]) {
-  if (!e) return { cle: null, email: null, adresse: [] as string[], incomplet: true };
+  if (!e) return { cle: null, email: null, adresse: [] as string[], incomplet: true, nom: null, adresseSeule: [] as string[], numero: null };
   const unite = uniteId ? unites.find((u) => u.id === uniteId) : undefined;
   const site = unite?.site_id ? sites.find((s) => s.id === unite.site_id) ?? null : null;
   const bloc = blocAdresse(e, nomCgLink, site, unites.filter((u) => u.entreprise_id === e.id));
   const email = site?.ref_email?.trim() || e.ref_email?.trim() || null;
-  return { cle: `${e.id}:${site?.id ?? "siege"}`, email, adresse: bloc.lignes, incomplet: bloc.incomplet };
+  const nom = e.denomination_bce?.trim() || e.nom?.trim() || nomCgLink?.trim() || null;
+  const adresseSeule = blocAdresse(e, nomCgLink, site, unites.filter((u) => u.entreprise_id === e.id)).lignes
+    .slice(bloc.lignes.findIndex((l) => l === nom) + 1);
+  return {
+    cle: `${e.id}:${site?.id ?? "siege"}`, email, adresse: bloc.lignes, incomplet: bloc.incomplet, nom, adresseSeule,
+    numero: e.numero_bce ? formaterNumeroBce(e.numero_bce) : null,
+  };
 }
 
 /** Un dossier complet, s'il est lisible par la personne (admin ou demandeur). null = introuvable. */
@@ -282,13 +302,20 @@ export async function chargerDossier(id: string, c: ContexteLiberations): Promis
       if (emp.incomplet) { manques.push("adresse_employeur"); manquesDossier.push({ manque: "adresse_employeur", cle: emp.cle }); }
       if (!emp.email) { manques.push("email_employeur"); manquesDossier.push({ manque: "email_employeur", cle: emp.cle }); }
     }
+    // Fiche de paiement : le n° de compte manque seulement si la CG fédérale paie la perte de salaire.
+    if (del && d.perte_salaire && d.perte_salaire_charge === "cg_federale" && !del.iban) {
+      manques.push("iban");
+      manquesDossier.push({ manque: "iban", cle: p.id });
+    }
     const fiche: FicheDelegue | null = del ? {
       genre: del.genre, registre_national: del.registre_national, adresse_rue: del.adresse_rue, adresse_numero: del.adresse_numero,
       adresse_boite: del.adresse_boite, adresse_code_postal: del.adresse_code_postal, adresse_localite: del.adresse_localite, adresse_pays: del.adresse_pays,
+      iban: del.iban, email: del.email,
     } : null;
     return {
       ...p, entreprise: (entId && nomEnt.get(entId)) || "", manques, entrepriseId: entId ?? null, fiche,
       employeurCle: emp.cle, employeurEmail: emp.email, employeurAdresse: emp.adresse,
+      employeurNom: emp.nom, employeurAdresseSeule: emp.adresseSeule, employeurNumero: emp.numero,
     };
   });
 

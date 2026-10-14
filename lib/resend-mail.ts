@@ -39,6 +39,8 @@ interface IsolatedEmailOptions {
   subject: string;
   html: string;
   attachments?: { filename: string; content: Buffer }[];
+  /** Adresse de réponse (ex. le correspondant d'un dossier de libération). */
+  replyTo?: string;
 }
 
 /**
@@ -47,7 +49,7 @@ interface IsolatedEmailOptions {
  */
 export async function sendIsolatedEmail(
   resend: Resend,
-  { recipients, subject, html, attachments }: IsolatedEmailOptions
+  { recipients, subject, html, attachments, replyTo }: IsolatedEmailOptions
 ) {
   const from = getFromEmail();
   const toList = uniqueRecipients(from, ...recipients);
@@ -64,6 +66,7 @@ export async function sendIsolatedEmail(
         subject,
         html,
         attachments,
+        ...(replyTo ? { replyTo } : {}),
       })
     )
   );

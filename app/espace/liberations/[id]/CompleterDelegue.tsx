@@ -26,6 +26,8 @@ export default function CompleterDelegue({ participantId, nom, fiche }: { partic
               { nom: "genre", libelle: "Genre (accord des courriers)", type: "choix", largeur: "demi",
                 options: [{ valeur: "", libelle: "Non précisé" }, { valeur: "M", libelle: "Délégué" }, { valeur: "F", libelle: "Déléguée" }] },
               { nom: "registre_national", libelle: "N° de registre national", type: "registre", exemple: "85.07.30-033.28", largeur: "demi" },
+              { nom: "iban", libelle: "N° de compte (IBAN)", type: "iban", exemple: "BE68 5390 0754 7034",
+                aide: "Pour la fiche de paiement quand la CG fédérale prend en charge la perte de salaire." },
               { nom: "adresse_rue", libelle: "Rue du domicile", type: "rue",
                 aide: "Tapez 3 lettres : choisissez l'adresse proposée, le reste se remplit.",
                 cibles: { numero: "adresse_numero", code_postal: "adresse_code_postal", localite: "adresse_localite", pays: "adresse_pays" } },

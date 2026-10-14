@@ -14,6 +14,7 @@ import {
 } from "../../../lib/liberations/regles";
 import { ACTIONS, actionPermise, peutModifier, peutSupprimer, type CodeAction } from "../../../lib/liberations/statuts";
 import { COLONNES_DOSSIER, FICHIERS_MAX, TYPES_LIBERATION, type Dossier, type TypeLiberation } from "../../../lib/liberations/types";
+import { courriersEnAttente, preparerCourriers } from "../../../lib/liberations/courriers-serveur";
 
 /**
  * Écritures de l'app Libérations. Chaque action revérifie l'app et le droit sur le dossier (admin, ou demandeur tant
@@ -164,22 +165,40 @@ export async function changerStatut(id: string, action: CodeAction): Promise<Res
     const manque = manquantsPourEnvoyer(d, nbDates, nbParticipants);
     if (manque.length) return { ok: false, erreur: `Pour envoyer la demande, complétez ${enumeration(manque)}.` };
   }
-  const maj: Record<string, string | null> = { statut: a.vers };
+  if (action === "marquer_envoyee") {
+    const prep = await preparerCourriers(id, c);
+    if (!prep) return { ok: false, erreur: INTROUVABLE };
+    const reste = courriersEnAttente(prep);
+    if (reste) return { ok: false, erreur: `Il reste ${reste} courrier${reste > 1 ? "s" : ""} (lettres ou convocations) à envoyer ou à imprimer.` };
+  }
+  let vers: string = a.vers;
+  if (action === "desarchiver") {
+    // Statut d'avant l'archive (clôturé ou annulé), lu dans l'historique.
+    const { data: h } = await c.db.from("site_liberation_historique").select("statut_avant")
+      .eq("liberation_id", id).eq("statut_apres", "archive").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    vers = h?.statut_avant === "annule" ? "annule" : "cloture";
+  }
+  const maj: Record<string, string | null> = { statut: vers };
   if (action === "soumettre") maj.soumis_le = new Date().toISOString();
   if (action === "prendre_en_charge") maj.traite_par = c.user.id;
   if (action === "archiver") maj.archive_le = new Date().toISOString();
+  if (action === "desarchiver") maj.archive_le = null;
   // Mise à jour conditionnelle : si quelqu'un a changé le statut entre-temps, rien n'est écrit.
   const { data, error } = await c.db.from("site_liberations").update(maj).eq("id", id).eq("statut", d.statut).select("id");
   if (error) return { ok: false, erreur: messageErreur(error.code) };
   if (!data?.length) return { ok: false, erreur: "Le dossier a changé entre-temps. Rechargez la page." };
-  await historiser(c, id, d.statut, a.vers);
+  await historiser(c, id, d.statut, vers);
   rafraichir(id);
   const messages: Record<CodeAction, string> = {
     soumettre: "Demande envoyée. Un admin va la traiter.",
     remettre_brouillon: "La demande repasse en brouillon.",
     prendre_en_charge: "Vous traitez ce dossier.",
+    marquer_envoyee: "Libération envoyée : employeurs et délégués sont prévenus.",
+    passer_aux_frais: "Le dossier passe aux frais : vérifiez les trajets et les tickets.",
+    cloturer: "Dossier clôturé. Vous pouvez l'archiver.",
     annuler: "Dossier annulé.",
     archiver: "Dossier archivé.",
+    desarchiver: "Le dossier revient dans la liste active.",
   };
   return { ok: true, message: messages[action] };
 }
@@ -249,7 +268,7 @@ export async function completerDelegue(participantId: string, champs: Record<str
   if (!p?.delegue_id || !(await lireDossier(c, p.liberation_id as string))) return { ok: false, erreur: ECHEC };
   const { data: del } = await c.db.from("site_delegues").select("id, entreprise_id").eq("id", p.delegue_id).maybeSingle();
   if (!del || !dansPerimetre(c, del.entreprise_id as string)) return { ok: false, erreur: "Ce délégué n'est pas dans vos entreprises." };
-  const permis = ["genre", "registre_national", "adresse_rue", "adresse_numero", "adresse_boite", "adresse_code_postal", "adresse_localite", "adresse_pays"];
+  const permis = ["genre", "registre_national", "iban", "adresse_rue", "adresse_numero", "adresse_boite", "adresse_code_postal", "adresse_localite", "adresse_pays"];
   const v = validerDelegue(Object.fromEntries(Object.entries(champs).filter(([k]) => permis.includes(k))));
   if (!v.ok) return v;
   const { error } = await c.db.from("site_delegues").update(v.valeurs).eq("id", del.id);

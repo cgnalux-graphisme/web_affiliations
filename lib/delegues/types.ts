@@ -12,9 +12,11 @@ export type Delegue = { id: string; entreprise_id: string; cglink_user_id: strin
   /** 11 chiffres, saisi à la main (SUPER_ADMIN, ADMIN_OP, permanents). */
   registre_national: string | null;
   /** M = délégué, F = déléguée (courriers de libération). */
-  genre: "M" | "F" | null };
+  genre: "M" | "F" | null;
+  /** N° de compte (IBAN sans espaces), fiche de paiement des libérations. */
+  iban: string | null };
 export type DelegueCgLink = { id: string; name?: string | null; email?: string | null; phone?: string | null;
   isActive?: boolean; invitedAt?: number; mandateDs?: string | null; mandateCe?: string | null; mandateCppt?: string | null; mandateOther?: string | null };
 export type EtatCompte = "actif" | "invite" | "bloque" | "sans_compte" | "introuvable";
-export const COLONNES_DELEGUE = "id, entreprise_id, cglink_user_id, unite_id, prenom, nom, email, telephone, notes, a_verifier, adresse_rue, adresse_numero, adresse_boite, adresse_code_postal, adresse_localite, adresse_pays, registre_national, genre";
+export const COLONNES_DELEGUE = "id, entreprise_id, cglink_user_id, unite_id, prenom, nom, email, telephone, notes, a_verifier, adresse_rue, adresse_numero, adresse_boite, adresse_code_postal, adresse_localite, adresse_pays, registre_national, genre, iban";
 export const COLONNES_MANDAT = "id, delegue_id, site_id, organe, qualite, libelle, fonction, debut, fin, a_verifier";

@@ -11,7 +11,7 @@ import StatutDossier from "../StatutDossier";
 
 const sansAccents = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-/** Dossiers actifs ou archivés, filtres par statut, type et secteur, recherche (objet, numéro, permanent). */
+/** Dossiers actifs ou archivés, filtres par statut, type, année et secteur, recherche (objet, n°, participants, entreprises, permanent). */
 export default function ListeDossiers({ lignes, secteurs, admin, statutInitial, archives: archivesInitial }: {
   lignes: LigneDossier[];
   secteurs: { id: string; nom: string }[];
@@ -24,15 +24,23 @@ export default function ListeDossiers({ lignes, secteurs, admin, statutInitial, 
   const [statut, setStatut] = useState(STATUTS.some((s) => s.code === statutInitial) ? statutInitial : "");
   const [type, setType] = useState("");
   const [secteur, setSecteur] = useState("");
+  const [annee, setAnnee] = useState("");
 
   const actifs = lignes.filter((l) => l.statut !== "archive");
-  const visibles = useMemo(() => lignes.filter((l) =>
-    (archives ? l.statut === "archive" : l.statut !== "archive") &&
-    (archives || !statut || l.statut === statut) &&
-    (!type || l.type === type) &&
-    (!secteur || l.secteurId === secteur) &&
-    (!q.trim() || sansAccents(`${l.numero} ${l.objet ?? ""} ${l.demandeur} ${libelleType(l.type)}`).includes(sansAccents(q.trim())))
-  ), [lignes, archives, statut, type, secteur, q]);
+  const annees = useMemo(() => [...new Set(lignes.map((l) => l.premiereDate?.slice(0, 4)).filter((x): x is string => Boolean(x)))].sort().reverse(), [lignes]);
+  // Recherche : chaque mot doit se trouver dans le n°, l'objet, le permanent, le type, un participant ou son entreprise.
+  const visibles = useMemo(() => {
+    const mots = sansAccents(q).split(/\s+/).filter(Boolean);
+    return lignes.filter((l) => {
+      const texte = sansAccents(`${l.numero} ${l.objet ?? ""} ${l.demandeur} ${libelleType(l.type)} ${l.recherche}`);
+      return (archives ? l.statut === "archive" : l.statut !== "archive") &&
+        (archives || !statut || l.statut === statut) &&
+        (!type || l.type === type) &&
+        (!secteur || l.secteurId === secteur) &&
+        (!annee || l.premiereDate?.startsWith(annee)) &&
+        mots.every((m) => texte.includes(m));
+    });
+  }, [lignes, archives, statut, type, secteur, annee, q]);
 
   return (
     <Panneau corps={false}>
@@ -42,13 +50,13 @@ export default function ListeDossiers({ lignes, secteurs, admin, statutInitial, 
           Archivés ({lignes.length - actifs.length})
         </button>
       </div>
-      <div className="grid gap-3 px-5 pt-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 px-5 pt-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="sm:col-span-2 lg:col-span-1">
           <label htmlFor="q" className={LIBELLE}>Rechercher</label>
           <div className="relative">
             <Search size={16} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" />
             <input id="q" type="search" value={q} onChange={(e) => setQ(e.target.value)} className={`${CHAMP} pl-9`}
-              placeholder={admin ? "Objet, n°, permanent…" : "Objet, n°…"} autoComplete="off" />
+              placeholder={admin ? "Objet, n°, participant, entreprise, permanent…" : "Objet, n°, participant, entreprise…"} autoComplete="off" />
           </div>
         </div>
         {!archives && (
@@ -67,6 +75,15 @@ export default function ListeDossiers({ lignes, secteurs, admin, statutInitial, 
             {TYPES_LIBERATION.map((t) => <option key={t.code} value={t.code}>{t.libelle}</option>)}
           </select>
         </div>
+        {annees.length > 1 && (
+          <div>
+            <label htmlFor="annee" className={LIBELLE}>Année</label>
+            <select id="annee" value={annee} onChange={(e) => setAnnee(e.target.value)} className={CHAMP}>
+              <option value="">Toutes</option>
+              {annees.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+        )}
         <div>
           <label htmlFor="secteur" className={LIBELLE}>Secteur</label>
           <select id="secteur" value={secteur} onChange={(e) => setSecteur(e.target.value)} className={CHAMP}>

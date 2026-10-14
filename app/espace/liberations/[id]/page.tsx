@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Building2, FileText, PencilLine, Tag, UserRound, UserRoundCheck } from "lucide-react";
+import { Building2, FileDown, FileText, PencilLine, Tag, UserRound, UserRoundCheck } from "lucide-react";
 import { isoToDateFr } from "../../../../lib/dates";
 import { adresseLieu, libelleDate } from "../../../../lib/liberations/regles";
 import { libelleCharge, libelleStatut, libelleType } from "../../../../lib/liberations/types";
 import { chargerDossier, exigerLiberations } from "../../../../lib/liberations/donnees-serveur";
-import { Alerte, BTN_PRINCIPAL, EnteteEcran, Panneau, Vide } from "../../_partage/ui";
+import { preparerCourriers, vueCourriers } from "../../../../lib/liberations/courriers-serveur";
+import { STATUTS_COURRIERS, STATUTS_JOUR_J, STATUTS_QR } from "../../../../lib/liberations/statuts";
+import { chargerJourJ } from "../../../../lib/liberations/jour-j-serveur";
+import { manquantsPourCloturer } from "../../../../lib/liberations/cloture";
+import { origineSite } from "../../../../lib/liberations/origine-serveur";
+import { cleGoogleConfiguree } from "../../../../lib/liberations/google-km";
+import CourriersDossier from "./courriers/CourriersDossier";
+import JourJDossier from "./jour-j/JourJDossier";
+import { Alerte, BTN, BTN_PRINCIPAL, EnteteEcran, Panneau, Vide } from "../../_partage/ui";
 import StatutDossier from "../StatutDossier";
 import ActionsDossier from "./ActionsDossier";
 import ParticipantsLecture from "./ParticipantsLecture";
@@ -27,6 +35,18 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
   const lu = await chargerDossier(id, c);
   if (!lu) notFound();
   const { dossier: d, droits } = lu;
+  // Courriers (lot 2) : admins, à partir de la prise en charge.
+  const prep = c.admin && STATUTS_COURRIERS.includes(d.statut) ? await preparerCourriers(id, c) : null;
+  // Jour J (lot 3) : admins et permanent demandeur (tickets compris, décision de Fred du 14/10/2026).
+  const jourJ = STATUTS_JOUR_J.includes(d.statut) ? await chargerJourJ(id, await origineSite(), STATUTS_QR.includes(d.statut)) : null;
+  // Clôture (lot 4) : ce qui manque encore, affiché dans la confirmation.
+  const manquesCloture = droits.actions.includes("cloturer") && jourJ ? manquantsPourCloturer({
+    participants: d.participants.map((p) => ({ id: p.id, nom: [p.prenom, p.nom].filter(Boolean).join(" "), attestationRecue: Boolean(p.attestation_recue_le) })),
+    dates: d.dates,
+    presences: jourJ.dates.flatMap((x) => x.presences.map((p) => ({ participantId: p.participantId, dateId: x.id, aVerifier: p.aVerifier }))),
+    trajets: jourJ.dates.flatMap((x) => x.presences.flatMap((p) => (p.trajet ? [{ mode: p.trajet.mode, km: p.trajet.km, ticketsVerifies: p.trajet.ticketsVerifies, nom: p.nom }] : []))),
+    cgFederale: d.perte_salaire === true && d.perte_salaire_charge === "cg_federale",
+  }) : [];
   const lieu = adresseLieu(d);
   const lignesOdj = (d.ordre_du_jour ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
 
@@ -34,9 +54,19 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
     <div className="ecg-ecran">
       <EnteteEcran icone="calendar-check" titre={d.objet?.trim() || "Demande sans objet"}
         description={`Dossier n° ${d.numero} · ${libelleType(d.type)}`}
-        actions={droits.modifiable && (
-          <Link href={`/espace/liberations/${d.id}/modifier`} className={BTN_PRINCIPAL}><PencilLine size={18} aria-hidden /> Modifier</Link>
-        )} />
+        actions={
+          <>
+            {d.statut !== "brouillon" && (
+              <a href={`/api/liberations/${d.id}/dossier`} target="_blank" rel="noreferrer" className={BTN}
+                title="Demande, courriers, présences et signatures, frais, tickets et pièces jointes, en un seul PDF">
+                <FileDown size={18} aria-hidden /> PDF complet<span className="sr-only"> du dossier (nouvel onglet, quelques secondes)</span>
+              </a>
+            )}
+            {droits.modifiable && (
+              <Link href={`/espace/liberations/${d.id}/modifier`} className={BTN_PRINCIPAL}><PencilLine size={18} aria-hidden /> Modifier</Link>
+            )}
+          </>
+        } />
 
       <div className="ecg-puces">
         <StatutDossier statut={d.statut} />
@@ -82,7 +112,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
             <dl className="ecg-recap">
               <div>
                 <dt>Perte de salaire</dt>
-                <dd>{ouiNon(d.perte_salaire)}{d.perte_salaire && d.perte_salaire_charge ? `, prise en charge par ${libelleCharge(d.perte_salaire_charge).toLowerCase()}` : ""}</dd>
+                <dd>{ouiNon(d.perte_salaire)}{d.perte_salaire && d.perte_salaire_charge ? `, prise en charge par ${libelleCharge(d.perte_salaire_charge).replace(/^L/, "l")}` : ""}</dd>
               </div>
               <div>
                 <dt>Dépense introduite à la CG fédérale</dt>
@@ -93,6 +123,10 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
           </Panneau>
 
           <ParticipantsLecture dossier={d} />
+
+          {prep && <CourriersDossier vue={vueCourriers(prep)} />}
+
+          {jourJ && <JourJDossier vue={jourJ} admin={c.admin} peutQr={c.admin || d.demandeur_id === c.user.id} googleOk={cleGoogleConfiguree()} />}
 
           <Panneau titre={`Pièces jointes (${d.fichiers.length})`}>
             {d.fichiers.length ? (
@@ -120,7 +154,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
           )}
           {(droits.actions.length > 0 || droits.supprimable) && (
             <Panneau titre="Actions">
-              <ActionsDossier id={d.id} actions={droits.actions} supprimable={droits.supprimable} />
+              <ActionsDossier id={d.id} actions={droits.actions} supprimable={droits.supprimable} manquesCloture={manquesCloture} />
             </Panneau>
           )}
           <Panneau titre="Historique">

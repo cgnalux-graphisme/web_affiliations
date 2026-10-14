@@ -7,7 +7,7 @@ const J = "2026-10-13";
 const D: Delegue = { id: "d", entreprise_id: "e", cglink_user_id: "u", unite_id: null, prenom: "Jean", nom: "Dupont",
   email: "j@x.be", telephone: "+32 (0) 470 12 34 56", notes: null, a_verifier: null,
   adresse_rue: null, adresse_numero: null, adresse_boite: null, adresse_code_postal: null, adresse_localite: null, adresse_pays: null,
-  registre_national: null, genre: null };
+  registre_national: null, genre: null, iban: null };
 const M = (id: string, organe: Mandat["organe"], qualite: Mandat["qualite"], extra: Partial<Mandat> = {}): Mandat =>
   ({ id, delegue_id: "d", site_id: "s", organe, qualite, libelle: null, fonction: null, debut: "2024-05-13", fin: null, a_verifier: null, ...extra });
 const E = { id: "u", name: "Jean Dupont", email: "j@x.be", phone: "0470123456", mandateDs: "Effectif", mandateCe: "Pas de mandat", mandateCppt: "", mandateOther: "" };

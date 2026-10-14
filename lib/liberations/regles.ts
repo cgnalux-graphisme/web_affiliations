@@ -12,7 +12,7 @@ export const TEXTE_MAX = 5000;
 export const DATES_MAX = 30;
 
 const CHAMPS_TEXTE = ["objet", "salle", "ordre_du_jour", "regime_paiement", "lieu_nom", "lieu_complement", "lieu_rue",
-  "lieu_numero", "lieu_boite", "lieu_code_postal", "lieu_localite"] as const;
+  "lieu_numero", "lieu_boite", "lieu_code_postal", "lieu_localite", "conseil"] as const;
 const CHAMPS_ID = ["lieu_id", "secteur_id", "entreprise_id"] as const;
 const CHAMPS_OUI_NON = ["perte_salaire", "introduire_cg_federale", "lunch"] as const;
 

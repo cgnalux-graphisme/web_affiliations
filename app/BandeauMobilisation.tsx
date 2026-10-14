@@ -36,7 +36,7 @@ export default function BandeauMobilisation({
   // Échéance calculée dans le navigateur seulement (l'heure du serveur et du cache ne valent pas « aujourd'hui »).
   const [maintenant, setMaintenant] = useState<number | null>(null);
   useEffect(() => setMaintenant(Date.now()), []);
-  const admin = chemin.startsWith("/espace") || chemin.startsWith("/login");
+  const admin = chemin.startsWith("/espace") || chemin.startsWith("/login") || chemin.startsWith("/presence");
 
   useEffect(() => {
     try {

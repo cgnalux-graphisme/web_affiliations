@@ -2,7 +2,8 @@
 
 import { usePathname } from "next/navigation";
 
-/** N'affiche son contenu qu'en dehors de l'Espace CG (pied de page du site public, par exemple). */
+/** N'affiche son contenu qu'en dehors de l'Espace CG et de la page du QR code des libérations (pied de page du site public, par exemple). */
 export default function HorsEspace({ children }: { children: React.ReactNode }) {
-  return usePathname().startsWith("/espace") ? null : <>{children}</>;
+  const chemin = usePathname();
+  return chemin.startsWith("/espace") || chemin.startsWith("/presence") ? null : <>{children}</>;
 }

@@ -2,13 +2,15 @@ import type { StatutLiberation } from "./types";
 
 /**
  * Parcours d'un dossier de libération : qui peut faire quoi, à quel moment. Pur (testé).
- * Lot 1 : soumettre, remettre en brouillon, prendre en charge, annuler, archiver. Les étapes suivantes
- * (libération envoyée, jour J, frais, clôture) arrivent avec les lots 2 à 4.
+ * Lot 1 : soumettre, remettre en brouillon, prendre en charge, annuler, archiver. Lot 2 : libération envoyée. Lot 3 : jour J
+ * (automatique à la première signature), passer aux frais. Lot 4 : clôturer, désarchiver.
  */
 
 export type Qui = { admin: boolean; demandeur: boolean };
 
-export type CodeAction = "soumettre" | "remettre_brouillon" | "prendre_en_charge" | "annuler" | "archiver";
+export type CodeAction =
+  | "soumettre" | "remettre_brouillon" | "prendre_en_charge" | "marquer_envoyee" | "passer_aux_frais" | "cloturer"
+  | "annuler" | "archiver" | "desarchiver";
 
 export const ACTIONS: Record<CodeAction, {
   libelle: string; confirmation?: string; vers: StatutLiberation; depuis: StatutLiberation[]; adminSeulement: boolean;
@@ -19,6 +21,22 @@ export const ACTIONS: Record<CodeAction, {
     confirmation: "Repasser la demande en brouillon ? Elle ne sera plus visible comme « à traiter ».",
   },
   prendre_en_charge: { libelle: "Prendre en charge", vers: "en_traitement", depuis: ["demande"], adminSeulement: true },
+  // Lot 2 : toutes les lettres et convocations envoyées ou imprimées (vérifié côté serveur).
+  marquer_envoyee: {
+    libelle: "Marquer la libération envoyée", vers: "liberation_envoyee", depuis: ["en_traitement"], adminSeulement: true,
+    confirmation: "Employeurs et délégués sont prévenus ? Le dossier passe à « Libération envoyée ».",
+  },
+  // Lot 3 : la réunion est passée, on vérifie les trajets et les tickets. (« Jour J » arrive tout seul à la
+  // première signature par le QR code.)
+  passer_aux_frais: {
+    libelle: "Passer aux frais", vers: "frais", depuis: ["liberation_envoyee", "jour_j"], adminSeulement: true,
+    confirmation: "La réunion est terminée ? Le QR code ne fonctionnera plus ; vous vérifiez ensuite trajets et tickets.",
+  },
+  // Lot 4 : ce qui manque est listé dans la confirmation ; l'admin peut clôturer quand même (décision de Fred).
+  cloturer: {
+    libelle: "Clôturer le dossier", vers: "cloture", depuis: ["frais"], adminSeulement: true,
+    confirmation: "Clôturer ce dossier ? Plus rien ne pourra y être modifié ; il pourra ensuite être archivé.",
+  },
   annuler: {
     libelle: "Annuler le dossier", vers: "annule", adminSeulement: false,
     depuis: ["brouillon", "demande", "en_traitement", "liberation_envoyee", "jour_j", "frais"],
@@ -27,6 +45,11 @@ export const ACTIONS: Record<CodeAction, {
   archiver: {
     libelle: "Archiver", vers: "archive", depuis: ["cloture", "annule"], adminSeulement: true,
     confirmation: "Archiver ce dossier ? Il sort de la liste active et reste consultable dans les archives.",
+  },
+  // Lot 4 : le dossier reprend son statut d'avant l'archive (clôturé ou annulé), lu dans l'historique.
+  desarchiver: {
+    libelle: "Désarchiver", vers: "cloture", depuis: ["archive"], adminSeulement: true,
+    confirmation: "Désarchiver ce dossier ? Il revient dans la liste active, avec son statut d'avant l'archive.",
   },
 };
 
@@ -74,3 +97,11 @@ export function tonStatut(statut: StatutLiberation): "ok" | "attente" | "info" |
   if (statut === "brouillon") return undefined;
   return "info";
 }
+
+/** Statuts où les courriers (lot 2) se préparent et s'envoient : du dossier pris en charge jusqu'aux frais. */
+export const STATUTS_COURRIERS: StatutLiberation[] = ["en_traitement", "liberation_envoyee", "jour_j", "frais"];
+
+/** Statuts où le QR code du jour J fonctionne (lot 3). */
+export const STATUTS_QR: StatutLiberation[] = ["en_traitement", "liberation_envoyee", "jour_j"];
+/** Statuts où le panneau « Jour J » s'affiche (présences, trajets, frais). */
+export const STATUTS_JOUR_J: StatutLiberation[] = ["en_traitement", "liberation_envoyee", "jour_j", "frais", "cloture", "archive"];

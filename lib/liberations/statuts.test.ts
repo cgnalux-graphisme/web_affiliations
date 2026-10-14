@@ -14,10 +14,14 @@ describe("actions sur un dossier", () => {
 
   it("l'admin prend en charge, annule et archive", () => {
     expect(actionsPossibles("demande", ADMIN)).toEqual(["remettre_brouillon", "prendre_en_charge", "annuler"]);
-    expect(actionsPossibles("en_traitement", ADMIN)).toEqual(["annuler"]);
+    expect(actionsPossibles("en_traitement", ADMIN)).toEqual(["marquer_envoyee", "annuler"]);
+    expect(actionsPossibles("liberation_envoyee", ADMIN)).toEqual(["passer_aux_frais", "annuler"]);
+    expect(actionsPossibles("jour_j", ADMIN)).toEqual(["passer_aux_frais", "annuler"]);
+    expect(actionsPossibles("frais", ADMIN)).toEqual(["cloturer", "annuler"]);
     expect(actionsPossibles("annule", ADMIN)).toEqual(["archiver"]);
     expect(actionsPossibles("cloture", ADMIN)).toEqual(["archiver"]);
-    expect(actionsPossibles("archive", ADMIN)).toEqual([]);
+    expect(actionsPossibles("archive", ADMIN)).toEqual(["desarchiver"]);
+    expect(actionsPossibles("archive", DEMANDEUR)).toEqual([]);
   });
 
   it("personne d'autre n'agit", () => {

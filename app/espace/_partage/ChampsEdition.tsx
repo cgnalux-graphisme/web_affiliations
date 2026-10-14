@@ -6,6 +6,7 @@ import { Save } from "lucide-react";
 import { formatDateFr, isoToDateFr } from "../../../lib/dates";
 import { formaterTelephone } from "../../../lib/telephone";
 import { formaterNiss } from "../../../lib/modification";
+import { formaterIban } from "../../../lib/iban";
 import AutocompleteRue from "./AutocompleteRue";
 import { IconeChargement } from "../../Chargement";
 import { AIDE, BTN_PRINCIPAL, CHAMP, LIBELLE } from "./ui";
@@ -16,8 +17,9 @@ export type DefChamp = {
   /**
    * « rue » : autocomplétion d'adresses belges ; une suggestion remplit aussi les champs de `cibles`.
    * « registre » : numéro de registre national formaté à la frappe (85.07.30-033.28).
+   * « iban » : n° de compte mis par groupes de 4 en quittant le champ.
    */
-  type?: "texte" | "email" | "tel" | "zone" | "date" | "choix" | "rue" | "registre";
+  type?: "texte" | "email" | "tel" | "zone" | "date" | "choix" | "rue" | "registre" | "iban";
   cibles?: { numero?: string; code_postal?: string; localite?: string; pays?: string };
   options?: { valeur: string; libelle: string }[];
   aide?: string;
@@ -50,6 +52,7 @@ export default function ChampsEdition({
       if (v === null || v === undefined) return [c.nom, ""];
       if (c.type === "date" && typeof v === "string") return [c.nom, isoToDateFr(v)];
       if (c.type === "registre") return [c.nom, formaterNiss(String(v))];
+      if (c.type === "iban") return [c.nom, formaterIban(String(v))];
       return [c.nom, String(v)];
     })
   );
@@ -125,7 +128,8 @@ export default function ChampsEdition({
                   [c.nom]: c.type === "date" ? formatDateFr(e.target.value) : c.type === "registre" ? formaterNiss(e.target.value) : e.target.value,
                 })}
                 // Téléphone mis au format +32 (0) 470 12 34 56 en quittant le champ.
-                onBlur={c.type === "tel" ? (e) => setForm((f) => ({ ...f, [c.nom]: formaterTelephone(e.target.value) })) : undefined}
+                onBlur={c.type === "tel" ? (e) => setForm((f) => ({ ...f, [c.nom]: formaterTelephone(e.target.value) }))
+                  : c.type === "iban" ? (e) => setForm((f) => ({ ...f, [c.nom]: formaterIban(e.target.value) })) : undefined}
               />
             )}
             {c.aide && <p id={`${idChamp}-aide`} className={AIDE}>{c.aide}</p>}
