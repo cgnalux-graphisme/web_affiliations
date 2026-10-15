@@ -4,6 +4,24 @@
 
 Le plus récent en haut. L'état **actuel** est dans CLAUDE.md (racine), section « État actuel ».
 
+## État au 14/10/2026 (Libérations : les 4 lots écrits)
+- **Une seule branche de travail : `suivi-actions`**, **poussée le 14/10/2026 à la demande de Fred** (mise en
+  production) avec les lots 2, 3 et 4 des Libérations.
+- **App Libérations** : [docs/contexte/liberations.md](docs/contexte/liberations.md). Les 4 lots sont écrits :
+  1. la demande (en production) ; 2. les courriers (PDF côté serveur, e-mail Resend ou impression, modèles
+  modifiables : **textes proposés = brouillons à relire par Fred**) ; 3. le jour J (QR code 08h00-18h00, page publique
+  `/presence/<jeton>` sans compte, signature au doigt, trajets, km par Google Maps, frais) ; 4. clôture (avec la
+  liste de ce qui manque), PDF complet du dossier (synthèse, signatures, documents, pièces jointes, tickets),
+  archive, désarchivage, recherche dans les archives (participants, entreprises, année).
+- **Migrations** des lots 1 à 3 exécutées et vérifiées ; le lot 4 n'en demande pas.
+- **Google Maps** (`GOOGLE_MAPS_API_KEY`) : dans `.env.local` et Vercel, fonctionne (essai réel du 14/10/2026).
+- **Vérifié** : 902 tests, types, build, rendu réel des PDF (courriers, attestations, fiche de paiement, dossier
+  complet). **Pas encore vérifié dans le navigateur**, ni avec un téléphone, ni avec un vrai envoi d'e-mail.
+- **À faire par Fred** : 1. tester un dossier de bout en bout (voir « À préparer pour la suite » dans
+  [docs/contexte/liberations.md](docs/contexte/liberations.md)) ; 2. Paramètres › Équipe et relire les Modèles ;
+  3. conseillé : plafond journalier de la Routes API et alerte de budget dans Google Cloud ; 4. points ouverts :
+  voir [docs/contexte/journal.md](docs/contexte/journal.md).
+
 ## État au 14/10/2026 (Libérations lots 2 et 3)
 - **Une seule branche de travail : `suivi-actions`** (dernière mise en production : 13/10/2026, lot 1 des
   Libérations). Les lots 2 et 3 **ne sont pas encore commités ni poussés**.

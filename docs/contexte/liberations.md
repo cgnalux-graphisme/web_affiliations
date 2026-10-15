@@ -475,6 +475,16 @@ du corps portée à 4 Mo (`next.config.ts`, photos des tickets).
   permanent, le type, le **nom d'un participant ou de son entreprise** ; filtre **Année** (première date du
   dossier) en plus du statut, du type et du secteur.
 
+## Ajustements du 15/10/2026
+
+- **Paramètres › Taux kilométrique** : rappel du **taux légal, à titre informatif** (`lib/liberations/taux-legal.ts`,
+  relevé à la main) : 0,4452 € / km du 01/10/2026 au 31/12/2026 (indemnité des fonctionnaires fédéraux, système
+  trimestriel, circulaire n° 771 du 16/09/2026) ; système annuel 0,4761 € / km. Bouton « Reprendre ce taux » (pré-remplit
+  l'ajout). **À mettre à jour chaque trimestre.**
+- **Paramètres › Équipe** : seulement les comptes gérés dans Comptes & accès qui ont l'app Libérations (rôle ou
+  exception) et ne sont pas suspendus.
+- **Mon compte** : chaque membre de l'équipe règle sa fonction (signature) et son téléphone (correspondant).
+
 ## À préparer pour la suite
 
 - **Lot 2, à faire par Fred** : relire les modèles de courriers (Paramètres › Modèles), remplir fonctions et

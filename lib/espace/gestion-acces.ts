@@ -95,6 +95,18 @@ export function refusSuspension(acteur: Personne, cible: Personne, equipe: Perso
   return null;
 }
 
+/**
+ * Refus (message) ou null si la suppression définitive est permise : super admin seulement, jamais son propre
+ * compte, jamais le dernier super admin (compté même s'il est suspendu : il pourrait être réactivé).
+ */
+export function refusSuppression(acteur: Personne, cible: Personne, equipe: Personne[]): string | null {
+  if (acteur.role !== ROLE_TOUTES_APPS) return "Seul un super admin peut supprimer un compte.";
+  if (cible.id === acteur.id) return "Vous ne pouvez pas supprimer votre propre compte.";
+  if (cible.role === ROLE_TOUTES_APPS && equipe.filter((p) => p.role === ROLE_TOUTES_APPS).length <= 1)
+    return "Il doit toujours rester au moins un super admin.";
+  return null;
+}
+
 /** Un non-super-admin ne gère pas les comptes super admin (sinon il pourrait s'élever ou bloquer la direction). */
 export function refusGestion(acteur: Personne, cible: Personne): string | null {
   if (cible.role === ROLE_TOUTES_APPS && acteur.role !== ROLE_TOUTES_APPS)
@@ -113,6 +125,7 @@ export const ACTIONS_JOURNAL = [
   "reinitialisation",
   "suspension",
   "reactivation",
+  "suppression_compte",
   "role_app_ajout",
   "role_app_retrait",
 ] as const;
@@ -157,6 +170,9 @@ export function phraseJournal(action: string, d: DetailsJournal, c: Contexte): s
       return `${c.auteur} a suspendu l'accès de ${c.cible}`;
     case "reactivation":
       return `${c.auteur} a réactivé l'accès de ${c.cible}`;
+    case "suppression_compte":
+      // Le compte n'existe plus : le nom et l'e-mail sont gardés dans les détails.
+      return `${c.auteur} a supprimé définitivement le compte de ${d.nom || d.email || c.cible}`;
     case "role_app_ajout":
       return `${c.auteur} a ajouté ${app} aux apps par défaut du rôle ${c.nomRole(d.role)}`;
     case "role_app_retrait":

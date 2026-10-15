@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { STATUT_PUBLIE, categorieDe, cheminPublic } from "../../../../../../lib/articles";
 import { estReseau, type Reseau, type VersionEnregistree } from "../../../../../../lib/reseaux";
 import { origineSite } from "../../../../../../lib/reseaux-ia";

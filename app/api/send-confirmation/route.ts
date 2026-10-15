@@ -13,6 +13,8 @@
  */
 
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
+import { echapperChamps } from "@/lib/echapper-html";
 import { getResendClient } from "@/lib/resend-mail";
 import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
 
@@ -39,7 +41,9 @@ interface EmailPayload {
 }
 
 // ── Template HTML de l'email ───────────────────────────────────────────────────
-function buildEmailHtml(p: EmailPayload): string {
+function buildEmailHtml(brut: EmailPayload): string {
+  // Valeurs saisies par le public : neutralisées avant d'entrer dans le HTML.
+  const p = echapperChamps(brut);
   const isDomiciliation = p.modePaiement === "domiciliation";
 
   // Bloc conditionnel selon le mode de paiement
@@ -279,6 +283,9 @@ function buildEmailHtml(p: EmailPayload): string {
 
 // ── Handler POST ───────────────────────────────────────────────────────────────
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "send-confirmation", 15);
+  if (tropDeRequetes) return tropDeRequetes;
+
   try {
     const body = (await request.json()) as EmailPayload;
 

@@ -3,6 +3,7 @@
  * Cet envoi ne part pas vers le service chômage : une seule adresse, celle du champ.
  */
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
 import { buildLivraisonPersonnelleHtml } from "@/lib/onem-email-html";
 import { getResendClient } from "@/lib/resend-mail";
 import { envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
@@ -44,6 +45,9 @@ function decoderPdf(pdfBase64: string): Buffer | null {
 }
 
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "send-formulaires-email", 15);
+  if (tropDeRequetes) return tropDeRequetes;
+
   try {
     const body = (await request.json()) as Payload;
     const nom = body.nom?.trim() ?? "";

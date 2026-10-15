@@ -118,6 +118,11 @@ tous les écrans des apps suivent la maquette, **le site public n'est pas concer
 - **lien de réinitialisation** : `auth.resetPasswordForEmail` ; **suspension** : `ban_duration` 876000 h (plus
   de connexion ici ni dans CG Link ; une session ouverte expire au plus tard avec son jeton, ~1 h) ;
   **Réactiver** : `ban_duration: "none"` (choix de Fred) ;
+- **suppression définitive** (15/10/2026, super admin seulement) : `auth.admin.deleteUser` efface le compte, le profil
+  (partagé avec CG Link), les exceptions et la fiche d'équipe. Garde-fous (`refusSuppression()`) : jamais soi-même,
+  jamais le dernier super admin ; refusée si le compte est l'auteur de fiches de suivi ou de demandes de libération
+  (la base les protège), ou a des notes de frais / changements de compte dans CG Link (la base les effacerait en
+  cascade) : on suspend alors. Journal : `suppression_compte` (nom et e-mail gardés dans `details`) ;
 - **page `/login/nouveau-mot-de-passe`** (choix de Fred : le mot de passe se choisit dans l'Espace CG) : accepte
   les 3 formes de lien Supabase (`#access_token`, `?code`, `?token_hash`), retire les jetons de l'adresse, puis
   `updateUser({ password, data: { must_change_password: false, mustChangePassword: false } })`. **À faire par
@@ -130,7 +135,7 @@ tous les écrans des apps suivent la maquette, **le site public n'est pas concer
   non-super-admin (s'il reçoit l'app Paramètres) ne gère pas les comptes super admin et n'invite pas de super admin ;
 - **journal** : chaque modification écrit une ligne (`auteur_id`, `cible_id`, `action`, `details`) ; actions
   `app_ajout`, `app_retrait`, `app_exception_supprimee`, `role`, `invitation`, `reinitialisation`, `suspension`,
-  `reactivation`, `role_app_ajout`, `role_app_retrait` ; phrases par `phraseJournal()`. Les écritures d'accès et
+  `reactivation`, `suppression_compte`, `role_app_ajout`, `role_app_retrait` ; phrases par `phraseJournal()`. Les écritures d'accès et
   du journal passent par la clé service_role, après vérification du droit sur l'app « parametres ».
 - Fenêtres : `app/espace/_partage/Fenetres.tsx` (`PanneauLateral`, `Confirmation`) : rendues dans le cadre `.ecg`,
   Échap ferme la plus récente, focus piégé puis rendu, défilement bloqué.
@@ -167,7 +172,7 @@ Une app présente en base mais sans dossier n'apparaît pas ; les apps « Bient�
 | Route | Accès | Rôle |
 |---|---|---|
 | `/espace` | connecté (équipe) | **Espace CG** (08/10/2026) : « Bonjour <prénom> », la date, une tuile par app de la personne (badge : « N à trier », « N nouvelles »…), tuile « Bientôt » (Mémoire CG). Aucune app = écran « demandez un accès ». L'ancien tableau de bord `/suivi-actions` est supprimé (redirigé) |
-| `/espace/compte` | connecté (équipe) | Mon compte : profil en lecture seule, changement du mot de passe (le même que CG Link), déconnexion |
+| `/espace/compte` | connecté (équipe) | Mon compte : profil en lecture seule, **signature (fonction) et téléphone** (équipe, `site_equipe_profils`, écrits par le serveur pour la personne connectée seulement, 15/10/2026), changement du mot de passe (le même que CG Link), déconnexion |
 | `/espace/sans-acces` | connecté | « Vous n'avez pas accès à cette app » (une page d'app y renvoie quand le droit manque) |
 | `/espace/<code>` | app `<code>` | Ouvre la première section de l'app |
 | `/espace/parametres/comptes` | app `parametres` | **Comptes & accès** (lot 2, 08/10/2026) : l'équipe (SUPER_ADMIN, ADMIN_OP, PERMANENT ; pas les délégués), rôle, apps (exceptions en pointillé « exception »), dernière connexion (API admin Auth), filtres par rôle, recherche ; panneau « Gérer » ; « Inviter un collègue » |

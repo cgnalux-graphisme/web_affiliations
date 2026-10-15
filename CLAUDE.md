@@ -4,7 +4,7 @@
 > à relire et à mettre à jour au fil de l'avancement. Il sert de mémoire commune
 > entre Fred, Claude (sur claude.ai), Claude Code et l'assistant de Cursor.
 >
-> Dernière mise à jour : **13/10/2026**
+> Dernière mise à jour : **15/10/2026**
 
 ---
 
@@ -138,23 +138,19 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 
 ---
 
-## État actuel (14/10/2026, Libérations : les 4 lots écrits)
-- **Une seule branche de travail : `suivi-actions`**, **poussée le 14/10/2026 à la demande de Fred** (mise en
-  production) avec les lots 2, 3 et 4 des Libérations.
-- **App Libérations** : [docs/contexte/liberations.md](docs/contexte/liberations.md). Les 4 lots sont écrits :
-  1. la demande (en production) ; 2. les courriers (PDF côté serveur, e-mail Resend ou impression, modèles
-  modifiables : **textes proposés = brouillons à relire par Fred**) ; 3. le jour J (QR code 08h00-18h00, page publique
-  `/presence/<jeton>` sans compte, signature au doigt, trajets, km par Google Maps, frais) ; 4. clôture (avec la
-  liste de ce qui manque), PDF complet du dossier (synthèse, signatures, documents, pièces jointes, tickets),
-  archive, désarchivage, recherche dans les archives (participants, entreprises, année).
-- **Migrations** des lots 1 à 3 exécutées et vérifiées ; le lot 4 n'en demande pas.
-- **Google Maps** (`GOOGLE_MAPS_API_KEY`) : dans `.env.local` et Vercel, fonctionne (essai réel du 14/10/2026).
-- **Vérifié** : 902 tests, types, build, rendu réel des PDF (courriers, attestations, fiche de paiement, dossier
-  complet). **Pas encore vérifié dans le navigateur**, ni avec un téléphone, ni avec un vrai envoi d'e-mail.
-- **À faire par Fred** : 1. tester un dossier de bout en bout (voir « À préparer pour la suite » dans
-  [docs/contexte/liberations.md](docs/contexte/liberations.md)) ; 2. Paramètres › Équipe et relire les Modèles ;
-  3. conseillé : plafond journalier de la Routes API et alerte de budget dans Google Cloud ; 4. points ouverts :
-  voir [docs/contexte/journal.md](docs/contexte/journal.md).
+## État actuel (15/10/2026, audit du site, comptes, ESLint)
+- **Une seule branche de travail : `suivi-actions`**, poussée le 15/10/2026 à la demande de Fred (mise en production).
+- **Audit du 14/10/2026** : base saine (tout est branché, RLS partout) ; corrigé : e-mails publics neutralisés contre
+  l'injection de HTML, limite de débit sur les 11 routes publiques, bibliothèque PDF chargée à la demande (formulaires
+  3 fois plus légers), logos optimisés, délais maximum sur les appels externes, message d'erreur des Paramètres › Envois.
+- **Migrations** : `20261007120000` (changement de situation) et `20261014150000` (index) **exécutées par Fred** ;
+  `20261014160000` (règles RLS en double) **à exécuter par Fred**.
+- **Nouveau** : suppression définitive d'un compte (Comptes & accès, super admin) ; taux kilométrique légal affiché
+  à titre informatif (Libérations › Paramètres) ; Équipe limitée aux comptes actifs qui ont l'app Libérations ;
+  signature (fonction) et téléphone dans « Mon compte » ; **ESLint** en place (`npm run lint`).
+- **À faire par Fred** : 1. exécuter `20261014160000` ; 2. tester dans le navigateur les formulaires affiliation,
+  mandat SEPA, changement de situation, préavis (PDF) ; 3. Supabase › Authentication : protection des mots de passe
+  divulgués, codes e-mail < 1 h ; 4. les points des Libérations (voir [docs/contexte/liberations.md](docs/contexte/liberations.md)).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 
@@ -214,7 +210,7 @@ Historique des états précédents : [docs/contexte/journal.md](docs/contexte/jo
 - **Polices** : `next/font/local` exige des chemins écrits en toutes lettres (pas
   de variable). Google Fonts n'est pas joignable depuis le poste de dev (proxy
   réseau) → polices auto-hébergées.
-- **PDF (`@react-pdf/renderer`)** : généré dans le navigateur ; polices en `.woff`
+- **PDF (`@react-pdf/renderer`)** : généré dans le navigateur ; **dans les formulaires publics, la bibliothèque (≈ 1,5 Mo) se charge à la demande** : le document PDF vit dans `lib/pdf/documents/` et le formulaire l'importe avec `await import(…)` au moment de l'envoi (audit du 14/10/2026 : pages de formulaire 3 fois plus légères). Ne jamais réimporter `@react-pdf/renderer`, `lib/pdf/charte` ou `BureauxPdf` en tête d'un formulaire public ; polices en `.woff`
   dans `public/fonts/` ; les éléments `fixed` positionnés avec `bottom` sortent de
   la page → les placer avec `top` (A4 = 842 pt de haut) ; un élément `absolute`
   **sans** `fixed` placé avec `top` sur un document de plusieurs pages fait tourner
@@ -241,7 +237,12 @@ Historique des états précédents : [docs/contexte/journal.md](docs/contexte/jo
   - Supabase : le schéma n'est pas lisible avec la clé publique ; les colonnes
     ont été relevées par sondage en lecture seule (`select=<col>&limit=0`).
     **Aucune écriture de test dans la base.**
-- **Tests** : `npm test` (Vitest, fichiers `lib/**/*.test.ts`).
+- **Routes API publiques** (e-mails, PDF, adresses) : toute valeur saisie qui entre dans un e-mail HTML passe par
+  `echapperHtml()` / `echapperChamps()` (`lib/echapper-html.ts`), et chaque route commence par
+  `refuserSiTropDeRequetes()` (`lib/limite-requetes.ts`). Tout appel à un service externe a un délai maximum
+  (`AbortSignal.timeout`).
+- **Tests** : `npm test` (Vitest, fichiers `lib/**/*.test.ts`). **Relecture** : `npm run lint` (ESLint, `eslint.config.mjs`,
+  règles Next.js ; environ 5 minutes).
 - **Git** : travailler sur la branche de la fonctionnalité (actuellement
   `suivi-actions`), jamais directement sur `main`, rien déployer sans l'accord de
   Fred.

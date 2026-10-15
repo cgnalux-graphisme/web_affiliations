@@ -3,6 +3,7 @@
  * Seul point d'envoi vers op.namlux@fgtb.be pour un dossier parcours complet.
  */
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
 import { buildOnemBundleHtml } from "@/lib/onem-email-html";
 import { getResendClient } from "@/lib/resend-mail";
 import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
@@ -26,6 +27,9 @@ interface Payload {
 }
 
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "send-onem-bundle", 15);
+  if (tropDeRequetes) return tropDeRequetes;
+
   try {
     const body = (await request.json()) as Payload;
     const { nom, prenom, email, c1, c32 } = body;

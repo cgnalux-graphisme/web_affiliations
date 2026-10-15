@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Copy, AlertTriangle, RotateCcw, CheckCircle, FileDown } from "lucide-react";
-import { pdf } from "@react-pdf/renderer";
 import { isoToDateFr, formatDateFr, dateFrToIso } from "./lib/dates";
 import type { QuiRompt, Statut } from "./lib/preavis/types";
 import { calculerPreavisOuvrier } from "./lib/preavis/calcul-preavis";
@@ -20,7 +19,7 @@ import {
 import { contenuOnemSanctions } from "./lib/preavis/contenu-onem-sanctions";
 import { contenuRulingOnem } from "./lib/preavis/contenu-ruling-onem";
 import { contenuProceduresEnvoi } from "./lib/preavis/contenu-procedures-envoi";
-import { LettrePDF, ADRESSE_VIDE, adresseVide, adresseComplete, type Adresse } from "./lib/preavis/courriers/LettrePDF";
+import { ADRESSE_VIDE, adresseVide, adresseComplete, type Adresse } from "./lib/preavis/courriers/adresse";
 import type { ContenuInformatif } from "./lib/preavis/types";
 
 import { EnteteFormulaire, EtapesFormulaire } from "./app/formulaires/Charte";
@@ -722,6 +721,11 @@ function ConstructeurCourrier({ contexte }: { contexte: ContexteCourrier }): Rea
               destinataireAdresse: adresseEmployeur,
             };
 
+      // Bibliothèque PDF chargée seulement au clic : la page du calculateur reste légère.
+      const [{ pdf }, { LettrePDF }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("./lib/preavis/courriers/LettrePDF"),
+      ]);
       const blob = await pdf(<LettrePDF donnees={{ entetes, corps: texteApercu }} />).toBlob();
 
       const url = URL.createObjectURL(blob);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
 import { buildC32Html } from "@/lib/onem-email-html";
 import { getResendClient } from "@/lib/resend-mail";
 import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
@@ -17,6 +18,9 @@ interface Payload {
 }
 
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "send-c3-2", 15);
+  if (tropDeRequetes) return tropDeRequetes;
+
   try {
     const body = (await request.json()) as Payload;
     const { nom, prenom, email, pdfBase64, fileName } = body;

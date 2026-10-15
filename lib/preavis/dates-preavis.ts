@@ -47,7 +47,7 @@ export function finPreavisJours(dateDebut: DateISO, jours: number): DateISO {
  * algébrique du calendrier), au prix d'une boucle bornée à 21 jours.
  */
 export function dateLimiteEnvoiRecommande(dateDebutSouhaitee: DateISO): DateISO {
-  let candidate = toDate(dateDebutSouhaitee);
+  const candidate = toDate(dateDebutSouhaitee);
   candidate.setUTCDate(candidate.getUTCDate() - 21);
 
   let meilleureDate: DateISO | null = null;

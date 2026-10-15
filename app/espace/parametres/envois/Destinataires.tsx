@@ -12,6 +12,16 @@ export type Destinataire = { id: string; envoi: Envoi; email: string; actif: boo
 
 const BOUTON = "ecg-btn ecg-btn-petit";
 const CODE_DOUBLON = "23505";
+const CODE_CONTROLE = "23514";
+const CODE_DROITS = "42501";
+
+/** Message d'échec d'un ajout selon le code Postgres : chaque cause a sa consigne. */
+function messageAjout(code: string | undefined): string {
+  if (code === CODE_DOUBLON) return "Cette adresse reçoit déjà cet envoi. Rechargez la page.";
+  if (code === CODE_CONTROLE) return "La base n'accepte pas encore cet envoi : une migration n'a pas été exécutée dans Supabase.";
+  if (code === CODE_DROITS) return "Ajout refusé par la base : seul un super admin peut modifier ces adresses. Reconnectez-vous si c'est votre cas.";
+  return `Ajout impossible${code ? ` (code ${code})` : ""}. Rechargez la page puis réessayez.`;
+}
 
 export default function Destinataires({ initiaux }: { initiaux: Destinataire[] }) {
   const [liste, setListe] = useState<Destinataire[]>(initiaux);
@@ -73,11 +83,7 @@ function CarteEnvoi({
       .single();
     setEnCours(null);
     if (error || !data) {
-      setErreur(
-        error?.code === CODE_DOUBLON
-          ? "Cette adresse reçoit déjà cet envoi. Rechargez la page."
-          : "Ajout impossible. Votre session a peut-être expiré : reconnectez-vous puis réessayez."
-      );
+      setErreur(messageAjout(error?.code));
       return;
     }
     onAjout(data as Destinataire);

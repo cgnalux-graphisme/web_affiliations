@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -37,11 +38,13 @@ export default function NavigationSite({ liens, cta }: { liens: LienNav[]; cta: 
           href="/"
           className="mr-auto shrink-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-militant-rouge focus-visible:ring-offset-4"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- logo PNG statique */}
-          <img
+          {/* Optimisé par Next.js : servi à la taille affichée (≈ 200 px) au lieu des 1 772 px du fichier. */}
+          <Image
             src="/logo-cg-rouge.png"
             width={1772}
             height={490}
+            sizes="203px"
+            priority
             alt="Centrale Générale FGTB Namur-Luxembourg, accueil"
             className="h-11 w-auto lg:h-12 xl:h-14"
           />

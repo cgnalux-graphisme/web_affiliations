@@ -1,3 +1,5 @@
+import { echapperChamps, echapperHtml } from "./echapper-html";
+
 const TEL_NAMUR = "+32 (0) 81 64 99 61";
 const TEL_LUXEMBOURG = "+32 (0) 61 53 01 60";
 const SITE_WEB = "www.accg-nalux.be";
@@ -54,12 +56,13 @@ function signatureBlock(): string {
       </tr>`;
 }
 
-export function buildC1Html(p: {
+export function buildC1Html(brut: {
   nom: string;
   prenom: string;
   email: string;
   adminEmail: string;
 }): string {
+  const p = echapperChamps(brut);
   const body = `
       <tr>
         <td style="padding:28px 32px 0;">
@@ -80,12 +83,13 @@ export function buildC1Html(p: {
   return emailShell("Formulaire C1 — FGTB", body, p.adminEmail);
 }
 
-export function buildC32Html(p: {
+export function buildC32Html(brut: {
   nom: string;
   prenom: string;
   email: string;
   adminEmail: string;
 }): string {
+  const p = echapperChamps(brut);
   const body = `
       <tr>
         <td style="padding:28px 32px 0;">
@@ -106,12 +110,13 @@ export function buildC32Html(p: {
   return emailShell("Formulaire C3.2 — FGTB", body, p.adminEmail);
 }
 
-export function buildOnemBundleHtml(p: {
+export function buildOnemBundleHtml(brut: {
   nom: string;
   prenom: string;
   email: string;
   adminEmail: string;
 }): string {
+  const p = echapperChamps(brut);
   const body = `
       <tr>
         <td style="padding:28px 32px 0;">
@@ -134,14 +139,6 @@ export function buildOnemBundleHtml(p: {
   return emailShell("Formulaires C1 et C3.2 — FGTB", body, p.adminEmail);
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 /** Message envoyé uniquement à l'adresse saisie par la personne. */
 export function buildLivraisonPersonnelleHtml(p: {
   nom: string;
@@ -150,11 +147,11 @@ export function buildLivraisonPersonnelleHtml(p: {
   documents: string[];
   adminEmail: string;
 }): string {
-  const prenom = escapeHtml(p.prenom);
-  const nom = escapeHtml(p.nom);
-  const email = escapeHtml(p.emailDeclarant);
+  const prenom = echapperHtml(p.prenom);
+  const nom = echapperHtml(p.nom);
+  const email = echapperHtml(p.emailDeclarant);
   const liste = p.documents
-    .map((doc) => `<li style="margin:0 0 6px;">${escapeHtml(doc)}</li>`)
+    .map((doc) => `<li style="margin:0 0 6px;">${echapperHtml(doc)}</li>`)
     .join("");
 
   const body = `

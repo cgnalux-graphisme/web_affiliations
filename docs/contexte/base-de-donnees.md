@@ -236,7 +236,7 @@ la RLS seule protège. `web_affiliations` n'a jamais été lisible (règle SELEC
 | `web_affiliations` | `FormulaireWebIndependant` | Colonnes à plat (identité, adresse, situation, transfert, cotisation, IBAN, mentions, signature) ; colonne `status` (défaut `en_attente`) jamais utilisée par la centrale : **masquée** dans le back-office (choix de Fred, 28/09/2026) |
 | `web_mandats_sepa` | `FormulaireChangementCompte` | Mandat SEPA **et** changement de compte, distingués par `type_demande` (`nouveau_mandat` / `changement_compte` ; vide = compté comme nouveau mandat) |
 | `web_c1`, `web_c3_2` | `FormulaireC1`, `FormulaireC32` | `nom`, `prenom`, `niss`, `email` + le formulaire complet dans `data` (jsonb) |
-| `web_modifications` | `FormulaireModification` | (07/10/2026) Colonnes à plat : identité, `changements` (text[]), un groupe de colonnes par bloc (`adresse_*`, `nouvel_email` / `nouveau_telephone`, `employeur_*`, `regime` / `regime_heures`, `situation` / `profession` / `profession_cp`, chacun avec sa date `*_depuis`), `transfert` (`non` / `a_organiser` / `a_verifier`), signature. Créée par la migration `20261007120000_web_modifications.sql` (**demandée par Fred le 07/10/2026**, idempotente, à exécuter par Fred) : `anon` **insère seulement** ; lecture **super admin uniquement** (plus strict que les autres `web_*`) ; ajoute aussi `modification` aux contrôles de `site_destinataires` (+ `admin.nalux@accg.be`) et `site_envois_mails`. Back-office : onglet « Changements de situation », badge « Transfert à organiser » / « Secteur à vérifier », PDF régénéré dans le navigateur ; table absente = comptée vide (tableau de bord, demandes liées) |
+| `web_modifications` | `FormulaireModification` | (07/10/2026) Colonnes à plat : identité, `changements` (text[]), un groupe de colonnes par bloc (`adresse_*`, `nouvel_email` / `nouveau_telephone`, `employeur_*`, `regime` / `regime_heures`, `situation` / `profession` / `profession_cp`, chacun avec sa date `*_depuis`), `transfert` (`non` / `a_organiser` / `a_verifier`), signature. Créée par la migration `20261007120000_web_modifications.sql` (**demandée par Fred le 07/10/2026**, idempotente, **exécutée par Fred le 14/10/2026**) : `anon` **insère seulement** ; lecture **super admin uniquement** (plus strict que les autres `web_*`) ; ajoute aussi `modification` aux contrôles de `site_destinataires` (+ `admin.nalux@accg.be`) et `site_envois_mails`. Back-office : onglet « Changements de situation », badge « Transfert à organiser » / « Secteur à vérifier », PDF régénéré dans le navigateur ; table absente = comptée vide (tableau de bord, demandes liées) |
 
 **Back-office des demandes** (28/09/2026) — données personnelles (NISS, IBAN,
 signature) :
@@ -299,3 +299,12 @@ devenait illisible, les envois repartiraient vers `DESTINATAIRES_DEFAUT`
 - L'historique ne couvre que les demandes reçues après la mise en ligne.
 - Les adresses citées **dans le texte** des mails (`ADMIN_EMAIL` des routes)
   restent dans le code : ce sont des contacts, pas des destinataires.
+
+## Migrations de l'audit du 14/10/2026
+
+- `20261014150000_site_index_performances.sql` : 22 index sur les clés étrangères (jointures, filtres) et règle
+  « Chacun voit ses exceptions » évaluée une fois par requête. **Exécutée par Fred.**
+- `20261014160000_site_regles_doublons.sql` : suppression des anciennes règles « Super admin… » couvertes par les
+  règles « App… », règles « gère » ramenées à l'écriture, `auth_select` neutralisées supprimées. Aucun accès gagné ni
+  perdu. **À exécuter par Fred.** Conséquence : une app désactivée dans `site_apps` coupe aussi l'accès du super admin
+  à ses tables depuis le navigateur.

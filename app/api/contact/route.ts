@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
 import { EMAIL_GENERAL } from "@/lib/bureaux";
 import { CHAMP_PIEGE, nettoyerContact, validerContact } from "@/lib/contact";
 import { htmlContact, sujetContact } from "@/lib/contact-email";
@@ -10,6 +11,9 @@ import { getFromEmail, getResendClient } from "@/lib/resend-mail";
  * Rien n'est enregistré ni journalisé (le contenu du message n'apparaît jamais dans les logs).
  */
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "contact", 5);
+  if (tropDeRequetes) return tropDeRequetes;
+
   let corps: Record<string, unknown>;
   try {
     corps = (await request.json()) as Record<string, unknown>;

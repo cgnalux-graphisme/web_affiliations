@@ -26,3 +26,16 @@ export function accepterRequete(cle: string, max: number, fenetreMs: number, mai
   }
   return true;
 }
+
+/**
+ * Garde-fou des routes publiques (e-mails, PDF, adresses) : réponse 429 si la même adresse IP dépasse
+ * `max` requêtes sur la fenêtre, sinon null. Les limites restent larges : un bureau qui encode plusieurs
+ * dossiers depuis la même connexion ne doit pas être bloqué.
+ */
+export function refuserSiTropDeRequetes(request: Request, route: string, max = 15, fenetreMs = 10 * 60_000): Response | null {
+  if (accepterRequete(`${route}:${adresseIp(request)}`, max, fenetreMs)) return null;
+  return Response.json(
+    { error: "Trop de demandes en peu de temps. Patientez quelques minutes puis réessayez, ou appelez nos bureaux." },
+    { status: 429 }
+  );
+}

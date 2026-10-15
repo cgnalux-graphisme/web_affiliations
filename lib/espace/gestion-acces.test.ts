@@ -9,6 +9,7 @@ import {
   quandJournal,
   refusChangementRole,
   refusGestion,
+  refusSuppression,
   refusSuspension,
   type Exception,
 } from "./gestion-acces";
@@ -91,6 +92,14 @@ describe("garde-fous", () => {
     expect(refusSuspension(fred, jo, [{ ...fred, suspendu: true }, jo])).toMatch(/au moins un super admin actif/);
     expect(refusSuspension(marie, jo, [fred, jo])).toMatch(/Seul un super admin/);
   });
+  it("suppression définitive : super admin seulement, jamais soi-même, jamais le dernier super admin", () => {
+    const paul = { id: "p", role: "PERMANENT" };
+    expect(refusSuppression(fred, paul, [fred, jo, paul])).toBeNull();
+    expect(refusSuppression(fred, jo, [fred, jo])).toBeNull();
+    expect(refusSuppression(fred, fred, [fred, jo])).toMatch(/propre compte/);
+    expect(refusSuppression(marie, paul, [fred, paul])).toMatch(/Seul un super admin/);
+    expect(refusSuppression({ id: "x", role: "SUPER_ADMIN" }, fred, [fred])).toMatch(/au moins un/);
+  });
   it("un non-super-admin ne gère pas un super admin", () => {
     expect(refusGestion(marie, fred)).toMatch(/Seul un super admin/);
     expect(refusGestion(fred, marie)).toBeNull();
@@ -105,6 +114,9 @@ describe("journal", () => {
       "Fred a changé le rôle de Marie Dupont : Permanent → Admin opérationnel"
     );
     expect(phraseJournal("suspension", {}, c)).toBe("Fred a suspendu l'accès de Marie Dupont");
+    expect(phraseJournal("suppression_compte", { nom: "Paul Martin" }, { ...c, cible: "Compte supprimé" })).toBe(
+      "Fred a supprimé définitivement le compte de Paul Martin"
+    );
   });
   it("date jj/mm/aaaa à l'heure de Bruxelles", () => {
     expect(quandJournal("2026-10-08T12:32:00Z")).toBe("le 08/10/2026 à 14:32");

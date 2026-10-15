@@ -10,6 +10,7 @@ import {
   exceptionsInutiles,
   refusChangementRole,
   refusGestion,
+  refusSuppression,
   refusSuspension,
   ROLE_TOUTES_APPS,
   type ActionJournal,
@@ -204,6 +205,60 @@ export async function reactiver(userId: string): Promise<Resultat> {
   await journaliser(ctx, userId, "reactivation", {});
   rafraichir();
   return { ok: true, message: "Accès réactivé." };
+}
+
+/**
+ * Suppression définitive (super admin) : le compte Supabase est effacé, et avec lui son profil (partagé avec
+ * CG Link), ses exceptions d'accès et sa fiche d'équipe. Irréversible.
+ * Refusée si la personne a laissé des traces qu'on ne peut pas effacer sans perte : fiches de suivi ou
+ * demandes de libération dont elle est l'auteur (la base les protège), notes de frais ou changements de compte
+ * dans CG Link (la base les effacerait avec le profil). Dans ces cas, la suspension reste la bonne voie.
+ */
+export async function supprimerCompte(userId: string): Promise<Resultat> {
+  const ctx = await contexte();
+  if (!ctx) return { ok: false, erreur: REFUS };
+  const c = await cible(ctx, userId);
+  if (!c) return { ok: false, erreur: "Personne introuvable. Rechargez la page." };
+  const refus = refusSuppression(ctx.acteur, c.profil, await equipe(ctx));
+  if (refus) return { ok: false, erreur: refus };
+
+  const compter = async (table: string, colonne: string) => {
+    const { count, error } = await ctx.db.from(table).select(colonne, { count: "exact", head: true }).eq(colonne, userId);
+    return error ? null : (count ?? 0);
+  };
+  const [fiches, liberations, frais, changements] = await Promise.all([
+    compter("site_fiches_suivi", "auteur_id"),
+    compter("site_liberations", "demandeur_id"),
+    compter("expense_reimbursement_requests", "delegate_id"),
+    compter("account_change_submissions", "delegate_id"),
+  ]);
+  if (fiches === null || liberations === null || frais === null || changements === null)
+    return { ok: false, erreur: "Les vérifications avant suppression n'ont pas pu être faites. Réessayez." };
+  const traces = [
+    fiches && `${fiches} fiche${fiches > 1 ? "s" : ""} de suivi`,
+    liberations && `${liberations} demande${liberations > 1 ? "s" : ""} de libération`,
+    frais && `${frais} note${frais > 1 ? "s" : ""} de frais dans CG Link`,
+    changements && `${changements} changement${changements > 1 ? "s" : ""} de compte dans CG Link`,
+  ].filter(Boolean);
+  if (traces.length)
+    return {
+      ok: false,
+      erreur: `Suppression impossible : ce compte est lié à ${traces.join(", ")}. Le supprimer les effacerait ou les rendrait orphelins. Suspendez plutôt l'accès.`,
+    };
+
+  const { error } = await ctx.db.auth.admin.deleteUser(userId);
+  if (error) {
+    console.error("[suppression compte]", error.code ?? error.status);
+    return { ok: false, erreur: "La suppression n'a pas pu être faite. Rien n'a été effacé. Réessayez." };
+  }
+  // Le compte n'existe plus : la ligne du journal garde son nom et son e-mail (cible vide).
+  await journaliser(ctx, null, "suppression_compte", {
+    nom: c.profil.name ?? undefined,
+    email: c.profil.email ?? undefined,
+    role: c.profil.role,
+  });
+  rafraichir();
+  return { ok: true, message: "Compte supprimé." };
 }
 
 // ── Invitation ──────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import { exigerApp } from "../../../../../lib/espace/acces";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Une mobilisation de la table (super admin uniquement), ou 404. */
-export async function chargerMobilisationAdmin(id: string, retour: string): Promise<Mobilisation> {
+export async function chargerMobilisationAdmin(id: string, _retour: string): Promise<Mobilisation> {
   await exigerApp("actions");
   if (!UUID.test(id)) notFound();
   const supabase = await getSupabaseServer();

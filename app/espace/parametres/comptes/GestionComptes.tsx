@@ -12,6 +12,7 @@ import {
   Search,
   Settings2,
   ShieldCheck,
+  Trash2,
   UserCog,
   UserPlus,
   UserRound,
@@ -30,12 +31,13 @@ import {
   etatApp,
   quandJournal,
   refusChangementRole,
+  refusSuppression,
   refusSuspension,
   ROLE_TOUTES_APPS,
 } from "../../../../lib/espace/gestion-acces";
 import type { MembreEquipe } from "../../../../lib/espace/equipe-serveur";
 import { libelleRole, ROLES_EQUIPE } from "../../../../lib/espace/roles";
-import { basculerApp, changerRole, envoyerReinitialisation, inviter, reactiver, suspendre, type Resultat } from "./actions";
+import { basculerApp, changerRole, envoyerReinitialisation, inviter, reactiver, supprimerCompte, suspendre, type Resultat } from "./actions";
 
 type AppMini = { code: string; nom: string; couleur: string; icone: string };
 type Acteur = { id: string; role: string };
@@ -308,7 +310,7 @@ function PanneauPersonne({
   const [erreur, setErreur] = useState("");
   const [info, setInfo] = useState("");
   const [nouveauRole, setNouveauRole] = useState(m.role);
-  const [confirmer, setConfirmer] = useState<"role" | "suspension" | null>(null);
+  const [confirmer, setConfirmer] = useState<"role" | "suspension" | "suppression" | null>(null);
 
   const superAdmin = acteur.role === ROLE_TOUTES_APPS;
   const cibleSuper = m.role === ROLE_TOUTES_APPS;
@@ -316,6 +318,7 @@ function PanneauPersonne({
   const base = appsDuRole(m.role, rolesApps, apps.map((a) => a.code));
   const refusRole = refusChangementRole(acteur, m, nouveauRole, membres);
   const refusSusp = refusSuspension(acteur, m, membres);
+  const refusSuppr = refusSuppression(acteur, m, membres);
 
   function lancer(cle: string, action: () => Promise<Resultat>, apres?: () => void) {
     setErreur("");
@@ -479,6 +482,17 @@ function PanneauPersonne({
                 <Ban size={16} aria-hidden /> Suspendre l&apos;accès
               </button>
             )}
+            {superAdmin && (
+              <button
+                type="button"
+                className="ecg-btn ecg-btn-danger justify-start"
+                disabled={enCours}
+                onClick={() => (refusSuppr ? setErreur(refusSuppr) : setConfirmer("suppression"))}
+              >
+                {occupe === "suppression" ? <IconeChargement size={16} /> : <Trash2 size={16} aria-hidden />}
+                Supprimer définitivement le compte
+              </button>
+            )}
           </div>
         )}
       </PanneauLateral>
@@ -509,6 +523,30 @@ function PanneauPersonne({
         }}
       >
         <p>La personne ne pourra plus se connecter, ni ici, ni dans CG Link. Vous pourrez réactiver son accès plus tard.</p>
+      </Confirmation>
+      <Confirmation
+        ouverte={confirmer === "suppression"}
+        titre={`Supprimer définitivement le compte de ${m.nom} ?`}
+        libelleConfirmer="Supprimer définitivement"
+        danger
+        enCours={occupe === "suppression"}
+        onAnnuler={() => setConfirmer(null)}
+        onConfirmer={() => {
+          setConfirmer(null);
+          lancer("suppression", () => supprimerCompte(m.id), () => {
+            onMessage(`Compte de ${m.nom} supprimé.`);
+            onFermer();
+          });
+        }}
+      >
+        <p>
+          Le compte est effacé, ici et dans CG Link : la personne ne peut plus se connecter, et son profil, ses accès et
+          sa fiche d&apos;équipe disparaissent. <b>C&apos;est irréversible</b> : pour la faire revenir, il faudra l&apos;inviter à
+          nouveau.
+        </p>
+        <p className="mt-2">
+          Pour couper l&apos;accès sans rien effacer, utilisez plutôt « Suspendre l&apos;accès ».
+        </p>
       </Confirmation>
     </>
   );

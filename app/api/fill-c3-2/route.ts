@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { readFile } from "fs/promises";
 import path from "path";
@@ -158,6 +159,9 @@ function fillPage(ctx: DrawCtx, d: C32Data) {
 }
 
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "fill-c3-2", 40);
+  if (tropDeRequetes) return tropDeRequetes;
+
   try {
     const data = (await request.json()) as C32Data;
 

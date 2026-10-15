@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { readFile } from "fs/promises";
 import path from "path";
@@ -105,10 +106,6 @@ function chk(ctx: DrawCtx, checked: boolean, x: number, displayY: number) {
   ctx.page.drawText("X", { x: x + 1, y: py(displayY) + 1, size: CHECK_SIZE, font: ctx.bold, color: BLACK });
 }
 
-// Radio: draw X on the correct option
-function radio(ctx: DrawCtx, value: string, testValue: string, x: number, displayY: number) {
-  chk(ctx, value === testValue, x, displayY);
-}
 
 function fmtDate(d: string) {
   // Already DD/MM/YYYY or convert from YYYY-MM-DD
@@ -378,6 +375,9 @@ function fillPage2(ctx: DrawCtx, d: C1Data) {
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "fill-c1", 40);
+  if (tropDeRequetes) return tropDeRequetes;
+
   try {
     const data = (await request.json()) as C1Data;
 

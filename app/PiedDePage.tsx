@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Mail, MessageCircle, Phone } from "lucide-react";
 import Revelation from "./Revelation";
@@ -81,8 +82,7 @@ export default function PiedDePage() {
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-8 gap-y-12 px-5 pb-14 pt-14 sm:px-8 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-x-12 lg:px-10 lg:pt-16">
           {/* ── Identité ── */}
           <div className="pied-col col-span-2 lg:col-span-1">
-            {/* eslint-disable-next-line @next/next/no-img-element -- logo PNG statique */}
-            <img src="/logo-cg-blanc.png" width={1772} height={490} alt="" className="h-12 w-auto" />
+            <Image src="/logo-cg-blanc.png" width={1772} height={490} sizes="174px" alt="" className="h-12 w-auto" />
             <p className="mt-4 text-[15px] font-bold leading-snug">Centrale Générale FGTB Namur-Luxembourg</p>
 
             <div className="mt-6 grid gap-5 sm:grid-cols-2">

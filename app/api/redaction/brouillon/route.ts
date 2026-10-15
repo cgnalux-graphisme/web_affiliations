@@ -13,7 +13,6 @@ import {
   messageSources,
   raisonLecture,
   type LectureSource,
-  type SourceRedaction,
 } from "../../../../lib/redaction-ia";
 import { messageErreurApi } from "../../../../lib/anthropic-erreurs";
 import { lienReel } from "../../../../lib/lien-reel";

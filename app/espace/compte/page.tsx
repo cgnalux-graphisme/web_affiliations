@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { LogOut, UserRound } from "lucide-react";
 import { monProfil } from "../../../lib/espace/acces";
-import { libelleRole } from "../../../lib/espace/roles";
+import { libelleRole, ROLES_EQUIPE } from "../../../lib/espace/roles";
+import { getSupabaseService } from "../../../lib/supabase-service";
+import ChampsEdition from "../_partage/ChampsEdition";
+import { enregistrerMaSignature } from "./actions";
 import { deconnexion } from "../../login/actions";
 import { appsDeLaPersonne } from "../_noyau/registre";
 import { icone } from "../_noyau/icones";
@@ -9,10 +12,17 @@ import FormulaireMotDePasse from "./FormulaireMotDePasse";
 
 export const metadata: Metadata = { title: "Mon compte — Espace CG" };
 
-/** Mon compte : profil (lecture seule : nom, e-mail et rôle sont partagés avec CG Link), mot de passe, déconnexion. */
+/**
+ * Mon compte : profil (lecture seule : nom, e-mail et rôle sont partagés avec CG Link), signature et téléphone
+ * (membres de l'équipe), mot de passe, déconnexion.
+ */
 export default async function MonCompte() {
   const [profil, apps] = await Promise.all([monProfil(), appsDeLaPersonne()]);
   if (!profil) return null;
+  const equipe = (ROLES_EQUIPE as readonly string[]).includes(profil.role);
+  const { data: signature } = equipe
+    ? ((await getSupabaseService()?.from("site_equipe_profils").select("fonction, telephone").eq("user_id", profil.id).maybeSingle()) ?? { data: null })
+    : { data: null };
 
   return (
     <div className="ecg-vue">
@@ -85,6 +95,31 @@ export default async function MonCompte() {
             Une erreur dans votre nom ou votre adresse ? Demandez la correction à un super admin.
           </p>
         </section>
+
+        {equipe && (
+          <section className="ecg-panneau" aria-labelledby="titre-signature">
+            <div className="ecg-panneau-tete">
+              <div>
+                <h2 id="titre-signature">Signature et téléphone</h2>
+                <p>
+                  Votre fonction signe les courriers des libérations que vous demandez ; votre téléphone apparaît dans
+                  « Votre correspondant » quand vous traitez un dossier.
+                </p>
+              </div>
+            </div>
+            <div className="ecg-panneau-corps">
+              <ChampsEdition
+                id="ma-signature"
+                valeurs={signature ?? {}}
+                enregistrer={enregistrerMaSignature}
+                champs={[
+                  { nom: "fonction", libelle: "Fonction (signature)", largeur: "demi", exemple: "Secrétaire permanent" },
+                  { nom: "telephone", libelle: "Téléphone", type: "tel", largeur: "demi", exemple: "+32 (0) 81 64 99 64" },
+                ]}
+              />
+            </div>
+          </section>
+        )}
 
         <section className="ecg-panneau" aria-labelledby="titre-mdp">
           <div className="ecg-panneau-tete">

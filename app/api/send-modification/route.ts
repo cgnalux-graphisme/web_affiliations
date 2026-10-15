@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
 import { getResendClient } from "@/lib/resend-mail";
 import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
 import { MENTION_COTISATION, MESSAGES_TRANSFERT, depuisLigne, emailValide, recapitulatif, statutTransfert } from "@/lib/modification";
@@ -111,6 +112,9 @@ function construireHtml(prenom: string, nom: string, blocs: ReturnType<typeof re
 }
 
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "send-modification", 15);
+  if (tropDeRequetes) return tropDeRequetes;
+
   try {
     const body = (await request.json().catch(() => null)) as Payload | null;
     const donnees = body?.donnees && typeof body.donnees === "object" ? (body.donnees as Record<string, unknown>) : null;

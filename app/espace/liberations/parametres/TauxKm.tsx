@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CircleCheck, Trash2 } from "lucide-react";
+import { CircleCheck, Info, Trash2 } from "lucide-react";
 import { isoToDateFr } from "../../../../lib/dates";
 import { tauxAuJour, tauxFr } from "../../../../lib/liberations/regles";
+import { TAUX_LEGAL } from "../../../../lib/liberations/taux-legal";
 import type { TauxKm as Taux } from "../../../../lib/liberations/types";
 import { ajouterTaux, supprimerTaux } from "../actions";
 import ChampsEdition from "../../_partage/ChampsEdition";
@@ -18,6 +19,7 @@ import { Alerte, BTN, BTN_PETIT, Panneau, Statut } from "../../_partage/ui";
 export default function TauxKm({ taux }: { taux: Taux[] }) {
   const router = useRouter();
   const [nouveau, setNouveau] = useState(0);
+  const [prerempli, setPrerempli] = useState<Record<string, string>>({});
   const [enCours, setEnCours] = useState<string | null>(null);
   const [erreur, setErreur] = useState("");
   const aujourdhui = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
@@ -53,13 +55,34 @@ export default function TauxKm({ taux }: { taux: Taux[] }) {
           </ul>
         )}
         {erreur && <p role="alert" className="ecg-erreur">{erreur}</p>}
+        <div className="flex flex-wrap items-start gap-3 rounded-xl border border-[var(--ecg-trait)] p-3 text-sm">
+          <Info size={18} aria-hidden className="mt-0.5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p>
+              <b>Taux légal, à titre informatif : {tauxFr(TAUX_LEGAL.taux)}</b> du {isoToDateFr(TAUX_LEGAL.du)} au{" "}
+              {isoToDateFr(TAUX_LEGAL.au)} (indemnité kilométrique des fonctionnaires fédéraux, système trimestriel ;{" "}
+              {TAUX_LEGAL.texte}). C&apos;est aussi le plafond admis par l&apos;ONSS sans justificatif.
+            </p>
+            <p className="ecg-texte-doux mt-1">
+              Système annuel : {tauxFr(TAUX_LEGAL.annuel.taux)} du {isoToDateFr(TAUX_LEGAL.annuel.du)} au{" "}
+              {isoToDateFr(TAUX_LEGAL.annuel.au)}. Relevé le {isoToDateFr(TAUX_LEGAL.releveLe)} ; il change chaque trimestre.
+            </p>
+          </div>
+          <button type="button" className={`${BTN} ${BTN_PETIT}`}
+            onClick={() => {
+              setPrerempli({ taux: String(TAUX_LEGAL.taux).replace(".", ","), valable_du: TAUX_LEGAL.du });
+              setNouveau((n) => n + 1);
+            }}>
+            Reprendre ce taux
+          </button>
+        </div>
         <div className="rounded-xl bg-[var(--ecg-fond)] p-3">
-          <ChampsEdition key={nouveau} id={`taux-${nouveau}`} libelleBouton="Ajouter le taux" valeurs={{}}
+          <ChampsEdition key={nouveau} id={`taux-${nouveau}`} libelleBouton="Ajouter le taux" valeurs={prerempli}
             champs={[
               { nom: "taux", libelle: "Taux (€ / km)", exemple: "0,4280", largeur: "tiers" },
               { nom: "valable_du", libelle: "À partir du", type: "date", largeur: "tiers" },
             ]}
-            enregistrer={ajouterTaux} onSucces={() => setNouveau((n) => n + 1)} />
+            enregistrer={ajouterTaux} onSucces={() => { setPrerempli({}); setNouveau((n) => n + 1); }} />
         </div>
       </div>
     </Panneau>

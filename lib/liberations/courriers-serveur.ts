@@ -1,4 +1,6 @@
 import { getSupabaseService } from "../supabase-service";
+import { chargerEquipe } from "../espace/equipe-serveur";
+import { appsDuRole, etatApp } from "../espace/gestion-acces";
 import { isoToDateFr } from "../dates";
 import { formaterIban } from "../iban";
 import { formaterNiss } from "../modification";
@@ -230,18 +232,28 @@ export function vueCourriers(prep: PreparationCourriers): VueCourriers {
   };
 }
 
-/** L'équipe (Paramètres › Équipe) : fonction pour la signature, téléphone pour « Votre correspondant ». */
+/**
+ * L'équipe (Paramètres › Équipe) : fonction pour la signature, téléphone pour « Votre correspondant ».
+ * Seulement les personnes gérées dans Paramètres › Comptes & accès qui ont l'app Libérations (par leur rôle ou une
+ * exception) et dont l'accès n'est pas suspendu.
+ */
 export async function equipe(): Promise<{ id: string; nom: string; email: string; role: string; fonction: string; telephone: string }[] | null> {
   const db = getSupabaseService();
   if (!db) return null;
-  const [{ data: profils, error }, { data: extra }] = await Promise.all([
-    db.from("profiles").select("id, name, email, role").in("role", ["SUPER_ADMIN", "ADMIN_OP", "PERMANENT"]).order("name"),
+  const [donnees, { data: extra, error }] = await Promise.all([
+    chargerEquipe().catch(() => null),
     db.from("site_equipe_profils").select("user_id, fonction, telephone"),
   ]);
-  if (error) return null;
+  if (!donnees || error) return null;
   const parId = new Map(((extra ?? []) as { user_id: string; fonction: string | null; telephone: string | null }[]).map((e) => [e.user_id, e]));
-  return ((profils ?? []) as { id: string; name: string | null; email: string | null; role: string }[]).map((p) => ({
-    id: p.id, nom: nomPropre(p), email: p.email ?? "", role: p.role,
-    fonction: parId.get(p.id)?.fonction ?? "", telephone: parId.get(p.id)?.telephone ?? "",
-  }));
+  return donnees.membres
+    .filter((m) => !m.suspendu)
+    .filter((m) => {
+      const etat = etatApp("liberations", appsDuRole(m.role, donnees.rolesApps, ["liberations"]), m.exceptions);
+      return etat === "role" || etat === "ajoutee";
+    })
+    .map((m) => ({
+      id: m.id, nom: nomPropre({ name: m.nom, email: m.email }), email: m.email, role: m.role,
+      fonction: parId.get(m.id)?.fonction ?? "", telephone: parId.get(m.id)?.telephone ?? "",
+    }));
 }

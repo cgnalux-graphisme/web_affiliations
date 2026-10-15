@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { refuserSiTropDeRequetes } from "@/lib/limite-requetes";
+import { echapperChamps } from "@/lib/echapper-html";
 import { getResendClient } from "@/lib/resend-mail";
 import { destinatairesInternes, envoyerEtJournaliser, lireRefs } from "@/lib/envois-serveur";
 
@@ -19,7 +21,9 @@ interface Payload {
   demandeId?: string;
 }
 
-function buildHtml(p: Payload): string {
+function buildHtml(brut: Payload): string {
+  // Valeurs saisies par le public : neutralisées avant d'entrer dans le HTML.
+  const p = echapperChamps(brut);
   const libelleDemande =
     p.typeDemande === "nouveau_mandat"
       ? "nouveau mandat SEPA"
@@ -110,6 +114,9 @@ function buildHtml(p: Payload): string {
 }
 
 export async function POST(request: Request) {
+  const tropDeRequetes = refuserSiTropDeRequetes(request, "send-mandat-sepa", 15);
+  if (tropDeRequetes) return tropDeRequetes;
+
   try {
     const body = (await request.json()) as Payload;
     const { email, nom, prenom, pdfBase64, fileName, nouveauIban, typeDemande } = body;
