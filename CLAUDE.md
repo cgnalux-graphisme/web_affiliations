@@ -138,7 +138,7 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 
 ---
 
-## État actuel (15/10/2026, e-mails, secteurs du bois, travailleurs CG Link)
+## État actuel (15/10/2026, e-mails, secteurs du bois, travailleurs CG Link, registres nationaux)
 - **Une seule branche de travail : `suivi-actions`**, poussée le 15/10/2026 à la demande de Fred (mise en production).
 - **Audit du 14/10/2026** (voir [docs/contexte/journal.md](docs/contexte/journal.md)) : corrigé et en production ; les 3
   migrations (`20261007120000`, `20261014150000`, `20261014160000`) sont exécutées et vérifiées.
@@ -150,6 +150,9 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 - **Travailleurs CG Link** (`workers`) : panneau à la demande sur la fiche entreprise (toutes les données), choix
   d'un travailleur à la création d'un délégué et reprise du registre national sur sa carte. Détail :
   [docs/contexte/entreprises.md](docs/contexte/entreprises.md), [docs/contexte/delegues.md](docs/contexte/delegues.md).
+- **Registres nationaux des délégués** : 161 repris en une fois des travailleurs CG Link (15/10/2026, demande de Fred,
+  cartes vides seulement, journal) ; 162 délégués sur 175 en ont un, 13 restent à compléter à la main (bouton
+  « Retrouver le registre national » de leur carte).
 - **Vérifié** : 921 tests, types, ESLint, build ; lecture réelle des travailleurs (93 fiches). **Pas encore vérifié
   dans le navigateur** : PDF des formulaires publics (bibliothèque chargée à la demande), suppression d'un compte,
   « Mon compte » (signature), panneau Travailleurs ; aucun vrai e-mail envoyé avec le nouveau gabarit.
@@ -158,7 +161,7 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
   `p=quarantine` ; 3. Supabase › Authentication : protection des mots de passe divulgués, codes e-mail < 1 h ;
   4. au passage du domaine sur le nouveau site : définir `SITE_URL` (logo et polices des e-mails) ; 5. mettre à jour
   le taux kilométrique légal chaque trimestre (`lib/liberations/taux-legal.ts`) ; 6. points des Libérations (voir
-  [docs/contexte/liberations.md](docs/contexte/liberations.md)).
+  [docs/contexte/liberations.md](docs/contexte/liberations.md)) ; 7. compléter les 13 registres nationaux manquants.
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 
