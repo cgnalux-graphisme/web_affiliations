@@ -101,6 +101,10 @@ site principal (`siteParDefaut()`).
 - **Carte du délégué** : « Retrouver le registre national » (ou « Vérifier dans les travailleurs ») propose d'abord
   les travailleurs au même nom ; le choix enregistre le registre national sur la carte (même validation et même
   journal qu'une saisie).
+- **Reprise groupée du 15/10/2026** (demande de Fred) : 161 registres nationaux repris de `workers` (un seul
+  travailleur au même nom et prénom dans l'entreprise du délégué, numéro valide, cartes vides seulement ; journal
+  `source: travailleurs_cglink`). Résultat : 162 délégués sur 175 ont leur numéro ; 13 restent à compléter à la
+  main (nom différent ou absent des travailleurs).
 - Périmètre : `travailleursEntreprise()` (`app/espace/delegues/actions.ts`) n'accepte que les entreprises du
   périmètre de la personne (permanent : ses entreprises). Composant `app/espace/delegues/ChoixTravailleur.tsx`.
 
