@@ -44,40 +44,7 @@ interface EmailPayload {
 function buildEmailHtml(brut: EmailPayload): string {
   // Valeurs saisies par le public : neutralisées avant d'entrer dans le HTML.
   const p = echapperChamps(brut);
-  const isDomiciliation = p.modePaiement === "domiciliation";
-
-  // Bloc conditionnel selon le mode de paiement
-  const paiementBloc = isDomiciliation
-    ? `<tr>
-         <td style="padding:0 0 8px 0;">
-           <table width="100%" cellpadding="0" cellspacing="0">
-             <tr>
-               <td width="10" style="background-color:#931510;border-radius:2px;">&nbsp;</td>
-               <td style="padding-left:12px;font-size:13px;color:#222222;line-height:1.6;">
-                 <strong style="color:#222222;">Domiciliation automatique</strong> —
-                 Le prélèvement de <strong>${p.cotisationMensuelle ?? "—"}&nbsp;€</strong>
-                 sera effectué automatiquement chaque mois sur votre compte.
-               </td>
-             </tr>
-           </table>
-         </td>
-       </tr>`
-    : `<tr>
-         <td style="padding:0 0 8px 0;">
-           <table width="100%" cellpadding="0" cellspacing="0">
-             <tr>
-               <td width="10" style="background-color:#931510;border-radius:2px;">&nbsp;</td>
-               <td style="padding-left:12px;font-size:13px;color:#222222;line-height:1.6;">
-                 <strong style="color:#222222;">Virement trimestriel</strong> —
-                 Merci d'effectuer votre premier versement de
-                 <strong>${p.premiereEcheanceMontant ?? "—"}&nbsp;€</strong>
-                 sur le compte <strong style="font-family:monospace;">${IBAN_VIREMENT}</strong>
-                 avec votre NISS (<strong>${p.niss ?? "—"}</strong>) en communication.
-               </td>
-             </tr>
-           </table>
-         </td>
-       </tr>`;
+  // Les modalités de paiement (domiciliation ou virement) sont dans le PDF joint, pas dans le corps du message.
 
   return `
 <!DOCTYPE html>

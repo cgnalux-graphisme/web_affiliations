@@ -306,5 +306,5 @@ devenait illisible, les envois repartiraient vers `DESTINATAIRES_DEFAUT`
   « Chacun voit ses exceptions » évaluée une fois par requête. **Exécutée par Fred.**
 - `20261014160000_site_regles_doublons.sql` : suppression des anciennes règles « Super admin… » couvertes par les
   règles « App… », règles « gère » ramenées à l'écriture, `auth_select` neutralisées supprimées. Aucun accès gagné ni
-  perdu. **À exécuter par Fred.** Conséquence : une app désactivée dans `site_apps` coupe aussi l'accès du super admin
+  perdu. **Exécutée par Fred le 15/10/2026** (vérifié : plus aucune règle en double sur `site_*` / `web_*`). Conséquence : une app désactivée dans `site_apps` coupe aussi l'accès du super admin
   à ses tables depuis le navigateur.

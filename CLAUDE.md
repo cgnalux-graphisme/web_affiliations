@@ -143,14 +143,14 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 - **Audit du 14/10/2026** : base saine (tout est branché, RLS partout) ; corrigé : e-mails publics neutralisés contre
   l'injection de HTML, limite de débit sur les 11 routes publiques, bibliothèque PDF chargée à la demande (formulaires
   3 fois plus légers), logos optimisés, délais maximum sur les appels externes, message d'erreur des Paramètres › Envois.
-- **Migrations** : `20261007120000` (changement de situation) et `20261014150000` (index) **exécutées par Fred** ;
-  `20261014160000` (règles RLS en double) **à exécuter par Fred**.
+- **Migrations** : `20261007120000` (changement de situation), `20261014150000` (index) et `20261014160000`
+  (règles RLS en double) **exécutées par Fred** et vérifiées.
 - **Nouveau** : suppression définitive d'un compte (Comptes & accès, super admin) ; taux kilométrique légal affiché
   à titre informatif (Libérations › Paramètres) ; Équipe limitée aux comptes actifs qui ont l'app Libérations ;
   signature (fonction) et téléphone dans « Mon compte » ; **ESLint** en place (`npm run lint`).
-- **À faire par Fred** : 1. exécuter `20261014160000` ; 2. tester dans le navigateur les formulaires affiliation,
-  mandat SEPA, changement de situation, préavis (PDF) ; 3. Supabase › Authentication : protection des mots de passe
-  divulgués, codes e-mail < 1 h ; 4. les points des Libérations (voir [docs/contexte/liberations.md](docs/contexte/liberations.md)).
+- **À faire par Fred** : 1. tester dans le navigateur les formulaires affiliation, mandat SEPA, changement de
+  situation, préavis (PDF) ; 2. Supabase › Authentication : protection des mots de passe divulgués, codes e-mail
+  < 1 h ; 3. les points des Libérations (voir [docs/contexte/liberations.md](docs/contexte/liberations.md)).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 
