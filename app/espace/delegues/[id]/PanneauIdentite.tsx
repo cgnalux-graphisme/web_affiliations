@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRightLeft, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Trash2, Users } from "lucide-react";
 import type { CarteDelegue } from "../../../../lib/delegues/donnees-serveur";
 import { changerEntreprise, enregistrerDelegue, supprimerDelegue } from "../actions";
 import ChampsEdition from "../../_partage/ChampsEdition";
+import ChoixTravailleur from "../ChoixTravailleur";
+import { nissAffiche, type Travailleur } from "../../../../lib/entreprises/travailleurs";
 import { BTN, BTN_PETIT, CHAMP, LIBELLE, Panneau } from "../../_partage/ui";
 import { IconeChargement } from "../../../Chargement";
 
@@ -17,6 +19,17 @@ export default function PanneauIdentite({ carte }: { carte: CarteDelegue }) {
   const [cible, setCible] = useState("");
   const [confirmerChangement, setConfirmerChangement] = useState(false);
   const [changement, setChangement] = useState<{ enCours: boolean; texte: string; ton: "ok" | "erreur" } | null>(null);
+  const [choixTravailleur, setChoixTravailleur] = useState(false);
+  const [reprise, setReprise] = useState<{ enCours: boolean; texte: string; ton: "ok" | "erreur" } | null>(null);
+
+  /** Reprend le registre national d'un travailleur de CG Link (validé et journalisé comme une saisie). */
+  async function reprendre(t: Travailleur) {
+    if (!t.niss) return setReprise({ enCours: false, texte: `${t.prenom} ${t.nom} n'a pas de registre national dans CG Link.`, ton: "erreur" });
+    setReprise({ enCours: true, texte: "", ton: "ok" });
+    const r = await enregistrerDelegue(d.id, { registre_national: t.niss });
+    setReprise({ enCours: false, texte: r.ok ? `Registre national repris de CG Link : ${nissAffiche(t.niss)}.` : r.erreur, ton: r.ok ? "ok" : "erreur" });
+    if (r.ok) router.refresh();
+  }
 
   async function changer() {
     setConfirmerChangement(false);
@@ -39,6 +52,7 @@ export default function PanneauIdentite({ carte }: { carte: CarteDelegue }) {
     <Panneau titre="Carte d'identité"
       sousTitre={carte.unites.length ? "L'unité de rattachement donne le site par défaut des nouveaux mandats." : "Aucune unité suivie sur la fiche de l'entreprise : cochez « Suivie » dans l'app Entreprises."}>
       <ChampsEdition
+        key={`identite-${d.registre_national ?? ""}`}
         id="identite"
         valeurs={{ ...d, adresse_pays: d.adresse_pays ?? "Belgique" }}
         champs={[
@@ -68,6 +82,23 @@ export default function PanneauIdentite({ carte }: { carte: CarteDelegue }) {
         enregistrer={(v) => enregistrerDelegue(d.id, v)}
       />
       {d.cglink_user_id && <p className="ecg-texte-doux mt-3 text-sm">L'e-mail est l'adresse de connexion CG Link : il ne se change que dans CG Link.</p>}
+      <div className="mt-4 grid gap-2 border-t pt-4">
+        <p className={LIBELLE}>Travailleurs de l'entreprise (CG Link)</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" className={BTN} disabled={reprise?.enCours} onClick={() => setChoixTravailleur(true)}>
+            {reprise?.enCours ? <IconeChargement size={15} /> : <Users size={15} aria-hidden />}
+            {d.registre_national ? "Vérifier dans les travailleurs" : "Retrouver le registre national"}
+          </button>
+          <span className="ecg-aide mt-0">Choisissez la personne : son n° de registre national est repris sur la carte.</span>
+        </div>
+        {reprise && !reprise.enCours && reprise.texte && (
+          <p role={reprise.ton === "erreur" ? "alert" : "status"} className={reprise.ton === "erreur" ? "ecg-erreur" : "ecg-texte-doux"}>{reprise.texte}</p>
+        )}
+      </div>
+      {choixTravailleur && (
+        <ChoixTravailleur entrepriseId={d.entreprise_id} proche={{ prenom: d.prenom, nom: d.nom }} titre="Retrouver dans les travailleurs"
+          onChoisir={reprendre} onFermer={() => setChoixTravailleur(false)} />
+      )}
       <div className="mt-4 grid gap-2 border-t pt-4">
         <label htmlFor="changer-entreprise" className={LIBELLE}>Changer d'entreprise</label>
         <div className="flex flex-wrap gap-2">

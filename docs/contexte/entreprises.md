@@ -73,6 +73,23 @@ Badge de la tuile : « N à compléter » = entreprises CG Link sans n° BCE.
   secteur. Une fiche créée ensuite (`ficheDeCle()`) reçoit le secteur correspondant à `companies.sector`
   (`secteurDepuisCgLink()`, `lib/permanents/perimetre.ts`).
 
+## Travailleurs (15/10/2026, demande de Fred)
+
+- Panneau **« Travailleurs »** de la fiche (entreprises reliées à CG Link) : rien n'est lu à l'ouverture ; le bouton
+  « Afficher les travailleurs » charge la table `workers` de CG Link pour l'entreprise et celles qu'elle regroupe
+  (`autres_company_ids`). Recherche (nom, prénom, n° d'affiliation, registre national), filtre par statut
+  (Actif, Parti, Autre Syndicat…), et détail de chaque travailleur : **toutes ses données en base** (registre
+  national, affiliation, statut, contrat, info, communication, commentaire, grèves, actions, ajout manuel,
+  création, dernière modification et auteur, synchronisation).
+- **RGPD** : données internes, table protégée (décision de Fred, 15/10/2026). Même droit que la fiche (app
+  `entreprises` : SUPER_ADMIN, ADMIN_OP, PERMANENT) ; lecture côté serveur en service_role
+  (`listerTravailleurs()`, `app/espace/entreprises/actions.ts`). En base, `workers` est lisible par les admins et
+  tous les permanents (politiques de CG Link, inchangées).
+- Code : `lib/entreprises/travailleurs.ts` (types, recherche, tri, mise en forme ; testé),
+  `lib/entreprises/travailleurs-serveur.ts` (lecture par pages de 1000), `[cle]/PanneauTravailleurs.tsx`.
+  Volume relevé le 15/10/2026 : 10 684 travailleurs, 65 en médiane par entreprise, 710 au plus pour une fiche
+  (0,2 s).
+
 ## Import BCE
 
 - Pages publiques kbopub, en français : entité

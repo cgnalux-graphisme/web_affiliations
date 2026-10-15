@@ -14,6 +14,8 @@ import {
 import { dansNosProvinces, lireCle, nomManquant, onssACreer, onssDeCompany, planSuppressionSite } from "../../../lib/entreprises/regles";
 import { COLONNES_COMPANY } from "../../../lib/entreprises/donnees-serveur";
 import { secteurDepuisCgLink } from "../../../lib/permanents/perimetre";
+import { companiesDeLaCle, travailleursDe } from "../../../lib/entreprises/travailleurs-serveur";
+import type { Travailleur } from "../../../lib/entreprises/travailleurs";
 import { COLONNES_ENTREPRISE, COLONNES_SITE, COLONNES_UNITE, type CompanyCgLink, type Entreprise, type Site, type Unite } from "../../../lib/entreprises/types";
 
 /**
@@ -369,4 +371,21 @@ export async function appliquerBce(cle: string, choix: ChoixBce): Promise<Result
   }
   rafraichir(etat.f.cle);
   return { ok: true, donnees: { cle: etat.f.cle }, message: "Données de la BCE enregistrées." };
+}
+
+// ── Travailleurs (CG Link) ──────────────────────────────────────────────────
+
+/**
+ * Travailleurs de l'entreprise (table `workers` de CG Link), chargés seulement quand on ouvre la liste.
+ * Même droit que la fiche (app Entreprises : SUPER_ADMIN, ADMIN_OP, PERMANENT), lecture en service_role.
+ */
+export async function listerTravailleurs(cle: string): Promise<Resultat<{ travailleurs: Travailleur[] }>> {
+  if (!(await aApp("entreprises"))) return { ok: false, erreur: REFUS };
+  const db = getSupabaseService();
+  if (!db) return { ok: false, erreur: "La base n'est pas joignable. Réessayez plus tard." };
+  const companies = await companiesDeLaCle(db, cle);
+  if (!companies) return { ok: false, erreur: "Entreprise introuvable. Rechargez la page." };
+  const travailleurs = await travailleursDe(db, companies);
+  if (!travailleurs) return { ok: false, erreur: "La liste des travailleurs n'a pas pu être lue. Réessayez." };
+  return { ok: true, donnees: { travailleurs } };
 }

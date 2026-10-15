@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { utilisateurConnecte } from "../../../lib/espace/acces";
 import { accesDelegues, dansAcces, type AccesDelegues } from "../../../lib/permanents/perimetre-serveur";
+import { companiesDeLaFiche, travailleursDe } from "../../../lib/entreprises/travailleurs-serveur";
+import type { Travailleur } from "../../../lib/entreprises/travailleurs";
+
+const UUID_TRAVAILLEURS = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { getSupabaseService } from "../../../lib/supabase-service";
 import { dateFrToIso } from "../../../lib/dates";
 import { uniteAutorisee, uniteModifiable, validerDelegue } from "../../../lib/delegues/delegue";
@@ -432,4 +436,22 @@ export async function ignorerEcart(id: string, champ: string, valeur: string): P
   await journal(c, "ecart_ignore", d, { champ });
   rafraichir(id);
   return { ok: true };
+}
+
+// ── Travailleurs de l'entreprise (CG Link) ──────────────────────────────────
+
+/**
+ * Travailleurs de l'entreprise du délégué (table `workers` de CG Link), pour choisir la personne à la création
+ * ou compléter le registre national. Seulement dans le périmètre de la personne connectée (ses entreprises).
+ */
+export async function travailleursEntreprise(entrepriseId: string): Promise<Resultat<{ travailleurs: Travailleur[] }>> {
+  const c = await ctx();
+  if (!c) return { ok: false, erreur: REFUS };
+  if (!UUID_TRAVAILLEURS.test(entrepriseId) || !dansAcces(c.acces, entrepriseId)) return { ok: false, erreur: "Choisissez une de vos entreprises." };
+  const companies = await companiesDeLaFiche(c.db, entrepriseId);
+  if (!companies) return { ok: false, erreur: "Entreprise introuvable. Rechargez la page." };
+  if (!companies.length) return { ok: false, erreur: "Cette entreprise n'est pas reliée à CG Link : aucune liste de travailleurs." };
+  const travailleurs = await travailleursDe(c.db, companies);
+  if (!travailleurs) return { ok: false, erreur: "La liste des travailleurs n'a pas pu être lue. Réessayez." };
+  return { ok: true, donnees: { travailleurs } };
 }

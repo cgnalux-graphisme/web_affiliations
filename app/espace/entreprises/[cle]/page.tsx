@@ -15,6 +15,7 @@ import PanneauUnites from "./PanneauUnites";
 import PanneauOnss from "./PanneauOnss";
 import PanneauPermanent from "./PanneauPermanent";
 import PanneauFichesSuivi from "./PanneauFichesSuivi";
+import PanneauTravailleurs from "./PanneauTravailleurs";
 
 /** La lecture de la BCE peut prendre jusqu'à 45 s (deux lectures pour un enregistrement). */
 export const maxDuration = 120;
@@ -88,6 +89,8 @@ export default async function FichePage({ params }: { params: Promise<{ cle: str
           <PanneauUnites fiche={f} />
           <PanneauOnss fiche={f} />
           <PanneauIdentite fiche={f} />
+          {/* Travailleurs CG Link : seulement pour une entreprise reliée à CG Link, chargés à la demande. */}
+          {f.company && <PanneauTravailleurs cle={cle} actifs={f.affilies?.total ?? null} />}
         </div>
         <aside className="grid gap-6 lg:sticky lg:top-6" aria-label="Permanent, courrier et affiliés">
           <PanneauPermanent fiche={f} estMoi={emailsEgaux(f.company?.permanent_email, profil?.email)} />

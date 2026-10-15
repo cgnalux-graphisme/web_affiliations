@@ -93,6 +93,17 @@ site principal (`siteParDefaut()`).
   `20261014090000_site_liberations_courriers.sql` (exécutée le 14/10/2026 ; sans la colonne, l'app
   Délégués ne pourrait plus lire les cartes). Pas envoyé à CG Link.
 
+## Choisir parmi les travailleurs (15/10/2026, demande de Fred)
+
+- **Nouveau délégué** : après le choix de l'entreprise, « Choisir parmi les travailleurs » ouvre la liste des
+  travailleurs de l'entreprise (table `workers` de CG Link, actifs par défaut, recherche) ; le choix remplit
+  prénom, nom et **registre national** (modifiables avant de créer).
+- **Carte du délégué** : « Retrouver le registre national » (ou « Vérifier dans les travailleurs ») propose d'abord
+  les travailleurs au même nom ; le choix enregistre le registre national sur la carte (même validation et même
+  journal qu'une saisie).
+- Périmètre : `travailleursEntreprise()` (`app/espace/delegues/actions.ts`) n'accepte que les entreprises du
+  périmètre de la personne (permanent : ses entreprises). Composant `app/espace/delegues/ChoixTravailleur.tsx`.
+
 ## Écritures vers CG Link (plan 2b, 13/10/2026)
 
 Plan : [docs/superpowers/plans/2026-10-13-delegues-lot-b-2b.md](../superpowers/plans/2026-10-13-delegues-lot-b-2b.md).
