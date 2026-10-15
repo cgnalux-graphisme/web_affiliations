@@ -16,7 +16,7 @@ import { assistantActif, chargerDonneesAssistant } from "../../../../lib/assista
 import { htmlEmailAssistant, sujetEmailAssistant } from "../../../../lib/assistant-email";
 import { resoudreDestinataire } from "../../../../lib/assistant-parcours";
 import { accepterRequete, adresseIp } from "../../../../lib/limite-requetes";
-import { getFromEmail, getResendClient } from "../../../../lib/resend-mail";
+import { getExpediteur, versResend, getResendClient } from "../../../../lib/resend-mail";
 import { getSupabaseService } from "../../../../lib/supabase-service";
 
 export const dynamic = "force-dynamic";
@@ -114,12 +114,12 @@ export async function POST(request: Request) {
   };
   try {
     const { error: echec } = await getResendClient().emails.send({
-      from: getFromEmail(),
+      from: getExpediteur(),
       to: [dest.destinataireEmail],
       // « Répondre » dans Outlook ouvre une réponse adressée directement à la personne.
       replyTo: demande.email,
       subject: sujetEmailAssistant(contenu),
-      html: htmlEmailAssistant(contenu),
+      ...versResend(htmlEmailAssistant(contenu)),
     });
     // La demande est enregistrée : elle reste visible dans le back-office même si l'e-mail échoue.
     if (echec) console.error("[assistant] Échec Resend :", echec.name);

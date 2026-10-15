@@ -289,12 +289,6 @@ export function emailCourrier(genre: "lettre_employeur" | "convocation", ctx: Co
   return { objet: fusionner(m.objet, vars).replace(/\n+/g, " "), texte: fusionner(m.texte, vars) };
 }
 
-/** Texte brut → HTML simple et sûr (paragraphes, retours à la ligne). */
-export function texteEnHtml(texte: string): string {
-  const echapper = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  return texte.split(/\n\s*\n/).map((p) => `<p style="margin:0 0 14px;line-height:1.5">${echapper(p).replace(/\n/g, "<br>")}</p>`).join("");
-}
-
 /** Nom de fichier d'un document : « lettre-employeur-dupont-jean.pdf ». */
 export function nomFichierCourrier(genre: string, participant: string): string {
   const slug = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");

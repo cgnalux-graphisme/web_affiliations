@@ -1,142 +1,65 @@
-import { echapperChamps, echapperHtml } from "./echapper-html";
+import { gabaritEmail, liste, paragraphe, signature, type EmailRendu } from "./emails/gabarit";
 
-const TEL_NAMUR = "+32 (0) 81 64 99 61";
-const TEL_LUXEMBOURG = "+32 (0) 61 53 01 60";
-const SITE_WEB = "www.accg-nalux.be";
+/**
+ * E-mails des formulaires ONEM (C1, C3.2, parcours de transfert) et de l'envoi des formulaires à soi-même,
+ * dans le gabarit commun (lib/emails/gabarit.ts). Textes repris tels quels le 15/10/2026 (corrections à venir).
+ * `adminEmail` est gardé dans les paramètres pour les routes ; le pied de page commun porte l'adresse de contact.
+ */
 
-function emailShell(title: string, body: string, adminEmail: string): string {
-  return `
-<!DOCTYPE html>
-<html lang="fr">
-<head><meta charset="UTF-8" /><title>${title}</title></head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="600" cellpadding="0" cellspacing="0"
-      style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(34,34,34,0.08);max-width:600px;width:100%;">
-      <tr>
-        <td style="background:#931510;padding:24px 32px;">
-          <p style="margin:0;color:#fff;font-size:20px;font-weight:bold;">Centrale Générale FGTB</p>
-          <p style="margin:4px 0 0;color:#ffffff;font-size:12px;">Namur&nbsp;•&nbsp;Luxembourg</p>
-        </td>
-      </tr>
-      ${body}
-      <tr>
-        <td style="background:#ffffff;padding:14px 32px;border-top:1px solid #7C90A0;">
-          <p style="margin:0;font-size:10px;color:#222222;text-align:center;">
-            Centrale Générale FGTB Namur Luxembourg ·
-            <a href="mailto:${adminEmail}" style="color:#222222;">${adminEmail}</a><br />
-            Ce message a été généré automatiquement.
-          </p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-</table>
-</body>
-</html>`.trim();
+type Declarant = { nom: string; prenom: string; email: string; adminEmail: string };
+
+const SIGNATURE_FORMULAIRE = signature({ nom: "Le formulaire en ligne" });
+
+function formulaireRecu(o: { etiquette: string; titre: string; intro: string; description: string; p: Declarant; raison: string }): EmailRendu {
+  const nom = `${o.p.prenom} ${o.p.nom}`;
+  return gabaritEmail({
+    etiquette: o.etiquette,
+    titre: o.titre,
+    apercu: `${o.intro} ${nom}. Documents en pièce jointe.`,
+    blocs: [
+      paragraphe(`${o.intro} ${nom}`, { gras: [nom] }),
+      paragraphe(o.description),
+      ...(o.p.email ? [paragraphe(`Adresse e-mail du déclarant : ${o.p.email}`)] : []),
+      SIGNATURE_FORMULAIRE,
+    ],
+    raison: o.raison,
+  });
 }
 
-function signatureBlock(): string {
-  return `
-      <tr>
-        <td style="padding:0 32px 28px;">
-          <table cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="border-left:3px solid #931510;padding-left:12px;">
-                <p style="margin:0;font-size:13px;color:#222222;font-weight:bold;">Solidairement,</p>
-                <p style="margin:4px 0 0;font-size:13px;color:#222222;">Le formulaire en ligne</p>
-                <p style="margin:2px 0 0;font-size:12px;color:#931510;font-weight:bold;">Centrale Générale FGTB Namur Luxembourg</p>
-                <p style="margin:4px 0 0;font-size:12px;color:#222222;">📞 Namur : ${TEL_NAMUR} &nbsp;|&nbsp; Luxembourg : ${TEL_LUXEMBOURG}</p>
-                <p style="margin:4px 0 0;"><a href="https://${SITE_WEB}" style="font-size:12px;color:#931510;text-decoration:none;">${SITE_WEB}</a></p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>`;
+export function buildC1Html(p: Declarant): EmailRendu {
+  return formulaireRecu({
+    etiquette: "Service chômage",
+    titre: "Formulaire C1",
+    intro: "Nouveau formulaire C1 reçu de",
+    description:
+      "Un formulaire C1 (Déclaration de situation personnelle et familiale — ONEM) a été complété et signé en ligne. Le document rempli est joint en pièce jointe.",
+    p,
+    raison: "Message envoyé quand un formulaire C1 est transmis au service chômage depuis notre site.",
+  });
 }
 
-export function buildC1Html(brut: {
-  nom: string;
-  prenom: string;
-  email: string;
-  adminEmail: string;
-}): string {
-  const p = echapperChamps(brut);
-  const body = `
-      <tr>
-        <td style="padding:28px 32px 0;">
-          <p style="margin:0 0 18px;font-size:15px;color:#222222;">
-            Nouveau formulaire C1 reçu de <strong>${p.prenom} ${p.nom}</strong>
-          </p>
-          <p style="margin:0 0 14px;font-size:13px;color:#222222;line-height:1.65;">
-            Un formulaire C1 (Déclaration de situation personnelle et familiale — ONEM) a été complété
-            et signé en ligne. Le document rempli est joint en pièce jointe.
-          </p>
-          ${p.email ? `<p style="margin:0 0 20px;font-size:13px;color:#222222;line-height:1.65;">
-            Adresse e-mail du déclarant : <a href="mailto:${p.email}" style="color:#931510;">${p.email}</a>
-          </p>` : ""}
-        </td>
-      </tr>
-      ${signatureBlock()}`;
-
-  return emailShell("Formulaire C1 — FGTB", body, p.adminEmail);
+export function buildC32Html(p: Declarant): EmailRendu {
+  return formulaireRecu({
+    etiquette: "Service chômage",
+    titre: "Formulaire C3.2",
+    intro: "Nouveau formulaire C3.2 reçu de",
+    description:
+      "Un formulaire C3.2 (Demande d'allocations de chômage temporaire — ONEM) a été complété et signé en ligne. Le document rempli est joint en pièce jointe.",
+    p,
+    raison: "Message envoyé quand un formulaire C3.2 est transmis au service chômage depuis notre site.",
+  });
 }
 
-export function buildC32Html(brut: {
-  nom: string;
-  prenom: string;
-  email: string;
-  adminEmail: string;
-}): string {
-  const p = echapperChamps(brut);
-  const body = `
-      <tr>
-        <td style="padding:28px 32px 0;">
-          <p style="margin:0 0 18px;font-size:15px;color:#222222;">
-            Nouveau formulaire C3.2 reçu de <strong>${p.prenom} ${p.nom}</strong>
-          </p>
-          <p style="margin:0 0 14px;font-size:13px;color:#222222;line-height:1.65;">
-            Un formulaire C3.2 (Demande d&apos;allocations de chômage temporaire — ONEM) a été complété
-            et signé en ligne. Le document rempli est joint en pièce jointe.
-          </p>
-          ${p.email ? `<p style="margin:0 0 20px;font-size:13px;color:#222222;line-height:1.65;">
-            Adresse e-mail du déclarant : <a href="mailto:${p.email}" style="color:#931510;">${p.email}</a>
-          </p>` : ""}
-        </td>
-      </tr>
-      ${signatureBlock()}`;
-
-  return emailShell("Formulaire C3.2 — FGTB", body, p.adminEmail);
-}
-
-export function buildOnemBundleHtml(brut: {
-  nom: string;
-  prenom: string;
-  email: string;
-  adminEmail: string;
-}): string {
-  const p = echapperChamps(brut);
-  const body = `
-      <tr>
-        <td style="padding:28px 32px 0;">
-          <p style="margin:0 0 18px;font-size:15px;color:#222222;">
-            Nouveaux formulaires ONEM reçus de <strong>${p.prenom} ${p.nom}</strong>
-          </p>
-          <p style="margin:0 0 14px;font-size:13px;color:#222222;line-height:1.65;">
-            Les formulaires <strong>C1</strong> (déclaration de situation personnelle et familiale) et
-            <strong>C3.2</strong> (demande d&apos;allocations de chômage temporaire) ont été complétés
-            et signés en ligne dans le cadre d&apos;un parcours de transfert syndical.
-            Les deux documents remplis sont joints à ce message.
-          </p>
-          ${p.email ? `<p style="margin:0 0 20px;font-size:13px;color:#222222;line-height:1.65;">
-            Adresse e-mail du déclarant : <a href="mailto:${p.email}" style="color:#931510;">${p.email}</a>
-          </p>` : ""}
-        </td>
-      </tr>
-      ${signatureBlock()}`;
-
-  return emailShell("Formulaires C1 et C3.2 — FGTB", body, p.adminEmail);
+export function buildOnemBundleHtml(p: Declarant): EmailRendu {
+  return formulaireRecu({
+    etiquette: "Service chômage",
+    titre: "Formulaires C1 et C3.2",
+    intro: "Nouveaux formulaires ONEM reçus de",
+    description:
+      "Les formulaires C1 (déclaration de situation personnelle et familiale) et C3.2 (demande d'allocations de chômage temporaire) ont été complétés et signés en ligne dans le cadre d'un parcours de transfert syndical. Les deux documents remplis sont joints à ce message.",
+    p,
+    raison: "Message envoyé à la fin d'un parcours de transfert syndical sur notre site.",
+  });
 }
 
 /** Message envoyé uniquement à l'adresse saisie par la personne. */
@@ -146,31 +69,19 @@ export function buildLivraisonPersonnelleHtml(p: {
   emailDeclarant: string;
   documents: string[];
   adminEmail: string;
-}): string {
-  const prenom = echapperHtml(p.prenom);
-  const nom = echapperHtml(p.nom);
-  const email = echapperHtml(p.emailDeclarant);
-  const liste = p.documents
-    .map((doc) => `<li style="margin:0 0 6px;">${echapperHtml(doc)}</li>`)
-    .join("");
-
-  const body = `
-      <tr>
-        <td style="padding:28px 32px 0;">
-          <p style="margin:0 0 18px;font-size:15px;color:#222222;">
-            Formulaires remplis de <strong>${prenom} ${nom}</strong>
-          </p>
-          <p style="margin:0 0 14px;font-size:13px;color:#222222;line-height:1.65;">
-            La personne vous envoie les formulaires qu'elle a complétés en ligne.
-            Les documents sont joints à ce message.
-          </p>
-          ${liste ? `<ul style="margin:0 0 16px;padding-left:18px;font-size:13px;color:#222222;">${liste}</ul>` : ""}
-          ${email ? `<p style="margin:0 0 20px;font-size:13px;color:#222222;line-height:1.65;">
-            Adresse e-mail de la personne : <a href="mailto:${email}" style="color:#931510;">${email}</a>
-          </p>` : ""}
-        </td>
-      </tr>
-      ${signatureBlock()}`;
-
-  return emailShell("Formulaires remplis — FGTB", body, p.adminEmail);
+}): EmailRendu {
+  const nom = `${p.prenom} ${p.nom}`;
+  return gabaritEmail({
+    etiquette: "Vos formulaires",
+    titre: "Formulaires remplis",
+    apercu: `Formulaires remplis de ${nom}, en pièce jointe.`,
+    blocs: [
+      paragraphe(`Formulaires remplis de ${nom}`, { gras: [nom] }),
+      paragraphe("La personne vous envoie les formulaires qu'elle a complétés en ligne. Les documents sont joints à ce message."),
+      ...(p.documents.length ? [liste(p.documents)] : []),
+      ...(p.emailDeclarant ? [paragraphe(`Adresse e-mail de la personne : ${p.emailDeclarant}`)] : []),
+      SIGNATURE_FORMULAIRE,
+    ],
+    raison: "Vous recevez ce message parce que vos formulaires remplis ont été envoyés à cette adresse depuis notre site.",
+  });
 }

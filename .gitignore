@@ -21,3 +21,6 @@ desktop.ini
 
 # Documents internes (contacts, répartitions) — jamais publiés ni commités
 docs-internes/
+
+# Aperçu local des e-mails (scripts/apercu-emails)
+apercu-emails.html

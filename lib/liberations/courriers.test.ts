@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MODELES, accords, bureauExpediteur, codeModeleCourrier, dateLongue, donneesCourrier, emailCourrier, fusionner, nomFichierCourrier,
-  periode, phraseDates, phraseQuand, texteEnHtml, textesModeles, variables, variablesInconnues, type ContexteCourrier,
+  periode, phraseDates, phraseQuand, textesModeles, variables, variablesInconnues, type ContexteCourrier,
 } from "./courriers";
 
 const J = (jour: string, duree: "journee" | "matin" | "apres_midi" = "journee", heure_debut: string | null = null) => ({ jour, duree, heure_debut });
@@ -122,10 +122,6 @@ describe("outils", () => {
   it("choisit le bureau expéditeur", () => {
     expect(bureauExpediteur("Libramont").adresse[0]).toBe("Rue Fonteny Maroy 13");
     expect(bureauExpediteur("Ailleurs").ville).toBe("Namur");
-  });
-
-  it("transforme le texte en HTML sûr", () => {
-    expect(texteEnHtml("A <b>\nB\n\nC")).toBe('<p style="margin:0 0 14px;line-height:1.5">A &lt;b&gt;<br>B</p><p style="margin:0 0 14px;line-height:1.5">C</p>');
   });
 
   it("nomme le fichier", () => {

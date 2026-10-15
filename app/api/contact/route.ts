@@ -4,7 +4,7 @@ import { EMAIL_GENERAL } from "@/lib/bureaux";
 import { CHAMP_PIEGE, nettoyerContact, validerContact } from "@/lib/contact";
 import { htmlContact, sujetContact } from "@/lib/contact-email";
 import { isoToDateFr } from "@/lib/dates";
-import { getFromEmail, getResendClient } from "@/lib/resend-mail";
+import { getExpediteur, versResend, getResendClient } from "@/lib/resend-mail";
 
 /**
  * Formulaire de contact public : un e-mail vers l'adresse générale, « Répondre à » = le visiteur.
@@ -45,11 +45,11 @@ export async function POST(request: Request) {
 
   try {
     const { error } = await getResendClient().emails.send({
-      from: getFromEmail(),
+      from: getExpediteur(),
       to: [EMAIL_GENERAL],
       replyTo: message.email,
       subject: sujetContact(message),
-      html: htmlContact(message, `${jour} à ${heure}`),
+      ...versResend(htmlContact(message, `${jour} à ${heure}`)),
     });
     if (error) {
       console.error("[contact] Échec Resend :", error.name);

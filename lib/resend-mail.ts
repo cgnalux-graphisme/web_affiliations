@@ -17,6 +17,27 @@ export function getFromEmail(): string {
   return process.env.RESEND_FROM_EMAIL ?? NOREPLY_FALLBACK;
 }
 
+/** Nom affiché comme expéditeur (une adresse seule fait plus « robot » aux yeux des filtres anti-spam). */
+export const NOM_EXPEDITEUR = "Centrale Générale FGTB Namur-Luxembourg";
+/** Réponse par défaut : l'administration (plus de « merci de ne pas répondre »). */
+export const REPONSE_PAR_DEFAUT = "admin.nalux@accg.be";
+
+/** E-mail rendu (gabarit commun) → champs « html » et « text » de Resend. */
+export function versResend(e: { html: string; texte: string }): { html: string; text: string } {
+  return { html: e.html, text: e.texte };
+}
+
+/** Adresse seule, extraite de « Nom <adresse> » si besoin. */
+export function adresseSeule(expediteur: string): string {
+  return (expediteur.match(/<([^>]+)>/)?.[1] ?? expediteur).trim();
+}
+
+/** Expéditeur complet : « Centrale Générale FGTB Namur-Luxembourg <adresse> » (garde un nom déjà fourni). */
+export function getExpediteur(): string {
+  const brut = getFromEmail();
+  return brut.includes("<") ? brut : `${NOM_EXPEDITEUR} <${brut}>`;
+}
+
 /** Déduplique, normalise et retire l'adresse expéditrice de la liste. */
 export function uniqueRecipients(
   from: string,
@@ -37,9 +58,12 @@ interface IsolatedEmailOptions {
   /** Destinataires — chacun reçoit son propre e-mail, seul en « À ». */
   recipients: string[];
   subject: string;
-  html: string;
+  /** HTML seul, ou e-mail rendu par le gabarit commun (HTML + version texte, lib/emails/gabarit.ts). */
+  html: string | { html: string; texte: string };
+  /** Version texte (lib/emails/gabarit.ts) : toujours jointe au HTML, les filtres anti-spam s'en méfient sinon. */
+  text?: string;
   attachments?: { filename: string; content: Buffer }[];
-  /** Adresse de réponse (ex. le correspondant d'un dossier de libération). */
+  /** Adresse de réponse (ex. le correspondant d'un dossier de libération) ; par défaut l'administration. */
   replyTo?: string;
 }
 
@@ -49,10 +73,12 @@ interface IsolatedEmailOptions {
  */
 export async function sendIsolatedEmail(
   resend: Resend,
-  { recipients, subject, html, attachments, replyTo }: IsolatedEmailOptions
+  { recipients, subject, html: contenu, text: texteFourni, attachments, replyTo }: IsolatedEmailOptions
 ) {
-  const from = getFromEmail();
-  const toList = uniqueRecipients(from, ...recipients);
+  const html = typeof contenu === "string" ? contenu : contenu.html;
+  const text = texteFourni ?? (typeof contenu === "string" ? undefined : contenu.texte);
+  const from = getExpediteur();
+  const toList = uniqueRecipients(adresseSeule(from), ...recipients);
 
   if (toList.length === 0) {
     throw new Error("Aucun destinataire.");
@@ -65,8 +91,9 @@ export async function sendIsolatedEmail(
         to: [to],
         subject,
         html,
+        ...(text ? { text } : {}),
         attachments,
-        ...(replyTo ? { replyTo } : {}),
+        replyTo: replyTo ?? REPONSE_PAR_DEFAUT,
       })
     )
   );

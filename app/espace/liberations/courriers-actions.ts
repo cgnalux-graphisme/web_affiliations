@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseService } from "../../../lib/supabase-service";
 import { getResendClient, sendIsolatedEmail } from "../../../lib/resend-mail";
+import { emailLiberation } from "../../../lib/emails/liberation";
 import { formaterTelephone } from "../../../lib/telephone";
 import { ROLES_EQUIPE } from "../../../lib/espace/roles";
 import { contexteLiberations, type ContexteLiberations } from "../../../lib/liberations/donnees-serveur";
@@ -11,7 +12,7 @@ import {
   contexteCourrier, documentAttestationPerte, documentCourrier, nomParticipant, preparerCourriers, type PreparationCourriers,
 } from "../../../lib/liberations/courriers-serveur";
 import {
-  MODELES, emailCourrier, modeleParCode, nomFichierCourrier, texteEnHtml, variablesInconnues, type GenreCourrier,
+  MODELES, emailCourrier, modeleParCode, nomFichierCourrier, variablesInconnues, type GenreCourrier,
 } from "../../../lib/liberations/courriers";
 import { validerMontants } from "../../../lib/liberations/montants";
 import { pdfAttestationPerte, pdfCourrier } from "../../../lib/liberations/pdf/rendu";
@@ -88,11 +89,12 @@ async function envoyer(c: Ctx, prep: PreparationCourriers, p: ParticipantAffiche
     return { ok: false, erreur: "Le PDF n'a pas pu être fabriqué. Réessayez, ou signalez-le si cela se répète." };
   }
   const mail = emailCourrier(genre, contexteCourrier(prep, p));
+  const rendu = emailLiberation(genre, mail);
   let erreur: string | null = null;
   let resendId: string | null = null;
   try {
     const r = await sendIsolatedEmail(getResendClient(), {
-      recipients: [dest], subject: mail.objet, html: texteEnHtml(mail.texte), attachments: pieces, replyTo: prep.correspondant?.email ?? undefined,
+      recipients: [dest], subject: mail.objet, html: rendu.html, text: rendu.texte, attachments: pieces, replyTo: prep.correspondant?.email ?? undefined,
     });
     resendId = r.envois[0]?.id ?? null;
     erreur = r.envois[0]?.erreur ?? (r.error ? "Échec de l'envoi" : null);

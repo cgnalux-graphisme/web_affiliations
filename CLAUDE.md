@@ -237,8 +237,10 @@ Historique des états précédents : [docs/contexte/journal.md](docs/contexte/jo
   - Supabase : le schéma n'est pas lisible avec la clé publique ; les colonnes
     ont été relevées par sondage en lecture seule (`select=<col>&limit=0`).
     **Aucune écriture de test dans la base.**
-- **Routes API publiques** (e-mails, PDF, adresses) : toute valeur saisie qui entre dans un e-mail HTML passe par
-  `echapperHtml()` / `echapperChamps()` (`lib/echapper-html.ts`), et chaque route commence par
+- **E-mails automatiques** : tous passent par le gabarit commun `lib/emails/gabarit.ts` (validé par Fred le
+  15/10/2026, détail dans [docs/contexte/design.md](docs/contexte/design.md)) ; il neutralise le HTML des valeurs
+  saisies et produit la version texte. Ne jamais écrire un e-mail en HTML à la main.
+- **Routes API publiques** (e-mails, PDF, adresses) : chaque route commence par
   `refuserSiTropDeRequetes()` (`lib/limite-requetes.ts`). Tout appel à un service externe a un délai maximum
   (`AbortSignal.timeout`).
 - **Tests** : `npm test` (Vitest, fichiers `lib/**/*.test.ts`). **Relecture** : `npm run lint` (ESLint, `eslint.config.mjs`,

@@ -16,11 +16,11 @@ const contenu = {
 
 describe("e-mail de l'Assistant CG", () => {
   it("contient un bouton Répondre qui ouvre un nouveau message adressé à la personne", () => {
-    const html = htmlEmailAssistant(contenu);
+    const { html } = htmlEmailAssistant(contenu);
     expect(html).toContain("mailto:marie.dupont%40exemple.be?subject=");
     expect(html).toContain("Répondre à Marie Dupont");
   });
   it("ne contient jamais de registre national", () => {
-    expect(htmlEmailAssistant(contenu)).not.toMatch(/\d{2}\.\d{2}\.\d{2}-\d{3}\.\d{2}/);
+    expect(htmlEmailAssistant(contenu).html + htmlEmailAssistant(contenu).texte).not.toMatch(/\d{2}\.\d{2}\.\d{2}-\d{3}\.\d{2}/);
   });
 });

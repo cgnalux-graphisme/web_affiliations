@@ -81,9 +81,24 @@ https://claude.ai/artifact/Gcfj9m7DxfpyLAB1yBL18c
 - **Nom de la centrale** : toujours « Centrale Générale FGTB **Namur-Luxembourg** » (trait
   d'union sans espaces), titres d'onglet compris (`<page> — Centrale Générale FGTB
   Namur-Luxembourg`). Harmonisé le 30/09/2026.
-- **E-mails automatiques** (confirmation d'affiliation, mandat SEPA, C1 / C3.2 :
-  `app/api/send-confirmation`, `app/api/send-mandat-sepa`, `lib/onem-email-html.ts`) :
-  palette du site depuis le 30/09/2026 (plus de gris, rouge ni orange Tailwind).
+- **E-mails automatiques : gabarit commun** (`lib/emails/gabarit.ts`, canevas validé par Fred le 15/10/2026, appliqué
+  aux 13 e-mails) : carte blanche 600 px à contour ardoise, arrondie 16 px ; en-tête blanc avec le **logo rouge**
+  (`public/emails/logo-cg-rouge-360.png`, affiché en 180 px) sur un **filet rouge de 4 px** ; **bandeau bordeaux** :
+  étiquette (Barlow Condensed 600, capitales par le style) et grand titre (Barlow Condensed 800) ; corps en Barlow
+  16 px charbon ; **pied de page charbon centré** sous un filet rouge de 3 px : logo blanc (sans le nom écrit, demande
+  de Fred), les deux bureaux côte à côte séparés par un filet ardoise (empilés sur téléphone, adresses de
+  `lib/bureaux.ts`), e-mail et site sur une ligne, puis raison de l'envoi et lien vie privée sous un filet fin.
+  Briques : `paragraphe`, `intertitre`, `recapitulatif` (libellé / valeur sur filets ardoise), `encadre` (filet
+  bordeaux ou fond bordeaux « fort »), `liste`, `bouton` (bordeaux, ou secondaire bordé de charbon), `pasVous`,
+  `signature`. Polices servies par le site (repli Arial / Arial Narrow, Gmail n'accepte pas les polices externes) ;
+  logo et polices pris sur `SITE_URL`, sinon `https://web-affiliations.vercel.app`.
+  **Anti-spam** : version texte toujours jointe, aucun emoji, pas de phrase en capitales, une image décorative au
+  plus en plus du logo, liens complets en https, raison de l'envoi et adresse postale, poids ≈ 9 Ko ; expéditeur
+  avec un nom (« Centrale Générale FGTB Namur-Luxembourg <…> », `getExpediteur()`), réponse par défaut vers
+  `admin.nalux@accg.be` (`lib/resend-mail.ts`). `controlesAntiSpam()` + `lib/emails/gabarit.test.ts` vérifient chaque
+  e-mail. Aperçu de tous les e-mails : `npx vitest run -c scripts/apercu-emails/vitest.config.mts`.
+  **DNS de accg-nalux.be** : SPF et DKIM (Resend) en place ; DMARC à revoir par Fred (rapports vers e-monsite,
+  `p=none`).
 - **Exceptions de palette connues** (audit du 30/09/2026) : vert CSC / bleu Synova,
   2 couleurs de graphique du rapport, noir des PDF officiels C1 / C3.2 et du courrier
   de préavis (à ne pas modifier), cartes Google Maps, **logos des médias** dans Scan News

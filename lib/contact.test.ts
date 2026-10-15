@@ -30,8 +30,9 @@ describe("formulaire de contact", () => {
   });
 
   it("échappe le HTML du visiteur dans l'e-mail", () => {
-    const html = htmlContact({ ...ok, message: "<script>x</script>\nligne 2" }, "29/09/2026 à 10:00");
+    const { html, texte } = htmlContact({ ...ok, message: "<script>x</script>\nligne 2" }, "29/09/2026 à 10:00");
     expect(html).not.toContain("<script>");
-    expect(html).toContain("&lt;script&gt;x&lt;/script&gt;<br />ligne 2");
+    expect(html).toContain("&lt;script&gt;x&lt;/script&gt;<br>ligne 2");
+    expect(texte).toContain("ligne 2");
   });
 });

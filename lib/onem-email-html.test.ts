@@ -3,7 +3,7 @@ import { buildLivraisonPersonnelleHtml } from "./onem-email-html";
 
 describe("buildLivraisonPersonnelleHtml", () => {
   it("affiche le nom sans laisser passer de balise", () => {
-    const html = buildLivraisonPersonnelleHtml({
+    const { html } = buildLivraisonPersonnelleHtml({
       nom: "<script>",
       prenom: "Ada",
       emailDeclarant: "ada@exemple.be",
