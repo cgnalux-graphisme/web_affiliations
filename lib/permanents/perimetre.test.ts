@@ -41,7 +41,8 @@ describe("fichesDuPerimetre", () => {
 describe("secteurDepuisCgLink", () => {
   const secteurs = [
     { id: "s1", nom: "Construction" },
-    { id: "s2", nom: "Bois / ameublement" },
+    { id: "s2", nom: "Bois - Industrie" },
+    { id: "s8", nom: "Bois - Ameublement & Transformation" },
     { id: "s3", nom: "Entreprises de travail adapté (ETA)" },
     { id: "s4", nom: "Carrières & matériaux" },
     { id: "s5", nom: "Titres-services" },
@@ -54,6 +55,11 @@ describe("secteurDepuisCgLink", () => {
     expect(secteurDepuisCgLink("ETA", secteurs)).toBe("s3");
     expect(secteurDepuisCgLink("Carrière", secteurs)).toBe("s4");
     expect(secteurDepuisCgLink("Titres-Services", secteurs)).toBe("s5");
+  });
+  it("bois scindé en deux le 15/10/2026", () => {
+    expect(secteurDepuisCgLink("Bois - Industrie", secteurs)).toBe("s2");
+    expect(secteurDepuisCgLink("Ameublement", secteurs)).toBe("s8");
+    expect(secteurDepuisCgLink("Transformation du bois", secteurs)).toBe("s8");
   });
   it("secteurs ajoutés le 13/10/2026", () => {
     expect(secteurDepuisCgLink("Transformation papier", secteurs)).toBe("s6");

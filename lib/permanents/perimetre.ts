@@ -29,11 +29,21 @@ export function fichesDuPerimetre(
 
 /**
  * Libellés de companies.sector (CG Link) → nom dans site_secteurs. Même table que la migration 20261013120000,
- * plus les secteurs créés le 13/10/2026 à la demande de Fred (Verre, papier, ALE, CP 100).
+ * plus les secteurs créés le 13/10/2026 à la demande de Fred (Verre, papier, ALE, CP 100) et les deux secteurs du
+ * bois du 15/10/2026.
  */
 const CORRESPONDANCE: Record<string, string> = {
   construction: "Construction",
-  bois: "Bois / ameublement",
+  // Ancien secteur « Bois / ameublement » scindé en deux le 15/10/2026 (demande de Fred) ; « Bois » de CG Link →
+  // industrie, sauf libellé plus précis.
+  bois: "Bois - Industrie",
+  "bois - industrie": "Bois - Industrie",
+  "industrie du bois": "Bois - Industrie",
+  ameublement: "Bois - Ameublement & Transformation",
+  "bois - ameublement": "Bois - Ameublement & Transformation",
+  "bois - ameublement & transformation": "Bois - Ameublement & Transformation",
+  "transformation du bois": "Bois - Ameublement & Transformation",
+  "transformation bois": "Bois - Ameublement & Transformation",
   chimie: "Chimie",
   eta: "Entreprises de travail adapté (ETA)",
   nettoyage: "Nettoyage",

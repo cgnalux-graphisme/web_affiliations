@@ -18,7 +18,7 @@ Créées le **24/09/2026** dans la base CG Link :
 
 | Objet | Rôle | Accès |
 |---|---|---|
-| `site_secteurs` | Liste modifiable des secteurs (11 pré-remplis) | Lecture publique, ajout : app `actions` |
+| `site_secteurs` | Liste modifiable des secteurs (11 pré-remplis, 16 au 13/10/2026). **15/10/2026** (demande de Fred) : « Bois / ameublement » renommé **« Bois - Industrie »** (même id, ses 6 entreprises y restent) et création de **« Bois - Ameublement & Transformation »** ; « Bois » de CG Link → Bois - Industrie (`lib/permanents/perimetre.ts`) | Lecture publique, ajout : app `actions` |
 | `site_actions` | Les actions syndicales (suivi + rapport de congrès) | App `actions` (lecture/écriture) |
 | `site_photos` | Photos rattachées à chaque action (`action_id`, `url`, `legende`) | App `actions` |
 | `site_videos` | Vidéos YouTube d'une action (`action_id`, `url`, `titre`) | App `actions` |
