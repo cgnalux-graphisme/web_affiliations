@@ -138,19 +138,27 @@ exception : la migration des envois, voir [docs/contexte/base-de-donnees.md](doc
 
 ---
 
-## État actuel (15/10/2026, audit du site, comptes, ESLint)
+## État actuel (15/10/2026, e-mails, secteurs du bois, travailleurs CG Link)
 - **Une seule branche de travail : `suivi-actions`**, poussée le 15/10/2026 à la demande de Fred (mise en production).
-- **Audit du 14/10/2026** : base saine (tout est branché, RLS partout) ; corrigé : e-mails publics neutralisés contre
-  l'injection de HTML, limite de débit sur les 11 routes publiques, bibliothèque PDF chargée à la demande (formulaires
-  3 fois plus légers), logos optimisés, délais maximum sur les appels externes, message d'erreur des Paramètres › Envois.
-- **Migrations** : `20261007120000` (changement de situation), `20261014150000` (index) et `20261014160000`
-  (règles RLS en double) **exécutées par Fred** et vérifiées.
-- **Nouveau** : suppression définitive d'un compte (Comptes & accès, super admin) ; taux kilométrique légal affiché
-  à titre informatif (Libérations › Paramètres) ; Équipe limitée aux comptes actifs qui ont l'app Libérations ;
-  signature (fonction) et téléphone dans « Mon compte » ; **ESLint** en place (`npm run lint`).
-- **À faire par Fred** : 1. tester dans le navigateur les formulaires affiliation, mandat SEPA, changement de
-  situation, préavis (PDF) ; 2. Supabase › Authentication : protection des mots de passe divulgués, codes e-mail
-  < 1 h ; 3. les points des Libérations (voir [docs/contexte/liberations.md](docs/contexte/liberations.md)).
+- **Audit du 14/10/2026** (voir [docs/contexte/journal.md](docs/contexte/journal.md)) : corrigé et en production ; les 3
+  migrations (`20261007120000`, `20261014150000`, `20261014160000`) sont exécutées et vérifiées.
+- **E-mails automatiques** : gabarit commun `lib/emails/gabarit.ts` (canevas validé par Fred) appliqué aux 13 e-mails,
+  version texte jointe, expéditeur nommé, réponse vers admin.nalux@accg.be, contrôles anti-spam testés. Textes
+  repris tels quels, validés par Fred. Détail : [docs/contexte/design.md](docs/contexte/design.md).
+- **Secteurs** : « Bois / ameublement » scindé en « Bois - Industrie » (même id, ses 6 entreprises) et « Bois -
+  Ameublement & Transformation » (directement en base, 15/10/2026).
+- **Travailleurs CG Link** (`workers`) : panneau à la demande sur la fiche entreprise (toutes les données), choix
+  d'un travailleur à la création d'un délégué et reprise du registre national sur sa carte. Détail :
+  [docs/contexte/entreprises.md](docs/contexte/entreprises.md), [docs/contexte/delegues.md](docs/contexte/delegues.md).
+- **Vérifié** : 921 tests, types, ESLint, build ; lecture réelle des travailleurs (93 fiches). **Pas encore vérifié
+  dans le navigateur** : PDF des formulaires publics (bibliothèque chargée à la demande), suppression d'un compte,
+  « Mon compte » (signature), panneau Travailleurs ; aucun vrai e-mail envoyé avec le nouveau gabarit.
+- **À faire par Fred** : 1. tester ces écrans et s'envoyer un message depuis la page Contact (rendu de l'e-mail) ;
+  2. DNS de accg-nalux.be : rapports DMARC vers une adresse de la Centrale (aujourd'hui dev@e-monsite.com), puis
+  `p=quarantine` ; 3. Supabase › Authentication : protection des mots de passe divulgués, codes e-mail < 1 h ;
+  4. au passage du domaine sur le nouveau site : définir `SITE_URL` (logo et polices des e-mails) ; 5. mettre à jour
+  le taux kilométrique légal chaque trimestre (`lib/liberations/taux-legal.ts`) ; 6. points des Libérations (voir
+  [docs/contexte/liberations.md](docs/contexte/liberations.md)).
 
 Historique des états précédents : [docs/contexte/journal.md](docs/contexte/journal.md).
 
